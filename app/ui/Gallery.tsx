@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { imgUrl } from '@/lib/img';
 
 type Shot = { src: string; label: string };
 
@@ -78,7 +79,7 @@ export default function Gallery({
     <div className="mt-6">
       <figure>
         <img
-          src={`/items/${current.src}.webp`}
+          src={imgUrl(current.src)}
           alt={`${title} — ${current.label}`}
           className="max-h-[30rem] w-auto rounded shadow-sm"
         />
@@ -130,7 +131,7 @@ export default function Gallery({
                 }`}
               >
                 <img
-                  src={`/items/${s.src}-thumb.webp`}
+                  src={imgUrl(s.src, true)}
                   alt={s.label}
                   loading="lazy"
                   className="h-20 w-16 bg-parchment object-cover"

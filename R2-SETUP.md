@@ -44,11 +44,13 @@ Estimated time: ~10 minutes.
 
 ## 4. Create an API token (the upload credentials)
 
-1. On the R2 overview page, click **Manage R2 API Tokens** (top-right) → **Create API Token**.
-2. Name: `vivarium-app`.
+1. In the sidebar go to **Storage & databases → R2 → Overview** (R2 now lives under
+   "Storage & databases"). On that page find the **API Tokens** section and click **Manage**
+   — *not* the generic My Profile → API Tokens page, which gives the wrong kind of token.
+2. **Create Account API token** → name it `vivarium-app`.
 3. Permissions: **Object Read & Write**.
 4. Scope: **Apply to specific buckets only → `vivarium`**.
-5. TTL: leave as forever. **Create.**
+5. **Create API Token.**
 6. Copy these three, shown once:
    - **Access Key ID**
    - **Secret Access Key** *(you won't see it again — grab it now)*

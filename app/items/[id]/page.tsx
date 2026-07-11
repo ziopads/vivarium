@@ -7,6 +7,7 @@ import Discussion from '@/app/ui/Discussion';
 import ItemActions from '@/app/ui/ItemActions';
 import ItemNav from '@/app/ui/ItemNav';
 import { getViewer } from '@/lib/auth';
+import { imgUrl } from '@/lib/img';
 
 // Render on-demand so a cover change (writing items.json) shows up on refresh.
 export const dynamic = 'force-dynamic';
@@ -70,7 +71,7 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
       ) : (
         item.image && (
           <img
-            src={`/items/${item.image}.webp`}
+            src={imgUrl(item.image)}
             alt={item.title}
             className="mt-6 max-h-[28rem] w-auto rounded shadow-sm"
           />
