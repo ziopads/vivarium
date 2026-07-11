@@ -8,6 +8,8 @@ import ItemActions from '@/app/ui/ItemActions';
 import ItemNav from '@/app/ui/ItemNav';
 import { getViewer } from '@/lib/auth';
 import { imgUrl } from '@/lib/img';
+import TypeFieldsEditor from '@/app/ui/TypeFieldsEditor';
+import { typeFields } from '@/lib/itemTypes';
 
 // Render on-demand so a cover change (writing items.json) shows up on refresh.
 export const dynamic = 'force-dynamic';
@@ -43,6 +45,9 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
       ['Condition', item.condition],
       ['Condition notes', item.conditionNotes || ''],
       ['Location', item.location],
+      ...typeFields(item.itemType).map(
+        (f) => [f.label, String((item as Record<string, any>)[f.key] || '')] as [string, string],
+      ),
     ] as [string, string][]
   ).filter(([, v]) => v);
 
@@ -110,6 +115,15 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
           subjects={item.subjects}
           allShelves={allShelves}
           allGenres={allGenres}
+        />
+      )}
+      {viewer.isAdmin && (
+        <TypeFieldsEditor
+          itemId={item.id}
+          itemType={item.itemType}
+          values={Object.fromEntries(
+            typeFields(item.itemType).map((f) => [f.key, String((item as Record<string, any>)[f.key] || '')]),
+          )}
         />
       )}
       {item.places.length > 0 && <Tags label="Places" values={item.places} />}
