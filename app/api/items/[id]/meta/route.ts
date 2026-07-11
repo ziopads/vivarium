@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { getItems, writeLocalItems } from '@/lib/data';
+import { typeFields } from '@/lib/itemTypes';
 
 // POST /api/items/:id/meta
 //   { section?, shelf?, genres?, subjects?, location?, notes?, condition?, conditionNotes? }
@@ -13,6 +14,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   let body: {
     section?: string; shelf?: string; genres?: string[]; subjects?: string[];
     location?: string; notes?: string; condition?: string; conditionNotes?: string;
+    itemType?: string; fields?: Record<string, string>;
   };
   try {
     body = await req.json();
@@ -35,6 +37,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (typeof body.notes === 'string') item.notes = body.notes.trim();
   if (typeof body.condition === 'string') item.condition = body.condition.trim();
   if (typeof body.conditionNotes === 'string') item.conditionNotes = body.conditionNotes.trim();
+  if (typeof body.itemType === 'string' && body.itemType.trim()) item.itemType = body.itemType.trim();
+  if (body.fields && typeof body.fields === 'object') {
+    // Only allow keys defined for this item's type — no arbitrary property writes.
+    const allowed = new Set(typeFields(item.itemType).map((f) => f.key));
+    for (const [k, v] of Object.entries(body.fields)) {
+      if (allowed.has(k)) (item as Record<string, any>)[k] = typeof v === 'string' ? v.trim() : v;
+    }
+  }
 
   await writeLocalItems(items);
   revalidatePath(`/items/${id}`);

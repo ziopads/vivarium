@@ -31,4 +31,12 @@ export type Item = {
   section?: string;
   visibility?: string;
   maine?: boolean;
+  // Type-specific fields (e.g. picture frames); stored in the JSONB attributes tail.
+  frameOuterW?: string;
+  frameOuterH?: string;
+  frameSightW?: string;
+  frameSightH?: string;
+  frameDepth?: string;
+  frameRabbetDepth?: string;
+  frameMaterial?: string;
 };

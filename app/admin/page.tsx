@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import NewItemButton from '@/app/ui/NewItemButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,9 @@ export default function Admin() {
       <Link href="/" className="text-sm text-rust hover:underline">← home</Link>
       <h1 className="mt-3 font-serif text-2xl">Admin</h1>
       <p className="mt-1 text-sm text-muted">Behind-the-scenes tools — not part of the public catalogue.</p>
+      <div className="mt-4">
+        <NewItemButton />
+      </div>
       <ul className="mt-5 grid gap-3 sm:grid-cols-2">
         {links.map((l) => {
           const body = (
