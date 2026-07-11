@@ -8,7 +8,7 @@ import VocabEditor from '@/app/ui/VocabEditor';
 export const dynamic = 'force-dynamic';
 
 export default async function VocabPage() {
-  const vocab = getVocab();
+  const vocab = await getVocab();
   const items = await getItems();
 
   const count = (pick: (i: Item) => string[] | string) => {

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
+import AuthNav from './ui/AuthNav';
 
 export const metadata: Metadata = {
   title: 'Vivarium',
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/wishlist" className="text-muted hover:text-rust">
                 Wishlist
               </Link>
+              <AuthNav />
             </nav>
           </div>
         </header>

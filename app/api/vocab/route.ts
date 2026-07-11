@@ -24,14 +24,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unknown vocabulary kind' }, { status: 400 });
   }
 
-  const vocab = getVocab();
+  const vocab = await getVocab();
   const list = vocab[kind];
   let affected = 0;
 
   if (action === 'add') {
     if (!value) return NextResponse.json({ error: 'Empty value' }, { status: 400 });
     if (!list.includes(value)) list.push(value);
-    writeVocab(vocab);
+    await writeVocab(vocab);
     revalidatePath('/admin/vocab');
     return NextResponse.json({ ok: true, vocab, affected: 0 });
   }
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       }
     }
     if (affected) await writeLocalItems(items);
-    writeVocab(vocab);
+    await writeVocab(vocab);
     revalidatePath('/');
     revalidatePath('/browse');
     revalidatePath('/admin/vocab');
