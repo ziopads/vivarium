@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+.env
+.env*.local
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# Item images live on disk locally and in Supabase Storage (Phase 4) — keep them out of git
+public/items/
+
+# local data backups
+*.bak*
+*.imgbak
