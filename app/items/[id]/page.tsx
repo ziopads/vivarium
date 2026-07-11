@@ -6,6 +6,7 @@ import MetaEditor from '@/app/ui/MetaEditor';
 import Discussion from '@/app/ui/Discussion';
 import ItemActions from '@/app/ui/ItemActions';
 import ItemNav from '@/app/ui/ItemNav';
+import { getViewer } from '@/lib/auth';
 
 // Render on-demand so a cover change (writing items.json) shows up on refresh.
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,9 @@ export async function generateStaticParams() {
 export default async function ItemPage({ params }: { params: { id: string } }) {
   const item = await getItem(Number(params.id));
   if (!item) notFound();
+
+  const viewer = await getViewer();
+  if (item.visibility === 'restricted' && !viewer.isAuthed) notFound();
 
   const all = await getItems();
   const allShelves = Array.from(new Set(all.map((i) => i.shelf).filter(Boolean))).sort();
@@ -62,7 +66,7 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
       )}
 
       {item.images && item.images.length > 0 ? (
-        <Gallery images={item.images} title={item.title} itemId={item.id} copyrightSrc={item.copyright} />
+        <Gallery images={item.images} title={item.title} itemId={item.id} copyrightSrc={item.copyright} editable={viewer.isAdmin} />
       ) : (
         item.image && (
           <img
@@ -97,14 +101,16 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
         ))}
       </dl>
 
-      <MetaEditor
-        itemId={item.id}
-        shelf={item.shelf}
-        genres={item.genres}
-        subjects={item.subjects}
-        allShelves={allShelves}
-        allGenres={allGenres}
-      />
+      {viewer.isAdmin && (
+        <MetaEditor
+          itemId={item.id}
+          shelf={item.shelf}
+          genres={item.genres}
+          subjects={item.subjects}
+          allShelves={allShelves}
+          allGenres={allGenres}
+        />
+      )}
       {item.places.length > 0 && <Tags label="Places" values={item.places} />}
 
       {item.inscription && (
@@ -115,7 +121,7 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
       {item.notes && <p className="mt-6 text-sm text-muted">{item.notes}</p>}
 
       <ItemNav itemId={item.id} />
-      <ItemActions itemId={item.id} visibility={item.visibility} />
+      {viewer.isAdmin && <ItemActions itemId={item.id} visibility={item.visibility} />}
     </article>
   );
 }

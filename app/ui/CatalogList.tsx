@@ -15,11 +15,13 @@ export default function CatalogList({
   sections,
   shelves,
   genres,
+  editable = true,
 }: {
   items: Item[];
   sections: string[];
   shelves: string[];
   genres: string[];
+  editable?: boolean;
 }) {
   const [rows, setRows] = useState<Row[]>(items);
   const [saved, setSaved] = useState<number | null>(null);
@@ -43,8 +45,11 @@ export default function CatalogList({
   const toList = (s: string) =>
     Array.from(new Set(s.split(',').map((x) => x.trim()).filter(Boolean)));
 
-  const cell =
-    'rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-line focus:border-rust focus:bg-parchment';
+  // Editable cells get the hover/focus affordance; read-only cells look like text.
+  const cell = editable
+    ? 'rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-line focus:border-rust focus:bg-parchment'
+    : 'bg-transparent px-1 py-0.5 text-ink';
+  const ro = !editable;
   // Column headers stay pinned to the top; ID + Title stay pinned to the left.
   const th = 'sticky top-0 z-20 bg-card px-2 py-2 font-medium';
   const thId = 'sticky top-0 left-0 z-30 w-[64px] bg-card px-2 py-2 font-medium';
@@ -90,24 +95,28 @@ export default function CatalogList({
                 <td className="px-2 py-1.5">
                   <input
                     list="sectionopts"
+                    readOnly={ro}
                     defaultValue={r.section || ''}
-                    onBlur={(e) => e.target.value !== (r.section || '') && save(r.id, { section: e.target.value.trim() })}
+                    onBlur={(e) => editable && e.target.value !== (r.section || '') && save(r.id, { section: e.target.value.trim() })}
                     className={`w-32 ${cell}`}
                   />
                 </td>
                 <td className="px-2 py-1.5">
                   <input
                     list="shelfopts"
+                    readOnly={ro}
                     defaultValue={r.shelf}
-                    onBlur={(e) => e.target.value !== r.shelf && save(r.id, { shelf: e.target.value.trim() })}
+                    onBlur={(e) => editable && e.target.value !== r.shelf && save(r.id, { shelf: e.target.value.trim() })}
                     className={`w-28 ${cell}`}
                   />
                 </td>
                 <td className="px-2 py-1.5">
                   <input
                     list="genreopts"
+                    readOnly={ro}
                     defaultValue={r.genres.join(', ')}
                     onBlur={(e) => {
+                      if (!editable) return;
                       const v = toList(e.target.value);
                       if (v.join('|') !== r.genres.join('|')) save(r.id, { genres: v });
                     }}
@@ -116,8 +125,10 @@ export default function CatalogList({
                 </td>
                 <td className="px-2 py-1.5">
                   <input
+                    readOnly={ro}
                     defaultValue={r.subjects.join(', ')}
                     onBlur={(e) => {
+                      if (!editable) return;
                       const v = toList(e.target.value);
                       if (v.join('|') !== r.subjects.join('|')) save(r.id, { subjects: v });
                     }}
@@ -127,30 +138,34 @@ export default function CatalogList({
                 <td className="px-2 py-1.5">
                   <input
                     list="locopts"
+                    readOnly={ro}
                     defaultValue={r.location || ''}
-                    onBlur={(e) => e.target.value !== (r.location || '') && save(r.id, { location: e.target.value.trim() })}
+                    onBlur={(e) => editable && e.target.value !== (r.location || '') && save(r.id, { location: e.target.value.trim() })}
                     className={`w-28 ${cell}`}
                   />
                 </td>
                 <td className="px-2 py-1.5">
                   <input
+                    readOnly={ro}
                     defaultValue={r.notes || ''}
-                    onBlur={(e) => e.target.value !== (r.notes || '') && save(r.id, { notes: e.target.value })}
+                    onBlur={(e) => editable && e.target.value !== (r.notes || '') && save(r.id, { notes: e.target.value })}
                     className={`w-72 ${cell}`}
                   />
                 </td>
                 <td className="px-2 py-1.5">
                   <input
                     list="condopts"
+                    readOnly={ro}
                     defaultValue={r.condition || ''}
-                    onBlur={(e) => e.target.value !== (r.condition || '') && save(r.id, { condition: e.target.value.trim() })}
+                    onBlur={(e) => editable && e.target.value !== (r.condition || '') && save(r.id, { condition: e.target.value.trim() })}
                     className={`w-28 ${cell}`}
                   />
                 </td>
                 <td className="px-2 py-1.5">
                   <input
+                    readOnly={ro}
                     defaultValue={r.conditionNotes || ''}
-                    onBlur={(e) => e.target.value !== (r.conditionNotes || '') && save(r.id, { conditionNotes: e.target.value })}
+                    onBlur={(e) => editable && e.target.value !== (r.conditionNotes || '') && save(r.id, { conditionNotes: e.target.value })}
                     className={`w-64 ${cell}`}
                   />
                 </td>
@@ -169,10 +184,12 @@ export default function CatalogList({
           <option key={x as string} value={x as string} />
         ))}
       </datalist>
-      <p className="px-2 py-2 text-xs text-muted">
-        Edit inline — changes save when you leave a cell. Genres and subjects are comma-separated;
-        section, shelf and genre suggestions come from the managed vocabulary.
-      </p>
+      {editable && (
+        <p className="px-2 py-2 text-xs text-muted">
+          Edit inline — changes save when you leave a cell. Genres and subjects are comma-separated;
+          section, shelf and genre suggestions come from the managed vocabulary.
+        </p>
+      )}
     </div>
   );
 }

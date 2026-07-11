@@ -45,11 +45,13 @@ export default function Catalog({
   initialSection,
   initialQ,
   vocab,
+  isAdmin = false,
 }: {
   items: Item[];
   initialSection?: string;
   initialQ?: string;
   vocab?: { sections: string[]; genres: string[]; shelves: string[] };
+  isAdmin?: boolean;
 }) {
   // When arriving from a section click or the home search, the URL params drive a
   // fresh view; otherwise we restore the saved browse state (filters + scroll).
@@ -252,6 +254,7 @@ export default function Catalog({
           sections={vocab?.sections ?? []}
           shelves={vocab?.shelves ?? shelves.slice(1)}
           genres={vocab?.genres ?? genres.slice(1)}
+          editable={isAdmin}
         />
       ) : view === 'cards' ? (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

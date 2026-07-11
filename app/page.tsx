@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import { getItems } from '@/lib/data';
+import { getVisibleItems } from '@/lib/data';
 import { orderedSections, isMaine } from '@/lib/sections';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const items = await getItems();
+  const items = await getVisibleItems();
   const sections = orderedSections(items);
   const maineCount = items.filter(isMaine).length;
 

@@ -10,11 +10,13 @@ export default function Gallery({
   title,
   itemId,
   copyrightSrc,
+  editable = false,
 }: {
   images: Shot[];
   title: string;
   itemId: number;
   copyrightSrc?: string;
+  editable?: boolean;
 }) {
   const router = useRouter();
   const [active, setActive] = useState(0);
@@ -82,9 +84,10 @@ export default function Gallery({
         />
         <figcaption className="mt-2 flex items-center gap-3 text-xs text-muted">
           <span>{current.label}</span>
-          {isPrimary ? (
+          {isPrimary && (
             <span className="rounded-full bg-rust/10 px-2 py-0.5 text-rust">main image</span>
-          ) : (
+          )}
+          {editable && !isPrimary && (
             <button
               onClick={setAsCover}
               disabled={saving}
@@ -93,17 +96,19 @@ export default function Gallery({
               {saving ? 'Setting…' : 'Set as main image'}
             </button>
           )}
-          <button
-            onClick={setAsCopyright}
-            disabled={saving}
-            className={`rounded-full border px-2 py-0.5 disabled:opacity-50 ${
-              current.src === copyrightSrc
-                ? 'border-moss bg-moss/10 text-moss'
-                : 'border-line hover:border-rust hover:text-rust'
-            }`}
-          >
-            {current.src === copyrightSrc ? '✓ copyright page' : 'Set as copyright page'}
-          </button>
+          {editable && (
+            <button
+              onClick={setAsCopyright}
+              disabled={saving}
+              className={`rounded-full border px-2 py-0.5 disabled:opacity-50 ${
+                current.src === copyrightSrc
+                  ? 'border-moss bg-moss/10 text-moss'
+                  : 'border-line hover:border-rust hover:text-rust'
+              }`}
+            >
+              {current.src === copyrightSrc ? '✓ copyright page' : 'Set as copyright page'}
+            </button>
+          )}
           {msg && <span className="text-moss">{msg}</span>}
         </figcaption>
       </figure>

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function Manage() {
   const items = await getItems();
-  const vocab = getVocab();
+  const vocab = await getVocab();
   const rows = items.map((i) => ({
     id: i.id,
     title: i.title,

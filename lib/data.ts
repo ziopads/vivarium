@@ -2,20 +2,95 @@ import type { Item } from './types';
 import bundled from '@/data/items.json';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { getSupabase } from './supabase';
+import { validateItem } from './validation';
+import { getViewer } from './auth';
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'items.json');
 const ITEMS_DIR = path.join(process.cwd(), 'public', 'items');
 
+// ---------------------------------------------------------------------------
+// Hybrid row <-> Item mapping. Shared spine lives in typed columns; everything
+// else lives in the JSONB `attributes` bag.
+// ---------------------------------------------------------------------------
+const COLUMN_KEYS = new Set([
+  'id', 'itemType', 'title', 'author', 'year', 'section', 'shelf', 'genres',
+  'subjects', 'places', 'visibility', 'owner', 'signed', 'maine', 'cover',
+  'copyright', 'image', 'images', 'description', 'discussion',
+]);
+
+type Row = Record<string, any>;
+
+function itemToRow(it: Item): Row {
+  const attributes: Record<string, any> = {};
+  for (const [k, v] of Object.entries(it)) {
+    if (!COLUMN_KEYS.has(k)) attributes[k] = v;
+  }
+  return {
+    id: it.id,
+    item_type: it.itemType || 'Book',
+    title: it.title || '',
+    author: it.author || '',
+    year: it.year || '',
+    section: it.section || null,
+    shelf: it.shelf || null,
+    genres: it.genres || [],
+    subjects: it.subjects || [],
+    places: it.places || [],
+    visibility: it.visibility === 'restricted' ? 'restricted' : 'public',
+    owner: it.owner || null,
+    signed: !!it.signed,
+    maine: !!it.maine,
+    cover: it.cover || null,
+    copyright: it.copyright || null,
+    image: it.image ?? null,
+    images: it.images || [],
+    description: it.description || '',
+    discussion: it.discussion || null,
+    attributes,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function rowToItem(row: Row): Item {
+  const attrs = row.attributes || {};
+  return {
+    // defaults for the required-string fields that live in `attributes`
+    publisher: '', placeOfPublication: '', edition: '', printing: '', isbn: '',
+    format: '', blurb: '', inscription: '', condition: '', location: '', notes: '',
+    ...attrs,
+    id: row.id,
+    itemType: row.item_type || 'Book',
+    title: row.title || '',
+    author: row.author || '',
+    year: row.year || '',
+    section: row.section || '',
+    shelf: row.shelf || '',
+    genres: row.genres || [],
+    subjects: row.subjects || [],
+    places: row.places || [],
+    visibility: row.visibility || 'public',
+    owner: row.owner || '',
+    signed: !!row.signed,
+    maine: !!row.maine,
+    cover: row.cover || undefined,
+    copyright: row.copyright || undefined,
+    image: row.image ?? null,
+    images: row.images || [],
+    description: row.description || '',
+    discussion: row.discussion || undefined,
+  } as Item;
+}
+
+// ---------------------------------------------------------------------------
+// Local-file helpers (used when Supabase is not configured)
+// ---------------------------------------------------------------------------
 async function readLocalItems(): Promise<Item[]> {
   try {
     return JSON.parse(await fs.readFile(DATA_FILE, 'utf8')) as Item[];
   } catch {
     return bundled as unknown as Item[];
   }
-}
-
-export async function writeLocalItems(items: Item[]): Promise<void> {
-  await fs.writeFile(DATA_FILE, JSON.stringify(items, null, 1), 'utf8');
 }
 
 function humanize(stem: string): string {
@@ -26,9 +101,8 @@ function humanize(stem: string): string {
     .trim();
 }
 
-// Build a book's gallery by scanning public/items/<id6>/ so that moving image
-// files between item folders (in Finder) re-associates them on refresh.
-// The item's `cover` (if present and found) is placed first.
+// Local mode only: rebuild a gallery by scanning public/items/<id6>/ so that
+// moving image files between folders re-associates them on refresh.
 async function scanImages(
   id: number,
   cover: string | undefined,
@@ -60,32 +134,63 @@ async function withScannedImages(items: Item[]): Promise<Item[]> {
   );
 }
 
-const SELECT = `
-  select id, item_type as "itemType", title, author, publisher,
-         place_of_publication as "placeOfPublication", year, edition, printing, isbn,
-         format, signed, inscription, genres, shelf, subjects, places, condition,
-         location, owner, notes, description, blurb, discussion, image, images, cover
-  from items`;
-
+// ---------------------------------------------------------------------------
+// Public API — database-aware, with local-file fallback
+// ---------------------------------------------------------------------------
 export async function getItems(): Promise<Item[]> {
-  const url = process.env.DATABASE_URL;
-  if (!url) return withScannedImages(await readLocalItems());
-  const { neon } = await import('@neondatabase/serverless');
-  const sql = neon(url);
-  const rows = await sql.query(`${SELECT} order by title`);
-  return rows as unknown as Item[];
+  const sb = getSupabase();
+  if (sb) {
+    const { data, error } = await sb.from('items').select('*').order('id');
+    if (error) throw new Error(`Supabase getItems: ${error.message}`);
+    return (data || []).map(rowToItem);
+  }
+  return withScannedImages(await readLocalItems());
+}
+
+// Display helper: hides `restricted` items from anonymous visitors (they're
+// visible to any signed-in, allowlisted user). Write paths use getItems (all).
+export async function getVisibleItems(): Promise<Item[]> {
+  const items = await getItems();
+  const { isAuthed } = await getViewer();
+  return isAuthed ? items : items.filter((i) => i.visibility !== 'restricted');
 }
 
 export async function getItem(id: number): Promise<Item | null> {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    const it = (await readLocalItems()).find((i) => i.id === id);
-    if (!it) return null;
-    const scanned = await scanImages(it.id, it.cover);
-    return scanned.length ? { ...it, images: scanned, image: scanned[0].src } : it;
+  const sb = getSupabase();
+  if (sb) {
+    const { data, error } = await sb.from('items').select('*').eq('id', id).maybeSingle();
+    if (error) throw new Error(`Supabase getItem: ${error.message}`);
+    return data ? rowToItem(data) : null;
   }
-  const { neon } = await import('@neondatabase/serverless');
-  const sql = neon(url);
-  const rows = await sql.query(`${SELECT} where id = $1`, [id]);
-  return (rows[0] as unknown as Item) ?? null;
+  const it = (await readLocalItems()).find((i) => i.id === id);
+  if (!it) return null;
+  const scanned = await scanImages(it.id, it.cover);
+  return scanned.length ? { ...it, images: scanned, image: scanned[0].src } : it;
+}
+
+// Persists the full desired item set. In Supabase mode this upserts every item
+// and deletes any rows no longer present (handling create/update/delete
+// uniformly — which is why the existing routes need no changes). In local mode
+// it writes the JSON file. NOTE: upsert-all-on-write is simple and safe but not
+// the most efficient; if saves feel slow we can switch to targeted writes.
+export async function writeLocalItems(items: Item[]): Promise<void> {
+  const clean = items.map(validateItem);
+  const sb = getSupabase();
+  if (sb) {
+    const rows = clean.map(itemToRow);
+    for (let i = 0; i < rows.length; i += 500) {
+      const { error } = await sb.from('items').upsert(rows.slice(i, i + 500), { onConflict: 'id' });
+      if (error) throw new Error(`Supabase upsert: ${error.message}`);
+    }
+    const keep = new Set(clean.map((i) => i.id));
+    const { data: existing, error: exErr } = await sb.from('items').select('id');
+    if (exErr) throw new Error(`Supabase select ids: ${exErr.message}`);
+    const toDelete = (existing || []).map((r: Row) => r.id).filter((id: number) => !keep.has(id));
+    if (toDelete.length) {
+      const { error: delErr } = await sb.from('items').delete().in('id', toDelete);
+      if (delErr) throw new Error(`Supabase delete: ${delErr.message}`);
+    }
+    return;
+  }
+  await fs.writeFile(DATA_FILE, JSON.stringify(clean, null, 1), 'utf8');
 }
