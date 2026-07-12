@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import wishlist from '@/data/wishlist.json';
+import { getViewer } from '@/lib/auth';
 
 type Want = {
   title: string;
@@ -11,8 +13,11 @@ type Want = {
 };
 
 export const metadata = { title: 'Wishlist — Vivarium' };
+export const dynamic = 'force-dynamic';
 
-export default function WishlistPage() {
+export default async function WishlistPage() {
+  const { isAuthed } = await getViewer();
+  if (!isAuthed) redirect('/login?next=/wishlist');
   const items = wishlist as Want[];
 
   // group by section
