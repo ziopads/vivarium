@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getItem } from '@/lib/data';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/items/:id  (read-only)
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const item = await getItem(Number(params.id));
