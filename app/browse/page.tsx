@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getVisibleItems } from '@/lib/data';
-import { getVocab } from '@/lib/vocab';
+import { getVocab, flatShelves } from '@/lib/vocab';
 import Catalog from '@/app/ui/Catalog';
 import { getViewer } from '@/lib/auth';
 
@@ -24,7 +24,7 @@ export default async function Browse({
           items={items}
           initialSection={searchParams.section}
           initialQ={searchParams.q}
-          vocab={vocab}
+          vocab={{ sections: vocab.sections, genres: vocab.genres, shelves: flatShelves(vocab) }}
           isAdmin={viewer.isAdmin}
         />
       </div>

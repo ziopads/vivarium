@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 
-type Vocab = { sections: string[]; genres: string[]; shelves: string[] };
+type Vocab = { sections: string[]; genres: string[]; shelvesBySection: Record<string, string[]> };
 type Kind = 'sections' | 'genres' | 'shelves';
-type Counts = Record<Kind, Record<string, number>>;
-type Call = (kind: Kind, action: 'add' | 'rename' | 'delete', value: string, newValue?: string) => void;
+type Counts = {
+  sections: Record<string, number>;
+  genres: Record<string, number>;
+  shelvesBySection: Record<string, Record<string, number>>;
+};
 
 export default function VocabEditor({
   initial,
@@ -19,15 +22,16 @@ export default function VocabEditor({
   const [vocab, setVocab] = useState<Vocab>(initial);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [activeSection, setActiveSection] = useState(initial.sections[0] || '');
 
-  const call: Call = async (kind, action, value, newValue) => {
+  async function call(kind: Kind, action: 'add' | 'rename' | 'delete', value: string, newValue?: string, section?: string) {
     setBusy(true);
     setMsg('');
     try {
       const res = await fetch('/api/vocab', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind, action, value, newValue }),
+        body: JSON.stringify({ kind, action, value, newValue, section }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -37,24 +41,69 @@ export default function VocabEditor({
       setVocab(data.vocab);
       if (data.affected) {
         setMsg(
-          `${action === 'rename' ? 'Renamed' : 'Cleared'} — ${data.affected} item${
-            data.affected === 1 ? '' : 's'
-          } updated.`,
+          `${action === 'rename' ? 'Renamed' : 'Cleared'} — ${data.affected} item${data.affected === 1 ? '' : 's'} updated.`,
         );
       }
     } finally {
       setBusy(false);
     }
-  };
+  }
+
+  const shelves = vocab.shelvesBySection[activeSection] || [];
+  const shelfCounts = counts.shelvesBySection[activeSection] || {};
 
   return (
     <div className="mt-6">
       {msg && <p className="mb-3 text-sm text-moss">{msg}</p>}
+
       <div className="grid gap-6 lg:grid-cols-3">
-        <VocabColumn title="Sections" kind="sections" values={vocab.sections} counts={counts.sections} call={call} busy={busy} />
-        <VocabColumn title="Genres" kind="genres" values={vocab.genres} counts={counts.genres} call={call} busy={busy} />
-        <VocabColumn title="Shelves" kind="shelves" values={vocab.shelves} counts={counts.shelves} call={call} busy={busy} />
+        <Panel title="Sections" count={vocab.sections.length}>
+          <List
+            values={vocab.sections}
+            counts={counts.sections}
+            busy={busy}
+            onRename={(v, nv) => call('sections', 'rename', v, nv)}
+            onDelete={(v) => call('sections', 'delete', v)}
+          />
+          <Adder busy={busy} placeholder="add section…" onAdd={(v) => call('sections', 'add', v)} />
+        </Panel>
+
+        <Panel title="Genres" count={vocab.genres.length}>
+          <List
+            values={vocab.genres}
+            counts={counts.genres}
+            busy={busy}
+            onRename={(v, nv) => call('genres', 'rename', v, nv)}
+            onDelete={(v) => call('genres', 'delete', v)}
+          />
+          <Adder busy={busy} placeholder="add genre…" onAdd={(v) => call('genres', 'add', v)} />
+        </Panel>
+
+        <Panel title="Shelves">
+          <label className="mb-3 block text-sm">
+            <span className="mb-1 block text-muted">within section</span>
+            <select
+              value={activeSection}
+              onChange={(e) => setActiveSection(e.target.value)}
+              className="w-full rounded border border-line bg-parchment px-2 py-1 text-sm"
+            >
+              {vocab.sections.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </label>
+          <List
+            values={shelves}
+            counts={shelfCounts}
+            busy={busy}
+            empty="No shelves in this section yet."
+            onRename={(v, nv) => call('shelves', 'rename', v, nv, activeSection)}
+            onDelete={(v) => call('shelves', 'delete', v, undefined, activeSection)}
+          />
+          <Adder busy={busy} placeholder="add shelf…" onAdd={(v) => call('shelves', 'add', v, undefined, activeSection)} />
+        </Panel>
       </div>
+
       <div className="mt-6 rounded-lg border border-dashed border-line bg-card/50 p-4">
         <p className="text-sm font-medium">
           Condition <span className="text-muted">(fixed — not editable)</span>
@@ -69,70 +118,54 @@ export default function VocabEditor({
   );
 }
 
-function VocabColumn({
-  title,
-  kind,
-  values,
-  counts,
-  call,
-  busy,
-}: {
-  title: string;
-  kind: Kind;
-  values: string[];
-  counts: Record<string, number>;
-  call: Call;
-  busy: boolean;
-}) {
-  const [draft, setDraft] = useState('');
-  function add() {
-    const v = draft.trim();
-    if (v) call(kind, 'add', v);
-    setDraft('');
-  }
+function Panel({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-line bg-card p-4">
       <h2 className="font-serif text-lg">
-        {title} <span className="text-xs text-muted">({values.length})</span>
+        {title} {count !== undefined && <span className="text-xs text-muted">({count})</span>}
       </h2>
-      <ul className="mt-3 space-y-1">
-        {values.map((v) => (
-          <VocabRow key={v} kind={kind} value={v} count={counts[v] || 0} call={call} busy={busy} />
-        ))}
-      </ul>
-      <div className="mt-3 flex gap-1">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              add();
-            }
-          }}
-          placeholder={`add ${title.toLowerCase().replace(/s$/, '')}…`}
-          className="flex-1 rounded border border-line bg-parchment px-2 py-1 text-sm outline-none focus:border-rust"
-        />
-        <button onClick={add} disabled={busy} className="rounded bg-rust px-3 py-1 text-sm text-white disabled:opacity-50">
-          add
-        </button>
-      </div>
+      <div className="mt-3">{children}</div>
     </div>
   );
 }
 
-function VocabRow({
-  kind,
+function List({
+  values,
+  counts,
+  busy,
+  empty,
+  onRename,
+  onDelete,
+}: {
+  values: string[];
+  counts: Record<string, number>;
+  busy: boolean;
+  empty?: string;
+  onRename: (value: string, newValue: string) => void;
+  onDelete: (value: string) => void;
+}) {
+  if (values.length === 0 && empty) return <p className="text-xs text-muted">{empty}</p>;
+  return (
+    <ul className="space-y-1">
+      {values.map((v) => (
+        <Row key={v} value={v} count={counts[v] || 0} busy={busy} onRename={onRename} onDelete={onDelete} />
+      ))}
+    </ul>
+  );
+}
+
+function Row({
   value,
   count,
-  call,
   busy,
+  onRename,
+  onDelete,
 }: {
-  kind: Kind;
   value: string;
   count: number;
-  call: Call;
   busy: boolean;
+  onRename: (value: string, newValue: string) => void;
+  onDelete: (value: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -140,7 +173,7 @@ function VocabRow({
   function saveRename() {
     const v = draft.trim();
     setEditing(false);
-    if (v && v !== value) call(kind, 'rename', value, v);
+    if (v && v !== value) onRename(value, v);
     else setDraft(value);
   }
   function del() {
@@ -148,7 +181,7 @@ function VocabRow({
       count > 0
         ? `Delete “${value}”? It will be cleared from ${count} item${count === 1 ? '' : 's'}.`
         : `Delete “${value}”?`;
-    if (window.confirm(warn)) call(kind, 'delete', value);
+    if (window.confirm(warn)) onDelete(value);
   }
 
   return (
@@ -181,5 +214,33 @@ function VocabRow({
         </>
       )}
     </li>
+  );
+}
+
+function Adder({ busy, placeholder, onAdd }: { busy: boolean; placeholder: string; onAdd: (v: string) => void }) {
+  const [draft, setDraft] = useState('');
+  function add() {
+    const v = draft.trim();
+    if (v) onAdd(v);
+    setDraft('');
+  }
+  return (
+    <div className="mt-3 flex gap-1">
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            add();
+          }
+        }}
+        placeholder={placeholder}
+        className="flex-1 rounded border border-line bg-parchment px-2 py-1 text-sm outline-none focus:border-rust"
+      />
+      <button onClick={add} disabled={busy} className="rounded bg-rust px-3 py-1 text-sm text-white disabled:opacity-50">
+        add
+      </button>
+    </div>
   );
 }
