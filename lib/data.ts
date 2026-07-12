@@ -147,12 +147,12 @@ export async function getItems(): Promise<Item[]> {
   return withScannedImages(await readLocalItems());
 }
 
-// Display helper: hides `restricted` items from anonymous visitors (they're
-// visible to any signed-in, allowlisted user). Write paths use getItems (all).
+// Display helper: `restricted` items are visible only to admins — hidden from
+// the public AND from signed-in non-admin family. Write paths use getItems (all).
 export async function getVisibleItems(): Promise<Item[]> {
   const items = await getItems();
-  const { isAuthed } = await getViewer();
-  return isAuthed ? items : items.filter((i) => i.visibility !== 'restricted');
+  const { isAdmin } = await getViewer();
+  return isAdmin ? items : items.filter((i) => i.visibility !== 'restricted');
 }
 
 export async function getItem(id: number): Promise<Item | null> {

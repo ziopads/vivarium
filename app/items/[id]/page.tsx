@@ -14,17 +14,12 @@ import { typeFields } from '@/lib/itemTypes';
 // Render on-demand so a cover change (writing items.json) shows up on refresh.
 export const dynamic = 'force-dynamic';
 
-export async function generateStaticParams() {
-  const items = await getItems();
-  return items.map((i) => ({ id: String(i.id) }));
-}
-
 export default async function ItemPage({ params }: { params: { id: string } }) {
   const item = await getItem(Number(params.id));
   if (!item) notFound();
 
   const viewer = await getViewer();
-  if (item.visibility === 'restricted' && !viewer.isAuthed) notFound();
+  if (item.visibility === 'restricted' && !viewer.isAdmin) notFound();
 
   const all = await getItems();
   const allShelves = Array.from(new Set(all.map((i) => i.shelf).filter(Boolean))).sort();

@@ -14,10 +14,11 @@ export async function POST(req: Request) {
 
   const items = await getItems();
   const nextId = items.reduce((m, i) => Math.max(m, i.id), 0) + 1;
+  const itemType = (body.itemType || 'Book').trim() || 'Book';
 
   const item: Item = {
     id: nextId,
-    itemType: (body.itemType || 'Book').trim() || 'Book',
+    itemType,
     title: (body.title || 'Untitled').trim() || 'Untitled',
     author: '',
     publisher: '',
@@ -41,7 +42,9 @@ export async function POST(req: Request) {
     owner: '',
     notes: '',
     image: null,
-    visibility: 'public',
+    // Books are the public catalogue; non-book items (frames, personal objects)
+    // default to private and can be made public per-item.
+    visibility: itemType === 'Book' ? 'public' : 'restricted',
   };
 
   await writeLocalItems([...items, item]);
