@@ -12,16 +12,22 @@ type Row = {
   subjects: string[];
 };
 
+// Shelves available for a section, always including the row's current shelf.
+function shelfOptions(sbs: Record<string, string[]>, section: string, current: string): string[] {
+  const list = sbs[section] || [];
+  return current && !list.includes(current) ? [current, ...list] : list;
+}
+
 export default function ManageTable({
   rows: initial,
   sections,
-  shelves,
+  shelvesBySection,
   genreSuggest,
   subjectSuggest,
 }: {
   rows: Row[];
   sections: string[];
-  shelves: string[];
+  shelvesBySection: Record<string, string[]>;
   genreSuggest: string[];
   subjectSuggest: string[];
 }) {
@@ -181,7 +187,7 @@ export default function ManageTable({
                 key={r.id}
                 r={r}
                 sections={sections}
-                shelves={shelves}
+                shelvesBySection={shelvesBySection}
                 selected={selected.has(r.id)}
                 saving={saving.has(r.id)}
                 expanded={expanded === r.id}
@@ -201,12 +207,12 @@ export default function ManageTable({
 }
 
 function ManageRow({
-  r, sections, shelves, selected, saving, expanded,
+  r, sections, shelvesBySection, selected, saving, expanded,
   onToggle, onExpand, onSave, genreSuggest, subjectSuggest,
 }: {
   r: Row;
   sections: string[];
-  shelves: string[];
+  shelvesBySection: Record<string, string[]>;
   selected: boolean;
   saving: boolean;
   expanded: boolean;
@@ -229,7 +235,11 @@ function ManageRow({
         <td className="px-2 py-2 align-top">
           <select
             value={r.section}
-            onChange={(e) => onSave(r.id, { section: e.target.value })}
+            onChange={(e) => {
+              const ns = e.target.value;
+              const keep = (shelvesBySection[ns] || []).includes(r.shelf);
+              onSave(r.id, keep ? { section: ns } : { section: ns, shelf: '' });
+            }}
             className={`rounded border px-1.5 py-1 ${r.section ? 'border-line bg-card' : 'border-amber-400 bg-amber-50'}`}
           >
             <option value="">— none —</option>
@@ -239,11 +249,12 @@ function ManageRow({
         <td className="px-2 py-2 align-top">
           <select
             value={r.shelf}
+            disabled={!r.section}
             onChange={(e) => onSave(r.id, { shelf: e.target.value })}
-            className="rounded border border-line bg-card px-1.5 py-1"
+            className="rounded border border-line bg-card px-1.5 py-1 disabled:opacity-40"
           >
             <option value="">— none —</option>
-            {shelves.map((s) => (<option key={s}>{s}</option>))}
+            {shelfOptions(shelvesBySection, r.section, r.shelf).map((s) => (<option key={s}>{s}</option>))}
           </select>
         </td>
         <td className="px-2 py-2 align-top">
