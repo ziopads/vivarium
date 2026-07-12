@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getItems } from '@/lib/data';
-import { getVocab, flatShelves } from '@/lib/vocab';
+import { getVocab } from '@/lib/vocab';
 import ManageTable from '@/app/ui/ManageTable';
 
 export const dynamic = 'force-dynamic';
@@ -31,7 +31,7 @@ export default async function Manage() {
         <ManageTable
           rows={rows}
           sections={vocab.sections}
-          shelves={flatShelves(vocab)}
+          shelvesBySection={vocab.shelvesBySection}
           genreSuggest={vocab.genres}
           subjectSuggest={subjectSuggest}
         />

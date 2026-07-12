@@ -45,18 +45,20 @@ export default function Catalog({
   items,
   initialSection,
   initialQ,
+  initialShelf,
   vocab,
   isAdmin = false,
 }: {
   items: Item[];
   initialSection?: string;
   initialQ?: string;
+  initialShelf?: string;
   vocab?: { sections: string[]; genres: string[]; shelves: string[] };
   isAdmin?: boolean;
 }) {
   // When arriving from a section click or the home search, the URL params drive a
   // fresh view; otherwise we restore the saved browse state (filters + scroll).
-  const fromUrl = initialSection !== undefined || initialQ !== undefined;
+  const fromUrl = initialSection !== undefined || initialQ !== undefined || initialShelf !== undefined;
 
   const [q, setQ] = useState(DEFAULTS.q);
   const [type, setType] = useState(DEFAULTS.type);
@@ -75,7 +77,7 @@ export default function Catalog({
     if (fromUrl) {
       setQ(initialQ ?? '');
       setSection(initialSection ?? 'All');
-      setType('All'); setGenre('All'); setShelf('All'); setSubject('All'); setPlace('All');
+      setType('All'); setGenre('All'); setShelf(initialShelf ?? 'All'); setSubject('All'); setPlace('All');
       setView(s.view); setSort(s.sort);
     } else {
       setQ(s.q); setSection(s.section); setType(s.type); setGenre(s.genre);
