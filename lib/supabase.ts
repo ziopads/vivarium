@@ -13,7 +13,12 @@ export function getSupabase(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (url && key) {
-    client = createClient(url, key, { auth: { persistSession: false } });
+    client = createClient(url, key, {
+      auth: { persistSession: false },
+      // Don't route reads through Next's fetch cache — the full items query is
+      // >2MB (over the cache limit) and pages are dynamic anyway.
+      global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
+    });
   }
   return client;
 }
