@@ -10,16 +10,23 @@ type Patch = Partial<
   Pick<Item, 'section' | 'shelf' | 'genres' | 'subjects' | 'location' | 'notes' | 'condition' | 'conditionNotes'>
 >;
 
+// Shelves for a section (alphabetized), always including the row's current shelf.
+function shelfOpts(sbs: Record<string, string[]>, section: string, current: string): string[] {
+  const list = sbs[section] || [];
+  const merged = current && !list.includes(current) ? [...list, current] : list;
+  return [...merged].sort((a, b) => a.localeCompare(b));
+}
+
 export default function CatalogList({
   items,
   sections,
-  shelves,
+  shelvesBySection,
   genres,
   editable = true,
 }: {
   items: Item[];
   sections: string[];
-  shelves: string[];
+  shelvesBySection: Record<string, string[]>;
   genres: string[];
   editable?: boolean;
 }) {
@@ -45,12 +52,11 @@ export default function CatalogList({
   const toList = (s: string) =>
     Array.from(new Set(s.split(',').map((x) => x.trim()).filter(Boolean)));
 
-  // Editable cells get the hover/focus affordance; read-only cells look like text.
   const cell = editable
     ? 'rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-line focus:border-rust focus:bg-parchment'
     : 'bg-transparent px-1 py-0.5 text-ink';
+  const sel = 'rounded border border-line bg-card px-1 py-0.5';
   const ro = !editable;
-  // Column headers stay pinned to the top; ID + Title stay pinned to the left.
   const th = 'sticky top-0 z-20 bg-card px-2 py-2 font-medium';
   const thId = 'sticky top-0 left-0 z-30 w-[64px] bg-card px-2 py-2 font-medium';
   const thTitle = 'sticky top-0 left-[64px] z-30 w-[220px] border-r border-line bg-card px-2 py-2 font-medium';
@@ -92,24 +98,44 @@ export default function CatalogList({
                 </td>
                 <td className="px-2 py-1.5 text-muted">{r.author}</td>
                 <td className="px-2 py-1.5 text-muted">{r.year}</td>
+
+                {/* Section — controlled dropdown */}
                 <td className="px-2 py-1.5">
-                  <input
-                    list="sectionopts"
-                    readOnly={ro}
-                    defaultValue={r.section || ''}
-                    onBlur={(e) => editable && e.target.value !== (r.section || '') && save(r.id, { section: e.target.value.trim() })}
-                    className={`w-32 ${cell}`}
-                  />
+                  {editable ? (
+                    <select
+                      value={r.section || ''}
+                      onChange={(e) => {
+                        const ns = e.target.value;
+                        const keep = (shelvesBySection[ns] || []).includes(r.shelf);
+                        save(r.id, keep ? { section: ns } : { section: ns, shelf: '' });
+                      }}
+                      className={`w-32 ${sel}`}
+                    >
+                      <option value="">— none —</option>
+                      {sections.map((s) => (<option key={s}>{s}</option>))}
+                    </select>
+                  ) : (
+                    <span className="px-1">{r.section}</span>
+                  )}
                 </td>
+
+                {/* Shelf — section-aware dropdown */}
                 <td className="px-2 py-1.5">
-                  <input
-                    list="shelfopts"
-                    readOnly={ro}
-                    defaultValue={r.shelf}
-                    onBlur={(e) => editable && e.target.value !== r.shelf && save(r.id, { shelf: e.target.value.trim() })}
-                    className={`w-28 ${cell}`}
-                  />
+                  {editable ? (
+                    <select
+                      value={r.shelf || ''}
+                      disabled={!r.section}
+                      onChange={(e) => save(r.id, { shelf: e.target.value })}
+                      className={`w-28 ${sel} disabled:opacity-40`}
+                    >
+                      <option value="">— none —</option>
+                      {shelfOpts(shelvesBySection, r.section || '', r.shelf).map((s) => (<option key={s}>{s}</option>))}
+                    </select>
+                  ) : (
+                    <span className="px-1">{r.shelf}</span>
+                  )}
                 </td>
+
                 <td className="px-2 py-1.5">
                   <input
                     list="genreopts"
@@ -152,15 +178,23 @@ export default function CatalogList({
                     className={`w-72 ${cell}`}
                   />
                 </td>
+
+                {/* Condition — controlled dropdown */}
                 <td className="px-2 py-1.5">
-                  <input
-                    list="condopts"
-                    readOnly={ro}
-                    defaultValue={r.condition || ''}
-                    onBlur={(e) => editable && e.target.value !== (r.condition || '') && save(r.id, { condition: e.target.value.trim() })}
-                    className={`w-28 ${cell}`}
-                  />
+                  {editable ? (
+                    <select
+                      value={r.condition || ''}
+                      onChange={(e) => save(r.id, { condition: e.target.value })}
+                      className={`w-28 ${sel}`}
+                    >
+                      <option value="">— none —</option>
+                      {CONDITIONS.map((s) => (<option key={s}>{s}</option>))}
+                    </select>
+                  ) : (
+                    <span className="px-1">{r.condition}</span>
+                  )}
                 </td>
+
                 <td className="px-2 py-1.5">
                   <input
                     readOnly={ro}
@@ -175,10 +209,7 @@ export default function CatalogList({
         </table>
       </div>
 
-      <datalist id="shelfopts">{shelves.map((x) => <option key={x} value={x} />)}</datalist>
-      <datalist id="sectionopts">{sections.map((x) => <option key={x} value={x} />)}</datalist>
       <datalist id="genreopts">{genres.map((x) => <option key={x} value={x} />)}</datalist>
-      <datalist id="condopts">{CONDITIONS.map((x) => <option key={x} value={x} />)}</datalist>
       <datalist id="locopts">
         {Array.from(new Set(rows.map((r) => r.location).filter(Boolean))).map((x) => (
           <option key={x as string} value={x as string} />
@@ -186,8 +217,8 @@ export default function CatalogList({
       </datalist>
       {editable && (
         <p className="px-2 py-2 text-xs text-muted">
-          Edit inline — changes save when you leave a cell. Genres and subjects are comma-separated;
-          section, shelf and genre suggestions come from the managed vocabulary.
+          Edit inline — changes save on change. Section, shelf, and condition are dropdowns from the
+          managed vocabulary (shelf follows the section); genres and subjects are comma-separated.
         </p>
       )}
     </div>
