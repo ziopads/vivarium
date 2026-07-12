@@ -46,3 +46,10 @@ create table if not exists vocab (
 -- directly later, add a read policy excluding visibility = 'restricted'.)
 alter table items enable row level security;
 alter table vocab enable row level security;
+
+-- Wishlist: books to find, added on the go (each tagged with who added it).
+create table if not exists wishlist (
+  id   bigint primary key,
+  data jsonb not null
+);
+alter table wishlist enable row level security;

@@ -7,3 +7,9 @@ export function imgUrl(src: string, thumb = false): string {
   const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
   return base ? `${base}/${key}` : `/${key}`;
 }
+
+// For an arbitrary R2 key (e.g. wishlist/42.webp).
+export function r2Url(key: string): string {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
+  return base ? `${base}/${key}` : `/${key}`;
+}
