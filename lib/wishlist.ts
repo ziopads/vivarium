@@ -34,7 +34,11 @@ export async function getWishlist(): Promise<Wish[]> {
   const sb = getSupabase();
   if (sb) {
     const { data, error } = await sb.from('wishlist').select('data').order('id');
-    if (error) throw new Error(`Supabase getWishlist: ${error.message}`);
+    if (error) {
+      // e.g. table not created yet — show an empty wishlist rather than 500ing.
+      console.error('getWishlist:', error.message);
+      return [];
+    }
     return (data || []).map((r: { data: Wish }) => r.data);
   }
   try {
