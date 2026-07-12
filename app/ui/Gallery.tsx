@@ -81,7 +81,7 @@ export default function Gallery({
         <img
           src={imgUrl(current.src)}
           alt={`${title} — ${current.label}`}
-          className="max-h-[30rem] w-auto rounded shadow-sm"
+          className="max-h-[30rem] w-auto max-w-full rounded shadow-sm"
         />
         <figcaption className="mt-2 flex items-center gap-3 text-xs text-muted">
           <span>{current.label}</span>

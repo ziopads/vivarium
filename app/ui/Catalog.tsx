@@ -193,7 +193,7 @@ export default function Catalog({
   return (
     <div>
       {/* sticky toolbar — always reachable without scrolling to the top */}
-      <div className="sticky top-0 z-30 -mx-6 mb-5 flex items-center gap-3 border-b border-line bg-parchment/90 px-6 py-2.5 backdrop-blur">
+      <div className="sticky top-0 z-30 -mx-4 mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line bg-parchment/90 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6">
         <button
           onClick={() => setMenuOpen(true)}
           className="flex items-center gap-2 rounded-md border border-line bg-card px-3 py-1.5 text-sm hover:border-rust"
