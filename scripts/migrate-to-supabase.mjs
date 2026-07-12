@@ -79,4 +79,36 @@ if (vErr) {
   process.exit(1);
 }
 
-console.log(`Done — seeded ${rows.length} items + vocab.`);
+// Wishlist — transform the old flat entries into the tracked shape.
+let wishes = [];
+try {
+  wishes = JSON.parse(readFileSync(path.join(root, 'data', 'wishlist.json'), 'utf8'));
+} catch {
+  /* no wishlist file — skip */
+}
+const owner = (process.env.AUTH_ADMINS || '').split(',')[0].trim() || 'unknown';
+const wrows = wishes.map((w, i) => {
+  const id = typeof w.id === 'number' ? w.id : i + 1;
+  return {
+    id,
+    data: {
+      id,
+      title: w.title || '',
+      author: w.author || '',
+      section: w.section || '',
+      note: w.note || undefined,
+      image: w.image || undefined,
+      addedBy: w.addedBy || owner,
+      createdAt: w.createdAt || new Date().toISOString(),
+    },
+  };
+});
+if (wrows.length) {
+  const { error: wErr } = await supabase.from('wishlist').upsert(wrows, { onConflict: 'id' });
+  if (wErr) {
+    console.error('wishlist upsert failed:', wErr.message);
+    process.exit(1);
+  }
+}
+
+console.log(`Done — seeded ${rows.length} items, vocab, ${wrows.length} wishlist entries.`);
