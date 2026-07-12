@@ -297,11 +297,9 @@ export default function Catalog({
                 </div>
                 {i.author && <p className="mt-1 text-sm text-muted">{i.author}</p>}
                 <p className="mt-1 text-xs text-muted">{[i.publisher, i.year].filter(Boolean).join(' · ')}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-1">
-                  {i.genres.map((g) => (
-                    <span key={g} className="rounded bg-rust/10 px-2 py-0.5 text-xs text-rust">{g}</span>
-                  ))}
-                  {i.shelf && <span className="ml-auto text-xs text-muted" title="Shelf location">⌂ {i.shelf}</span>}
+                <div className="mt-3 text-xs">
+                  <span className="text-rust">{sectionOf(i)}</span>
+                  {i.shelf && <span className="text-muted">: {i.shelf}</span>}
                 </div>
               </Link>
             </li>

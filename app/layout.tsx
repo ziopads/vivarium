@@ -5,8 +5,20 @@ import AuthNav from './ui/AuthNav';
 import WishlistLink from './ui/WishlistLink';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://vivarium.gaffcutter.com'),
   title: 'Vivarium',
-  description: 'A living catalog of a personal library — books, art, and instruments.',
+  description: 'A living catalogue of a personal library — books, art, and instruments.',
+  openGraph: {
+    title: 'Vivarium',
+    description: 'A living catalogue of a personal library — books, art, and instruments.',
+    siteName: 'Vivarium',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Vivarium',
+    description: 'A living catalogue of a personal library — books, art, and instruments.',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
