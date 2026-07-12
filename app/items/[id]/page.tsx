@@ -53,7 +53,7 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
       </Link>
       <ItemNav itemId={item.id} />
       <p className="mt-4 font-mono text-xs text-muted">#{String(item.id).padStart(6, '0')}</p>
-      <h1 className="mt-1 font-serif text-3xl leading-tight">{item.title}</h1>
+      <h1 className="mt-1 font-serif text-2xl leading-tight sm:text-3xl">{item.title}</h1>
       {item.author && <p className="mt-1 text-lg text-muted">{item.author}</p>}
       {item.signed && (
         <p className="mt-3 inline-block rounded-full bg-rust/10 px-3 py-1 text-sm text-rust">
@@ -73,7 +73,7 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
           <img
             src={imgUrl(item.image)}
             alt={item.title}
-            className="mt-6 max-h-[28rem] w-auto rounded shadow-sm"
+            className="mt-6 max-h-[28rem] w-auto max-w-full rounded shadow-sm"
           />
         )
       )}
@@ -95,7 +95,7 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
 
       <dl className="mt-6 space-y-2 text-sm">
         {rows.map(([k, v]) => (
-          <div key={k} className="grid grid-cols-[10rem_1fr] gap-2">
+          <div key={k} className="grid grid-cols-[6.5rem_1fr] gap-2 sm:grid-cols-[10rem_1fr]">
             <dt className="text-muted">{k}</dt>
             <dd>{v}</dd>
           </div>

@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <header className="border-b border-line">
-          <div className="mx-auto flex max-w-6xl items-baseline justify-between px-6 py-5">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-baseline justify-between gap-x-4 gap-y-2 px-4 py-4 sm:px-6 sm:py-5">
             <Link href="/" className="font-serif text-2xl tracking-tight">
               Vivarium
             </Link>
@@ -39,8 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </nav>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
-        <footer className="mx-auto max-w-6xl px-6 py-10 text-sm text-muted">
+        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+        <footer className="mx-auto max-w-6xl px-4 py-8 text-sm text-muted sm:px-6 sm:py-10">
           Vivarium — kept, not discarded.
         </footer>
       </body>
