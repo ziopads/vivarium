@@ -1,22 +1,38 @@
 import fs from 'fs';
 import path from 'path';
-import { SECTIONS, SHELVES } from './sections';
+import { SECTIONS } from './sections';
 import { getSupabase } from './supabase';
 
-// Server-only: reads/writes the editable controlled vocabulary, from Supabase
-// when configured, else the local JSON file. Do NOT import from client components.
+// Server-only. Shelves are now scoped to their section (shelvesBySection), so
+// e.g. "Maine" under Art and "Maine" under Regions/Cultures are distinct, and
+// "Martial Arts" lives only under Physical Culture & Sports. Genres/subjects
+// stay flat (they're cross-cutting).
 export type VocabKind = 'sections' | 'genres' | 'shelves';
-export type Vocab = { sections: string[]; genres: string[]; shelves: string[] };
+export type Vocab = {
+  sections: string[];
+  genres: string[];
+  shelvesBySection: Record<string, string[]>;
+};
 
 const FILE = path.join(process.cwd(), 'data', 'vocab.json');
-const DEFAULTS: Vocab = { sections: [...SECTIONS], genres: [], shelves: [...SHELVES] };
+const DEFAULTS: Vocab = { sections: [...SECTIONS], genres: [], shelvesBySection: {} };
 
 function normalize(raw: any): Vocab {
   return {
     sections: Array.isArray(raw?.sections) ? raw.sections : [...SECTIONS],
     genres: Array.isArray(raw?.genres) ? raw.genres : [],
-    shelves: Array.isArray(raw?.shelves) ? raw.shelves : [...SHELVES],
+    shelvesBySection:
+      raw?.shelvesBySection && typeof raw.shelvesBySection === 'object' ? raw.shelvesBySection : {},
   };
+}
+
+// Every shelf across all sections, de-duped — for surfaces not yet section-aware.
+export function flatShelves(v: Vocab): string[] {
+  return Array.from(new Set(Object.values(v.shelvesBySection).flat())).sort();
+}
+
+export function shelvesFor(v: Vocab, section: string | undefined): string[] {
+  return (section && v.shelvesBySection[section]) || [];
 }
 
 export async function getVocab(): Promise<Vocab> {

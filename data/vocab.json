@@ -1,25 +1,28 @@
 {
   "sections": [
-    "Fiction",
-    "Poetry",
-    "Essays",
-    "Biography & Memoir",
-    "History",
-    "Philosophy",
-    "Religion",
-    "Science",
-    "Nature",
     "Animals",
     "Art",
-    "Photography",
-    "Music",
-    "Physical Culture & Sports",
-    "Sailing",
-    "Travel",
+    "Biography & Memoir",
     "Children's",
-    "Languages",
     "Craft & How-to",
-    "Reference"
+    "Essays",
+    "Fiction",
+    "History",
+    "Languages",
+    "Maritime",
+    "Music",
+    "Nature",
+    "Philosophy",
+    "Photography",
+    "Physical Culture & Sports",
+    "Poetry",
+    "Reference",
+    "Religion",
+    "Sailing",
+    "Science",
+    "Spirituality & Philosophy",
+    "Travel",
+    "Travel & Exploration"
   ],
   "genres": [
     "Art",
@@ -37,20 +40,106 @@
     "Spirituality & Philosophy",
     "Travel & Exploration"
   ],
-  "shelves": [
-    "Art",
-    "Biography & Memoir",
-    "Craft & How-to",
-    "Essays",
-    "Fiction",
-    "History",
-    "Maritime",
-    "Music",
-    "Nature",
-    "Poetry",
-    "Reference",
-    "Science",
-    "Spirituality & Philosophy",
-    "Travel & Exploration"
-  ]
+  "shelvesBySection": {
+    "Animals": [
+      "Nature"
+    ],
+    "Art": [
+      "Art",
+      "Craft & How-to",
+      "History",
+      "Spirituality & Philosophy"
+    ],
+    "Biography & Memoir": [
+      "Biography & Memoir"
+    ],
+    "Children's": [
+      "Art",
+      "Fiction",
+      "History",
+      "Nature"
+    ],
+    "Craft & How-to": [
+      "Art",
+      "Craft & How-to",
+      "Reference"
+    ],
+    "Essays": [
+      "Essays",
+      "Nature"
+    ],
+    "Fiction": [
+      "Biography & Memoir",
+      "Fiction"
+    ],
+    "History": [
+      "History",
+      "Reference"
+    ],
+    "Languages": [
+      "Reference"
+    ],
+    "Maritime": [
+      "Maritime"
+    ],
+    "Music": [
+      "Craft & How-to",
+      "Essays",
+      "Music",
+      "Science"
+    ],
+    "Nature": [
+      "Essays",
+      "Nature",
+      "Reference",
+      "Spirituality & Philosophy"
+    ],
+    "Philosophy": [
+      "Music",
+      "Reference",
+      "Spirituality & Philosophy"
+    ],
+    "Photography": [
+      "Art",
+      "Craft & How-to",
+      "Nature",
+      "Poetry"
+    ],
+    "Physical Culture & Sports": [
+      "Biography & Memoir",
+      "Craft & How-to",
+      "Science",
+      "Spirituality & Philosophy"
+    ],
+    "Poetry": [
+      "Craft & How-to",
+      "Poetry"
+    ],
+    "Reference": [
+      "Reference"
+    ],
+    "Religion": [
+      "History",
+      "Reference",
+      "Spirituality & Philosophy"
+    ],
+    "Sailing": [
+      "Maritime"
+    ],
+    "Science": [
+      "Craft & How-to",
+      "Science"
+    ],
+    "Spirituality & Philosophy": [
+      "Spirituality & Philosophy"
+    ],
+    "Travel": [
+      "Biography & Memoir",
+      "History",
+      "Travel & Exploration"
+    ],
+    "Travel & Exploration": [
+      "Travel & Exploration"
+    ]
+  }
 }
