@@ -20,17 +20,22 @@ export default function WishlistView({
 }) {
   const [wishes, setWishes] = useState(initial);
   const [who, setWho] = useState<'all' | 'mine' | string>('all');
+  const [filterSection, setFilterSection] = useState('all');
   const [editing, setEditing] = useState<number | null>(null);
 
   const contributors = useMemo(
     () => Array.from(new Set(wishes.map((w) => w.addedBy).filter(Boolean))).sort(),
     [wishes],
   );
+  const sectionsPresent = useMemo(
+    () => Array.from(new Set(wishes.map((w) => w.section || 'Unsorted'))).sort(),
+    [wishes],
+  );
 
   const filtered = wishes.filter((w) => {
-    if (who === 'all') return true;
-    if (who === 'mine') return w.addedBy === viewerEmail;
-    return w.addedBy === who;
+    if (who === 'mine' ? w.addedBy !== viewerEmail : who !== 'all' && w.addedBy !== who) return false;
+    if (filterSection !== 'all' && (w.section || 'Unsorted') !== filterSection) return false;
+    return true;
   });
 
   const bySection = new Map<string, Wish[]>();
@@ -41,11 +46,6 @@ export default function WishlistView({
   }
   const secs = Array.from(bySection.keys()).sort();
 
-  const chip = (active: boolean) =>
-    `rounded-full border px-3 py-1 text-sm transition ${
-      active ? 'border-rust bg-rust text-white' : 'border-line bg-card hover:border-rust'
-    }`;
-
   async function del(id: number) {
     if (!window.confirm('Remove this from the wishlist?')) return;
     const res = await fetch(`/api/wishlist/${id}`, { method: 'DELETE' });
@@ -54,17 +54,37 @@ export default function WishlistView({
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        <button onClick={() => setWho('all')} className={chip(who === 'all')}>Everyone</button>
-        {viewerEmail && (
-          <button onClick={() => setWho('mine')} className={chip(who === 'mine')}>Mine</button>
-        )}
-        {contributors
-          .filter((c) => c !== viewerEmail)
-          .map((c) => (
-            <button key={c} onClick={() => setWho(c)} className={chip(who === c)}>{name(c)}</button>
-          ))}
-        <Link href="/wishlist/add" className="ml-auto rounded-md bg-rust px-4 py-1.5 text-sm text-white">
+      <div className="mb-5 flex flex-wrap items-end gap-3">
+        <label className="text-sm text-muted">
+          <span className="mb-1 block">Who</span>
+          <select
+            value={who}
+            onChange={(e) => setWho(e.target.value)}
+            className="rounded-md border border-line bg-card px-2 py-1.5 text-sm text-ink"
+          >
+            <option value="all">Everyone</option>
+            {viewerEmail && <option value="mine">Mine</option>}
+            {contributors
+              .filter((c) => c !== viewerEmail)
+              .map((c) => (
+                <option key={c} value={c}>{name(c)}</option>
+              ))}
+          </select>
+        </label>
+        <label className="text-sm text-muted">
+          <span className="mb-1 block">Section</span>
+          <select
+            value={filterSection}
+            onChange={(e) => setFilterSection(e.target.value)}
+            className="rounded-md border border-line bg-card px-2 py-1.5 text-sm text-ink"
+          >
+            <option value="all">All</option>
+            {sectionsPresent.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+        <Link href="/wishlist/add" className="ml-auto rounded-md bg-rust px-4 py-2 text-sm text-white">
           + Add
         </Link>
       </div>
