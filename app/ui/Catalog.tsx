@@ -53,7 +53,7 @@ export default function Catalog({
   initialSection?: string;
   initialQ?: string;
   initialShelf?: string;
-  vocab?: { sections: string[]; genres: string[]; shelves: string[] };
+  vocab?: { sections: string[]; genres: string[]; shelves: string[]; shelvesBySection?: Record<string, string[]> };
   isAdmin?: boolean;
 }) {
   // When arriving from a section click or the home search, the URL params drive a
@@ -255,7 +255,7 @@ export default function Catalog({
         <CatalogList
           items={filtered}
           sections={vocab?.sections ?? []}
-          shelves={vocab?.shelves ?? shelves.slice(1)}
+          shelvesBySection={vocab?.shelvesBySection ?? {}}
           genres={vocab?.genres ?? genres.slice(1)}
           editable={isAdmin}
         />

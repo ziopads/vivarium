@@ -28,8 +28,7 @@ export default async function Browse({
       const sh = (i.shelf || '').trim();
       if (sh) counts[sh] = (counts[sh] || 0) + 1;
     }
-    const ordered = vocab.shelvesBySection[section] || [];
-    const names = Array.from(new Set([...ordered.filter((s) => counts[s]), ...Object.keys(counts)]));
+    const names = Object.keys(counts).sort((a, b) => a.localeCompare(b));
     chips = names.map((n) => ({ name: n, count: counts[n] }));
   }
 
@@ -68,7 +67,7 @@ export default async function Browse({
           initialSection={section}
           initialQ={searchParams.q}
           initialShelf={shelf}
-          vocab={{ sections: vocab.sections, genres: vocab.genres, shelves: flatShelves(vocab) }}
+          vocab={{ sections: vocab.sections, genres: vocab.genres, shelves: flatShelves(vocab), shelvesBySection: vocab.shelvesBySection }}
           isAdmin={viewer.isAdmin}
         />
       </div>

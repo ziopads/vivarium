@@ -15,7 +15,8 @@ type Row = {
 // Shelves available for a section, always including the row's current shelf.
 function shelfOptions(sbs: Record<string, string[]>, section: string, current: string): string[] {
   const list = sbs[section] || [];
-  return current && !list.includes(current) ? [current, ...list] : list;
+  const merged = current && !list.includes(current) ? [...list, current] : list;
+  return [...merged].sort((a, b) => a.localeCompare(b));
 }
 
 export default function ManageTable({

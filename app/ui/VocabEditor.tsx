@@ -49,7 +49,7 @@ export default function VocabEditor({
     }
   }
 
-  const shelves = vocab.shelvesBySection[activeSection] || [];
+  const shelves = (vocab.shelvesBySection[activeSection] || []).slice().sort((a, b) => a.localeCompare(b));
   const shelfCounts = counts.shelvesBySection[activeSection] || {};
 
   return (
@@ -66,17 +66,6 @@ export default function VocabEditor({
             onDelete={(v) => call('sections', 'delete', v)}
           />
           <Adder busy={busy} placeholder="add section…" onAdd={(v) => call('sections', 'add', v)} />
-        </Panel>
-
-        <Panel title="Genres" count={vocab.genres.length}>
-          <List
-            values={vocab.genres}
-            counts={counts.genres}
-            busy={busy}
-            onRename={(v, nv) => call('genres', 'rename', v, nv)}
-            onDelete={(v) => call('genres', 'delete', v)}
-          />
-          <Adder busy={busy} placeholder="add genre…" onAdd={(v) => call('genres', 'add', v)} />
         </Panel>
 
         <Panel title="Shelves">
@@ -101,6 +90,17 @@ export default function VocabEditor({
             onDelete={(v) => call('shelves', 'delete', v, undefined, activeSection)}
           />
           <Adder busy={busy} placeholder="add shelf…" onAdd={(v) => call('shelves', 'add', v, undefined, activeSection)} />
+        </Panel>
+
+        <Panel title="Genres" count={vocab.genres.length}>
+          <List
+            values={vocab.genres}
+            counts={counts.genres}
+            busy={busy}
+            onRename={(v, nv) => call('genres', 'rename', v, nv)}
+            onDelete={(v) => call('genres', 'delete', v)}
+          />
+          <Adder busy={busy} placeholder="add genre…" onAdd={(v) => call('genres', 'add', v)} />
         </Panel>
       </div>
 
