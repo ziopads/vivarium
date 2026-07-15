@@ -5,7 +5,7 @@ import type { Item } from '@/lib/types';
 // POST /api/items/new  { itemType?, title? }  → creates a blank item, returns its id.
 // Admin-guarded by middleware. Next id = max existing + 1 (no id reuse).
 export async function POST(req: Request) {
-  let body: { itemType?: string; title?: string } = {};
+  let body: { itemType?: string; title?: string; author?: string } = {};
   try {
     body = await req.json();
   } catch {
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     id: nextId,
     itemType,
     title: (body.title || 'Untitled').trim() || 'Untitled',
-    author: '',
+    author: (body.author || '').trim(),
     publisher: '',
     placeOfPublication: '',
     year: '',
