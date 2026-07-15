@@ -9,6 +9,7 @@ import ItemNav from '@/app/ui/ItemNav';
 import { getViewer } from '@/lib/auth';
 import { imgUrl } from '@/lib/img';
 import TypeFieldsEditor from '@/app/ui/TypeFieldsEditor';
+import AddItemPhotos from '@/app/ui/AddItemPhotos';
 import { typeFields } from '@/lib/itemTypes';
 
 // Render on-demand so a cover change (writing items.json) shows up on refresh.
@@ -77,6 +78,8 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
           />
         )
       )}
+
+      {viewer.isAdmin && <AddItemPhotos itemId={item.id} />}
 
       {item.description && (
         <p className="mt-6 max-w-prose font-serif leading-relaxed text-ink/90">{item.description}</p>
