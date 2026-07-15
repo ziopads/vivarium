@@ -1,6 +1,7 @@
 {
   "sections": [
     "Animals",
+    "Architecture",
     "Art",
     "Biography & Memoir",
     "Children's",
@@ -43,6 +44,10 @@
   "shelvesBySection": {
     "Animals": [
       "Nature"
+    ],
+    "Architecture": [
+      "Architecture",
+      "History"
     ],
     "Art": [
       "Art",

@@ -7,9 +7,7 @@ import { typeFields } from '@/lib/itemTypes';
 //   { section?, shelf?, genres?, subjects?, location?, notes?, condition?, conditionNotes? }
 // Edits fields against the local JSON store (used when no DATABASE_URL).
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  if (process.env.DATABASE_URL) {
-    return NextResponse.json({ error: 'Editing is available only against the local JSON store.' }, { status: 400 });
-  }
+  // Persisted via writeLocalItems: Supabase when configured, else local JSON (both modes).
   const id = Number(params.id);
   let body: {
     section?: string; shelf?: string; genres?: string[]; subjects?: string[];

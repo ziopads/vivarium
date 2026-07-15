@@ -27,6 +27,8 @@ READY = f"{ROOT}/vivarium-content/image-ready"
 WEB   = f"{ROOT}/vivarium"
 ITEMS_DIR = f"{WEB}/public/items"
 DATA = f"{WEB}/data/items.json"
+INGEST = f"{ROOT}/vivarium-content/_ingest"        # batch manifest for the analysis step
+PENDING = f"{INGEST}/pending.json"
 
 NEW_ITEM_LOCATION = "Maine"      # default for newly created items — edit if needed
 NEW_ITEM_OWNER    = "James"
@@ -74,7 +76,24 @@ def read_title(src_dir, folder):
         lines = [l.strip() for l in open(tt) if l.strip()]
         if lines:
             return lines[0], (lines[1] if len(lines) > 1 else "")
-    return folder.replace("-", " ").replace("_", " ").strip().title(), ""
+    # No title.txt (the positional 1/2/3 convention): leave title blank so the
+    # analysis step fills it. A blank title also flags the record as un-analyzed.
+    return "", ""
+
+def record_pending(entry):
+    """Append a newly created item to the batch manifest (dedup by id)."""
+    os.makedirs(INGEST, exist_ok=True)
+    manifest = {"items": []}
+    if os.path.exists(PENDING):
+        try:
+            manifest = json.load(open(PENDING))
+        except json.JSONDecodeError:
+            pass
+    manifest["items"] = [x for x in manifest.get("items", []) if x["id"] != entry["id"]]
+    manifest["items"].append(entry)
+    manifest["items"].sort(key=lambda x: x["id"])
+    manifest["updatedAt"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+    json.dump(manifest, open(PENDING, "w"), ensure_ascii=False, indent=1)
 
 def main():
     if not os.path.isdir(READY):
@@ -135,15 +154,21 @@ def main():
             items.append({
                 "id": iid, "itemType": "Book", "title": title, "author": author,
                 "publisher": "", "placeOfPublication": "", "year": "", "edition": "",
-                "printing": "", "isbn": "None", "format": "", "description": "",
+                "printing": "", "isbn": "", "format": "", "description": "",
                 "blurb": "", "discussion": "", "signed": False, "inscription": "",
                 "genres": [], "shelf": "", "subjects": [], "places": [], "condition": "",
                 "location": NEW_ITEM_LOCATION, "owner": NEW_ITEM_OWNER, "notes": "",
                 "cover": f"{id6}/{cov}", "image": f"{id6}/{cov}",
                 "images": [{"src": f"{id6}/{s}", "label": label_of(s)} for s in placed],
             })
+            record_pending({
+                "id": iid, "id6": id6, "folder": name,
+                "images": [{"label": label_of(s),
+                            "path": f"{ITEMS_DIR}/{id6}/{s}.webp"} for s in placed],
+            })
             data_changed = True
-            print(f"  {name}: created NEW item #{id6}  '{title}'  ({len(placed)} image(s))")
+            shown = title or "(untitled — needs analysis)"
+            print(f"  {name}: created NEW item #{id6}  '{shown}'  ({len(placed)} image(s))")
 
     if data_changed:
         json.dump(items, open(DATA, "w"), ensure_ascii=False, indent=1)

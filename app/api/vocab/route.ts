@@ -7,9 +7,7 @@ import { getVocab, writeVocab, type VocabKind } from '@/lib/vocab';
 // Shelf ops require `section` (shelves are scoped to a section). Renames cascade
 // to items; deletes clear the value from items that had it. Admin-guarded by middleware.
 export async function POST(req: Request) {
-  if (process.env.DATABASE_URL) {
-    return NextResponse.json({ error: 'Editing is available only against the local JSON store.' }, { status: 400 });
-  }
+  // Persisted via writeLocalItems/writeVocab: Supabase when configured, else local JSON.
   let body: {
     kind?: VocabKind;
     action?: 'add' | 'rename' | 'delete';

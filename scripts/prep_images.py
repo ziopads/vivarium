@@ -17,6 +17,13 @@ NAMING: images are sorted and given unique names 01-<slug>, 02-<slug>, ...
         If a source filename contains "cover" or "copyright" the word is kept in the
         name, so the app shows a sensible label (and you can pick cover/copyright there).
 
+POSITIONAL CONVENTION (recommended for new batches — no title.txt needed):
+        name the photos by position and they get meaningful labels automatically:
+            1.jpg -> Front Cover   (also becomes the item's cover image)
+            2.jpg -> Copyright      (title-page verso: publisher / year / ISBN)
+            3.jpg -> Rear Cover     (optional; rear-cover ISBN barcode)
+        Any other filename falls back to the slug behavior above.
+
 USAGE:   python3 scripts/prep_images.py
          (override the project root with the VIV_ROOT env var if needed)
 
@@ -36,8 +43,15 @@ COVER_MAX, COVER_Q = 1400, 82
 THUMB_MAX, THUMB_Q = 420, 80
 EXTS = (".jpg", ".jpeg", ".png", ".heic", ".heif", ".tif", ".tiff", ".webp", ".bmp")
 
+# Positional convention: a file whose name (sans extension) is exactly 1/2/3
+# gets a meaningful label carried through to the app.
+POSITIONAL = {"1": "front-cover", "2": "copyright", "3": "rear-cover"}
+
 def slug(fname: str) -> str:
-    s = re.sub(r"\.[^.]+$", "", fname).lower()
+    stem = re.sub(r"\.[^.]+$", "", fname)
+    if stem.strip() in POSITIONAL:                 # 1/2/3 -> labelled
+        return POSITIONAL[stem.strip()]
+    s = stem.lower()
     s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
     return s[:40] or "image"
 

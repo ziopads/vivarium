@@ -38118,5 +38118,4607 @@
     "label": "Front Cover"
    }
   ]
+ },
+ {
+  "id": 1216,
+  "itemType": "Book",
+  "title": "De Re Metallica",
+  "author": "Georgius Agricola; trans. Herbert Clark Hoover and Lou Henry Hoover",
+  "publisher": "Dover Publications",
+  "placeOfPublication": "New York",
+  "year": "1950",
+  "edition": "Dover reprint of the 1912 Hoover translation",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Science",
+   "History"
+  ],
+  "shelf": "Science",
+  "subjects": [
+   "mining",
+   "metallurgy",
+   "geology",
+   "Renaissance technology",
+   "woodcut illustration"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Original 1556; Hoover trans. 1912; Dover reprint. Dust jacket present.",
+  "cover": "001216/01-img-0521",
+  "image": "001216/01-img-0521",
+  "images": [
+   {
+    "src": "001216/01-img-0521",
+    "label": "Img 0521"
+   },
+   {
+    "src": "001216/02-img-0522",
+    "label": "Img 0522"
+   },
+   {
+    "src": "001216/03-img-0523",
+    "label": "Img 0523"
+   },
+   {
+    "src": "001216/04-img-0524",
+    "label": "Img 0524"
+   },
+   {
+    "src": "001216/05-img-0525",
+    "label": "Img 0525"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Science",
+  "copyright": "001216/05-img-0525"
+ },
+ {
+  "id": 1217,
+  "itemType": "Book",
+  "title": "The Works of Geoffrey Chaucer",
+  "author": "Geoffrey Chaucer",
+  "publisher": "The World Publishing Company",
+  "placeOfPublication": "",
+  "year": "1958",
+  "edition": "Facsimile of the 1896 Kelmscott Press edition",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Art",
+   "Poetry"
+  ],
+  "shelf": "Art",
+  "subjects": [
+   "Kelmscott Press",
+   "William Morris",
+   "Edward Burne-Jones",
+   "book arts",
+   "fine printing",
+   "Middle English literature"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "1958 World Publishing facsimile of the Kelmscott Chaucer; glossary.",
+  "cover": "001217/01-img-0526",
+  "image": "001217/01-img-0526",
+  "images": [
+   {
+    "src": "001217/01-img-0526",
+    "label": "Img 0526"
+   },
+   {
+    "src": "001217/02-img-0527",
+    "label": "Img 0527"
+   },
+   {
+    "src": "001217/03-img-0528",
+    "label": "Img 0528"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Art",
+  "copyright": "001217/02-img-0527"
+ },
+ {
+  "id": 1218,
+  "itemType": "Book",
+  "title": "One Good Turn: A Natural History of the Screwdriver and the Screw",
+  "author": "Witold Rybczynski",
+  "publisher": "Scribner",
+  "placeOfPublication": "New York",
+  "year": "2000",
+  "edition": "",
+  "printing": "2",
+  "isbn": "0-684-86729-X",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Science",
+   "History"
+  ],
+  "shelf": "Craft & How-to",
+  "subjects": [
+   "screws",
+   "screwdrivers",
+   "hand tools",
+   "history of technology",
+   "engineering"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Ex-library (Searsmont Town Library, ME); jacket barcode; number line = 2nd printing.",
+  "cover": "001218/01-img-0443",
+  "image": "001218/01-img-0443",
+  "images": [
+   {
+    "src": "001218/01-img-0443",
+    "label": "Img 0443"
+   },
+   {
+    "src": "001218/02-img-0444",
+    "label": "Img 0444"
+   },
+   {
+    "src": "001218/03-img-0445",
+    "label": "Img 0445"
+   },
+   {
+    "src": "001218/04-img-0446",
+    "label": "Img 0446"
+   },
+   {
+    "src": "001218/05-img-0447",
+    "label": "Img 0447"
+   },
+   {
+    "src": "001218/06-img-0448",
+    "label": "Img 0448"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Science",
+  "copyright": "001218/06-img-0448"
+ },
+ {
+  "id": 1219,
+  "itemType": "Book",
+  "title": "Fox Footprints",
+  "author": "Elizabeth Coatsworth",
+  "publisher": "Blackberry",
+  "placeOfPublication": "South Harpswell, Maine",
+  "year": "1986",
+  "edition": "Blackberry reprint of the 1923 Alfred A. Knopf first edition",
+  "printing": "",
+  "isbn": "0-942396-46-4",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Poetry"
+  ],
+  "shelf": "Poetry",
+  "subjects": [
+   "East Asia",
+   "travel",
+   "Maine authors",
+   "imagism",
+   "Elizabeth Coatsworth"
+  ],
+  "places": [
+   "South Harpswell ME",
+   "Nobleboro ME",
+   "East Asia"
+  ],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Maine small-press reprint of Coatsworth's 1923 debut.",
+  "cover": "001219/01-img-0449",
+  "image": "001219/01-img-0449",
+  "images": [
+   {
+    "src": "001219/01-img-0449",
+    "label": "Img 0449"
+   },
+   {
+    "src": "001219/02-img-0450",
+    "label": "Img 0450"
+   },
+   {
+    "src": "001219/03-img-0451",
+    "label": "Img 0451"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Poetry",
+  "copyright": "001219/02-img-0450"
+ },
+ {
+  "id": 1220,
+  "itemType": "Exhibition catalog",
+  "title": "Dutch Painting of the Golden Age from the Royal Picture Gallery Mauritshuis",
+  "author": "",
+  "publisher": "Johan Maurits van Nassau Foundation",
+  "placeOfPublication": "The Hague",
+  "year": "1982",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Art"
+  ],
+  "shelf": "Art",
+  "subjects": [
+   "Dutch Golden Age painting",
+   "Mauritshuis",
+   "Vermeer",
+   "Rembrandt",
+   "17th-century Netherlands"
+  ],
+  "places": [
+   "The Hague"
+  ],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "1982-83 US tour catalogue; cover Vermeer. Copyright page not shot (ISBN unverified).",
+  "cover": "001220/01-1",
+  "image": "001220/01-1",
+  "images": [
+   {
+    "src": "001220/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001220/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001220/03-img-0453",
+    "label": "Img 0453"
+   },
+   {
+    "src": "001220/04-img-0454",
+    "label": "Img 0454"
+   }
+  ],
+  "isbn_status": "unverified",
+  "section": "Art",
+  "copyright": "001220/02-2"
+ },
+ {
+  "id": 1221,
+  "itemType": "Book",
+  "title": "The Complete Woodworker",
+  "author": "Bernard E. Jones (editor)",
+  "publisher": "Ten Speed Press",
+  "placeOfPublication": "Berkeley, California",
+  "year": "1980",
+  "edition": "",
+  "printing": "4",
+  "isbn": "0-89815-022-1",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Craft & How-to"
+  ],
+  "shelf": "Craft & How-to",
+  "subjects": [
+   "woodworking",
+   "joinery",
+   "hand tools",
+   "cabinetmaking",
+   "traditional crafts"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Number line 10 9 8 7 6 5 4 (4th printing). $8.95. LCCN 80-634. Cover: 'the first new edition in decades of one of the great classics in the field.' Reprint of Bernard E. Jones's early-20th-c woodworking compilation.",
+  "cover": "001221/01-1",
+  "image": "001221/01-1",
+  "images": [
+   {
+    "src": "001221/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001221/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001221/03-img-0457",
+    "label": "Img 0457"
+   },
+   {
+    "src": "001221/04-img-0458",
+    "label": "Img 0458"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Craft & How-to",
+  "copyright": "001221/02-2"
+ },
+ {
+  "id": 1222,
+  "itemType": "Book",
+  "title": "Needlework Designs from the American Indians: Traditional Patterns of the Southeastern Tribes",
+  "author": "Anne Cheek Landsman",
+  "publisher": "A. S. Barnes and Company (London: Thomas Yoseloff)",
+  "placeOfPublication": "Cranbury, New Jersey",
+  "year": "1977",
+  "edition": "",
+  "printing": "",
+  "isbn": "0-498-01804-0",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "For some fine day / Happy Birthday / 1986 / from [Walla?]",
+  "genres": [
+   "Craft & How-to",
+   "Art"
+  ],
+  "shelf": "Craft & How-to",
+  "subjects": [
+   "needlepoint",
+   "embroidery",
+   "Native American design",
+   "Southeastern tribes",
+   "Cherokee"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "LCCN 76-10871; LC TT778.C3 L27. Author part-Cherokee. Gift inscription on front free endpaper.",
+  "cover": "001222/01-1",
+  "image": "001222/01-1",
+  "images": [
+   {
+    "src": "001222/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001222/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001222/03-img-0460",
+    "label": "Img 0460"
+   },
+   {
+    "src": "001222/04-img-0461",
+    "label": "Img 0461"
+   },
+   {
+    "src": "001222/05-img-0462",
+    "label": "Img 0462"
+   },
+   {
+    "src": "001222/06-img-0463",
+    "label": "Img 0463"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Craft & How-to",
+  "copyright": "001222/02-2"
+ },
+ {
+  "id": 1223,
+  "itemType": "Book",
+  "title": "Matting, Mounting and Framing Art",
+  "author": "Max Hyder",
+  "publisher": "Watson-Guptill Publications",
+  "placeOfPublication": "New York",
+  "year": "",
+  "edition": "",
+  "printing": "",
+  "isbn": "0-8230-3027-X",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Craft & How-to",
+   "Art"
+  ],
+  "shelf": "Craft & How-to",
+  "subjects": [
+   "picture framing",
+   "matting",
+   "mounting",
+   "art presentation"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "ISBN 0-8230-3027-X (barcode 9780823030279). 144 pp, 8.25x11. Copyright-page year not captured; year unverified. Jacket flaps present.",
+  "cover": "001223/01-1",
+  "image": "001223/01-1",
+  "images": [
+   {
+    "src": "001223/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001223/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001223/03-img-0466",
+    "label": "Img 0466"
+   },
+   {
+    "src": "001223/04-img-0467",
+    "label": "Img 0467"
+   },
+   {
+    "src": "001223/05-img-0468",
+    "label": "Img 0468"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Craft & How-to",
+  "copyright": "001223/02-2"
+ },
+ {
+  "id": 1224,
+  "itemType": "Book",
+  "title": "Launching the Imagination: A Guide to Three-Dimensional Design",
+  "author": "Mary Stewart",
+  "publisher": "McGraw-Hill",
+  "placeOfPublication": "New York, NY",
+  "year": "2012",
+  "edition": "Fourth Edition",
+  "printing": "",
+  "isbn": "978-0-07737981-0",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Art",
+   "Reference"
+  ],
+  "shelf": "Craft & How-to",
+  "subjects": [
+   "three-dimensional design",
+   "art education",
+   "design principles"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 2012/2008/2006/2002. MHID 0-07-737981-0. LCCN 2010045154.",
+  "cover": "001224/01-1",
+  "image": "001224/01-1",
+  "images": [
+   {
+    "src": "001224/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001224/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001224/03-img-0473",
+    "label": "Img 0473"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Art",
+  "copyright": "001224/02-2"
+ },
+ {
+  "id": 1225,
+  "itemType": "Book",
+  "title": "Digital Art Studio: Techniques for Combining Inkjet Printing with Traditional Art Materials",
+  "author": "Karin Schminke, Dorothy Simpson Krause, Bonny Pierce Lhotka",
+  "publisher": "Watson-Guptill Publications",
+  "placeOfPublication": "New York, NY",
+  "year": "2004",
+  "edition": "",
+  "printing": "First printing 2004",
+  "isbn": "0-8230-1342-1",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Craft & How-to",
+   "Art"
+  ],
+  "shelf": "Craft & How-to",
+  "subjects": [
+   "inkjet printing",
+   "digital art",
+   "printmaking",
+   "mixed media"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 2004 LSK LLC. LCCN 2004100593. Printed in Hong Kong.",
+  "cover": "001225/01-1",
+  "image": "001225/01-1",
+  "images": [
+   {
+    "src": "001225/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001225/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001225/03-img-0476",
+    "label": "Img 0476"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Craft & How-to",
+  "copyright": "001225/02-2"
+ },
+ {
+  "id": 1226,
+  "itemType": "Book",
+  "title": "Collage Techniques: A Guide for Artists and Illustrators",
+  "author": "Gerald Brommer",
+  "publisher": "Watson-Guptill Publications",
+  "placeOfPublication": "New York, NY",
+  "year": "1994",
+  "edition": "",
+  "printing": "First printing 1994",
+  "isbn": "0-8230-0655-7",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Craft & How-to",
+   "Art"
+  ],
+  "shelf": "Craft & How-to",
+  "subjects": [
+   "collage",
+   "mixed media",
+   "art technique"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1994 Gerald F. Brommer. LCCN 94-7775. Manufactured in Singapore.",
+  "cover": "001226/01-1",
+  "image": "001226/01-1",
+  "images": [
+   {
+    "src": "001226/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001226/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001226/03-img-0479",
+    "label": "Img 0479"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Craft & How-to",
+  "copyright": "001226/02-2"
+ },
+ {
+  "id": 1227,
+  "itemType": "Book",
+  "title": "You Don't Have to Die",
+  "author": "Harry M. Hoxsey, N.D.",
+  "publisher": "Milestone Books, Inc.",
+  "placeOfPublication": "New York",
+  "year": "1956",
+  "edition": "",
+  "printing": "First Printing January 1956",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Science"
+  ],
+  "shelf": "Science",
+  "subjects": [
+   "alternative medicine",
+   "cancer",
+   "Hoxsey therapy",
+   "medical controversy"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "LC card 56-6752. Red cloth boards. First printing Jan 1956.",
+  "cover": "001227/01-1",
+  "image": "001227/01-1",
+  "images": [
+   {
+    "src": "001227/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001227/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001227/03-img-0490",
+    "label": "Img 0490"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Science",
+  "copyright": "001227/02-2"
+ },
+ {
+  "id": 1228,
+  "itemType": "Book",
+  "title": "The Golden Treasury",
+  "author": "Francis T. Palgrave (ed. W. P. Trent and John Erskine)",
+  "publisher": "Ginn and Company",
+  "placeOfPublication": "Boston",
+  "year": "1912",
+  "edition": "Standard English Classics (school edition)",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Poetry"
+  ],
+  "shelf": "Poetry",
+  "subjects": [
+   "English poetry",
+   "anthology",
+   "lyric poetry",
+   "Palgrave"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1912 Trent & Erskine. Cloth boards.",
+  "cover": "001228/01-1",
+  "image": "001228/01-1",
+  "images": [
+   {
+    "src": "001228/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001228/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001228/03-img-0493",
+    "label": "Img 0493"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Poetry",
+  "copyright": "001228/02-2"
+ },
+ {
+  "id": 1229,
+  "itemType": "Book",
+  "title": "The Lakota Way: Stories and Lessons for Living",
+  "author": "Joseph M. Marshall III",
+  "publisher": "Penguin Compass",
+  "placeOfPublication": "New York, NY",
+  "year": "2002",
+  "edition": "Penguin Compass edition",
+  "printing": "",
+  "isbn": "978-0-14-219609-0",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Spirituality & Philosophy"
+  ],
+  "shelf": "Spirituality & Philosophy",
+  "subjects": [
+   "Lakota",
+   "Native American",
+   "ethics",
+   "storytelling"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "First Viking Compass 2001; Penguin Compass 2002. hc ISBN 0-670-89456-7. LCCN 2001035225.",
+  "cover": "001229/01-1",
+  "image": "001229/01-1",
+  "images": [
+   {
+    "src": "001229/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001229/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001229/03-img-0497",
+    "label": "Img 0497"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Spirituality & Philosophy",
+  "copyright": "001229/02-2"
+ },
+ {
+  "id": 1230,
+  "itemType": "Book",
+  "title": "The Secret Oral Teachings in Tibetan Buddhist Sects",
+  "author": "Alexandra David-Neel and Lama Yongden",
+  "publisher": "Important Books",
+  "placeOfPublication": "",
+  "year": "2013",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Spirituality & Philosophy"
+  ],
+  "shelf": "Spirituality & Philosophy",
+  "subjects": [
+   "Tibetan Buddhism",
+   "meditation",
+   "Alexandra David-Neel"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright page only a rights notice + 'printed in the USA'; no ISBN/place on page read.",
+  "cover": "001230/01-1",
+  "image": "001230/01-1",
+  "images": [
+   {
+    "src": "001230/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001230/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001230/03-img-0500",
+    "label": "Img 0500"
+   }
+  ],
+  "isbn_status": "unverified",
+  "section": "Spirituality & Philosophy",
+  "copyright": "001230/02-2"
+ },
+ {
+  "id": 1231,
+  "itemType": "Book",
+  "title": "Portions of the Book of Common Prayer ... in Eskimo (Eastern Arctic Dialect)",
+  "author": "Rev. E. J. Peck, Rev. W. G. Walton, Rev. Canon J. H. Turner, et al.",
+  "publisher": "Diocese of the Arctic (printed by The Ryerson Press, Toronto)",
+  "placeOfPublication": "Toronto, Canada",
+  "year": "1950",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Spirituality & Philosophy"
+  ],
+  "shelf": "Spirituality & Philosophy",
+  "subjects": [
+   "Book of Common Prayer",
+   "Inuktitut",
+   "Inuit",
+   "Arctic missions",
+   "liturgy",
+   "language"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1950. Dark cloth boards. Contents: morning/evening prayer, litany, psalter, communion, baptism, burial.",
+  "cover": "001231/01-1",
+  "image": "001231/01-1",
+  "images": [
+   {
+    "src": "001231/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001231/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001231/03-img-0502",
+    "label": "Img 0502"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Religion",
+  "copyright": "001231/02-2"
+ },
+ {
+  "id": 1232,
+  "itemType": "Book",
+  "title": "The Second World War: The Hinge of Fate",
+  "author": "Winston S. Churchill",
+  "publisher": "Houghton Mifflin Company",
+  "placeOfPublication": "Boston",
+  "year": "1950",
+  "edition": "Vol. IV (four stars)",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "World War II",
+   "military history",
+   "Winston Churchill",
+   "memoir"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1950. Riverside Press, Cambridge. Vol IV of six.",
+  "cover": "001232/01-1",
+  "image": "001232/01-1",
+  "images": [
+   {
+    "src": "001232/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001232/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001232/03-img-0505",
+    "label": "Img 0505"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001232/02-2"
+ },
+ {
+  "id": 1233,
+  "itemType": "Book",
+  "title": "The Second World War: Their Finest Hour",
+  "author": "Winston S. Churchill",
+  "publisher": "Houghton Mifflin Company",
+  "placeOfPublication": "Boston",
+  "year": "1949",
+  "edition": "Vol. II (two stars)",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "World War II",
+   "military history",
+   "Winston Churchill",
+   "memoir"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1949. Red cloth boards. Vol II of six.",
+  "cover": "001233/01-1",
+  "image": "001233/01-1",
+  "images": [
+   {
+    "src": "001233/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001233/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001233/03-img-0508",
+    "label": "Img 0508"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001233/02-2"
+ },
+ {
+  "id": 1234,
+  "itemType": "Book",
+  "title": "The Second World War: The Grand Alliance",
+  "author": "Winston S. Churchill",
+  "publisher": "Houghton Mifflin Company",
+  "placeOfPublication": "Boston",
+  "year": "1950",
+  "edition": "Vol. III (three stars)",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "World War II",
+   "military history",
+   "Winston Churchill",
+   "memoir"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1950. Haddon Craftsmen, Scranton. Vol III of six.",
+  "cover": "001234/01-1",
+  "image": "001234/01-1",
+  "images": [
+   {
+    "src": "001234/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001234/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001234/03-img-0511",
+    "label": "Img 0511"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001234/02-2"
+ },
+ {
+  "id": 1235,
+  "itemType": "Book",
+  "title": "The Second World War: Triumph and Tragedy",
+  "author": "Winston S. Churchill",
+  "publisher": "Houghton Mifflin Company",
+  "placeOfPublication": "Boston",
+  "year": "1953",
+  "edition": "Vol. VI (six stars)",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "World War II",
+   "military history",
+   "Winston Churchill",
+   "memoir"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1953. LC 53-12165. Kingsport Press. Vol VI of six.",
+  "cover": "001235/01-1",
+  "image": "001235/01-1",
+  "images": [
+   {
+    "src": "001235/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001235/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001235/03-img-0514",
+    "label": "Img 0514"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001235/02-2"
+ },
+ {
+  "id": 1236,
+  "itemType": "Book",
+  "title": "The Second World War: Closing the Ring",
+  "author": "Winston S. Churchill",
+  "publisher": "Houghton Mifflin Company",
+  "placeOfPublication": "Boston",
+  "year": "1951",
+  "edition": "Vol. V (five stars)",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "World War II",
+   "military history",
+   "Winston Churchill",
+   "memoir"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1951. H. Wolff, New York. Vol V of six.",
+  "cover": "001236/01-1",
+  "image": "001236/01-1",
+  "images": [
+   {
+    "src": "001236/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001236/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001236/03-img-0517",
+    "label": "Img 0517"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001236/02-2"
+ },
+ {
+  "id": 1237,
+  "itemType": "Book",
+  "title": "The Transfiguration of Miss Philura",
+  "author": "Florence Morse Kingsley",
+  "publisher": "Funk & Wagnalls Company",
+  "placeOfPublication": "New York and London",
+  "year": "1902",
+  "edition": "Hour-Glass Stories Edition",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Fiction"
+  ],
+  "shelf": "Fiction",
+  "subjects": [
+   "American fiction",
+   "Edwardian fiction"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1901; published March 1902.",
+  "cover": "001237/01-1",
+  "image": "001237/01-1",
+  "images": [
+   {
+    "src": "001237/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001237/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001237/03-img-0529",
+    "label": "Img 0529"
+   },
+   {
+    "src": "001237/04-img-0530",
+    "label": "Img 0530"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Fiction",
+  "copyright": "001237/02-2"
+ },
+ {
+  "id": 1238,
+  "itemType": "Book",
+  "title": "The Birds' Christmas Carol",
+  "author": "Kate Douglas Wiggin",
+  "publisher": "Houghton Mifflin Company",
+  "placeOfPublication": "Boston and New York",
+  "year": "",
+  "edition": "",
+  "printing": "Six Hundred and Sixth Thousand",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Fiction"
+  ],
+  "shelf": "Fiction",
+  "subjects": [
+   "Christmas",
+   "children's classic",
+   "Kate Douglas Wiggin"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyrights 1886-1916. Illustrated. Later printing.",
+  "cover": "001238/01-1",
+  "image": "001238/01-1",
+  "images": [
+   {
+    "src": "001238/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001238/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001238/03-img-0533",
+    "label": "Img 0533"
+   },
+   {
+    "src": "001238/04-img-0534",
+    "label": "Img 0534"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Children's",
+  "copyright": "001238/02-2"
+ },
+ {
+  "id": 1239,
+  "itemType": "Book",
+  "title": "Caruso's Method of Voice Production: The Scientific Culture of the Voice",
+  "author": "P. Mario Marafioti, M.D.",
+  "publisher": "D. Appleton and Company",
+  "placeOfPublication": "New York; London",
+  "year": "1923",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Music"
+  ],
+  "shelf": "Music",
+  "subjects": [
+   "voice",
+   "singing technique",
+   "opera",
+   "Caruso",
+   "vocal pedagogy"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1922. Preface by Victor Maurel.",
+  "cover": "001239/01-1",
+  "image": "001239/01-1",
+  "images": [
+   {
+    "src": "001239/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001239/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001239/03-img-0537",
+    "label": "Img 0537"
+   },
+   {
+    "src": "001239/04-img-0538",
+    "label": "Img 0538"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Music",
+  "copyright": "001239/02-2"
+ },
+ {
+  "id": 1240,
+  "itemType": "Book",
+  "title": "None of Us Will Return",
+  "author": "Charlotte Delbo (trans. John Githens)",
+  "publisher": "Grove Press, Inc.",
+  "placeOfPublication": "New York",
+  "year": "1968",
+  "edition": "",
+  "printing": "First Printing",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Biography & Memoir",
+   "History"
+  ],
+  "shelf": "Biography & Memoir",
+  "subjects": [
+   "Holocaust",
+   "Auschwitz",
+   "memoir",
+   "World War II",
+   "Charlotte Delbo"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "LC 68-20635. Orig. 'Aucun de nous ne reviendra' (Editions Gonthier, Geneva, 1965). First printing.",
+  "cover": "001240/01-1",
+  "image": "001240/01-1",
+  "images": [
+   {
+    "src": "001240/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001240/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001240/03-img-0541",
+    "label": "Img 0541"
+   },
+   {
+    "src": "001240/04-img-0542",
+    "label": "Img 0542"
+   },
+   {
+    "src": "001240/05-img-0543",
+    "label": "Img 0543"
+   },
+   {
+    "src": "001240/06-img-0544",
+    "label": "Img 0544"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Biography & Memoir",
+  "copyright": "001240/02-2"
+ },
+ {
+  "id": 1241,
+  "itemType": "Book",
+  "title": "Essays: Second Series",
+  "author": "R. W. Emerson",
+  "publisher": "Phillips, Sampson, and Company",
+  "placeOfPublication": "Boston; New York: J. C. Derby",
+  "year": "1855",
+  "edition": "Second Edition",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Essays"
+  ],
+  "shelf": "Essays",
+  "subjects": [
+   "Transcendentalism",
+   "American essays",
+   "Emerson"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright entered 1850. Stereotyped Boston Stereotype Foundry. Pencil '#407'.",
+  "cover": "001241/01-1",
+  "image": "001241/01-1",
+  "images": [
+   {
+    "src": "001241/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001241/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001241/03-img-0547",
+    "label": "Img 0547"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Essays",
+  "copyright": "001241/02-2"
+ },
+ {
+  "id": 1242,
+  "itemType": "Book",
+  "title": "Our Village",
+  "author": "Mary Russell Mitford",
+  "publisher": "Macmillan and Co.",
+  "placeOfPublication": "London and New York",
+  "year": "1893",
+  "edition": "",
+  "printing": "Reprinted December 1893",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Essays"
+  ],
+  "shelf": "Essays",
+  "subjects": [
+   "English country life",
+   "village sketches",
+   "illustrated",
+   "Hugh Thomson"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Intro Anne Thackeray Ritchie; 100 illustrations by Hugh Thomson. First ed Nov 1893; this Dec 1893 reprint.",
+  "cover": "001242/01-1",
+  "image": "001242/01-1",
+  "images": [
+   {
+    "src": "001242/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001242/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001242/03-img-0550",
+    "label": "Img 0550"
+   },
+   {
+    "src": "001242/04-img-0551",
+    "label": "Img 0551"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Essays",
+  "copyright": "001242/02-2"
+ },
+ {
+  "id": 1243,
+  "itemType": "Book",
+  "title": "The Bhagavad-Gita",
+  "author": "",
+  "publisher": "The Peter Pauper Press",
+  "placeOfPublication": "Mount Vernon, New York",
+  "year": "1959",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Spirituality & Philosophy"
+  ],
+  "shelf": "Spirituality & Philosophy",
+  "subjects": [
+   "Hindu scripture",
+   "Bhagavad Gita",
+   "Peter Pauper Press"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1952, 1959. No translator named.",
+  "cover": "001243/01-1",
+  "image": "001243/01-1",
+  "images": [
+   {
+    "src": "001243/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001243/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001243/03-img-0554",
+    "label": "Img 0554"
+   },
+   {
+    "src": "001243/04-img-0555",
+    "label": "Img 0555"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Religion",
+  "copyright": "001243/02-2"
+ },
+ {
+  "id": 1244,
+  "itemType": "Book",
+  "title": "Meditations on First Philosophy",
+  "author": "Rene Descartes (trans. Laurence J. Lafleur)",
+  "publisher": "The Bobbs-Merrill Company, Inc.",
+  "placeOfPublication": "Indianapolis; New York",
+  "year": "1960",
+  "edition": "Second (Revised) Edition, 1960",
+  "printing": "Sixteenth Printing",
+  "isbn": "0-672-60191-5",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Spirituality & Philosophy"
+  ],
+  "shelf": "Spirituality & Philosophy",
+  "subjects": [
+   "philosophy",
+   "epistemology",
+   "metaphysics",
+   "Descartes"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Library of Liberal Arts. Copyright 1951, 1960.",
+  "cover": "001244/01-1",
+  "image": "001244/01-1",
+  "images": [
+   {
+    "src": "001244/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001244/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001244/03-img-0558",
+    "label": "Img 0558"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Philosophy",
+  "copyright": "001244/02-2"
+ },
+ {
+  "id": 1245,
+  "itemType": "Book",
+  "title": "Guide Book of Troy - Ilion",
+  "author": "",
+  "publisher": "Galeri Troya (Mustafa Askin)",
+  "placeOfPublication": "Canakkale, Turkey",
+  "year": "",
+  "edition": "English",
+  "printing": "",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Travel & Exploration"
+  ],
+  "shelf": "Travel & Exploration",
+  "subjects": [
+   "Troy",
+   "archaeology",
+   "Turkey",
+   "travel guide"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Layout Nazif Yarman. No author/year/ISBN on pages read.",
+  "cover": "001245/01-1",
+  "image": "001245/01-1",
+  "images": [
+   {
+    "src": "001245/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001245/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001245/03-img-0562",
+    "label": "Img 0562"
+   }
+  ],
+  "isbn_status": "unverified",
+  "section": "Travel & Exploration",
+  "copyright": "001245/02-2"
+ },
+ {
+  "id": 1246,
+  "itemType": "Book",
+  "title": "Delphi",
+  "author": "Basil Petrakos",
+  "publisher": "'CLIO' editions",
+  "placeOfPublication": "",
+  "year": "1977",
+  "edition": "English edition",
+  "printing": "",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "Delphi",
+   "archaeology",
+   "ancient Greece"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1977 Petrakos & CLIO. Photos M. Sciadaresis.",
+  "cover": "001246/01-1",
+  "image": "001246/01-1",
+  "images": [
+   {
+    "src": "001246/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001246/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001246/03-img-0565",
+    "label": "Img 0565"
+   }
+  ],
+  "isbn_status": "unverified",
+  "section": "History",
+  "copyright": "001246/02-2"
+ },
+ {
+  "id": 1247,
+  "itemType": "Book",
+  "title": "The Acropolis",
+  "author": "Manolis Andronicos",
+  "publisher": "Ekdotike Athenon S.A.",
+  "placeOfPublication": "Athens, Greece",
+  "year": "1984",
+  "edition": "English",
+  "printing": "",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "Acropolis",
+   "Athens",
+   "archaeology",
+   "ancient Greece"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1980-1984. No ISBN visible.",
+  "cover": "001247/01-1",
+  "image": "001247/01-1",
+  "images": [
+   {
+    "src": "001247/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001247/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "unverified",
+  "section": "History",
+  "copyright": "001247/02-2"
+ },
+ {
+  "id": 1248,
+  "itemType": "Book",
+  "title": "Olympia",
+  "author": "Manolis Andronicos",
+  "publisher": "Ekdotike Athenon S.A.",
+  "placeOfPublication": "Athens, Greece",
+  "year": "1984",
+  "edition": "English",
+  "printing": "",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "Olympia",
+   "archaeology",
+   "ancient Greece"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1976-1984. Cover: Hermes of Praxiteles. No ISBN visible.",
+  "cover": "001248/01-1",
+  "image": "001248/01-1",
+  "images": [
+   {
+    "src": "001248/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001248/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "unverified",
+  "section": "History",
+  "copyright": "001248/02-2"
+ },
+ {
+  "id": 1249,
+  "itemType": "Periodical",
+  "title": "Classical Calliope: The Muses' Magazine for Youth",
+  "author": "",
+  "publisher": "Cobblestone Publishing, Inc.",
+  "placeOfPublication": "Peterborough, New Hampshire",
+  "year": "1985",
+  "edition": "Vol. V No. I (Winter 1985)",
+  "printing": "",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "classical antiquity",
+   "youth magazine",
+   "ancient Greece",
+   "ancient Rome"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Periodical ISSN 0271-1966. $3.50. Features: Mausoleum at Halicarnassus, Herodotus.",
+  "cover": "001249/01-1",
+  "image": "001249/01-1",
+  "images": [
+   {
+    "src": "001249/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001249/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001249/02-2"
+ },
+ {
+  "id": 1250,
+  "itemType": "Periodical",
+  "title": "Classical Calliope: The Muses' Magazine for Youth",
+  "author": "",
+  "publisher": "Cobblestone Publishing, Inc.",
+  "placeOfPublication": "Peterborough, New Hampshire",
+  "year": "1987",
+  "edition": "Vol. VII No. IV (Nov 1987)",
+  "printing": "",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "classical antiquity",
+   "youth magazine",
+   "ancient navigation"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Periodical ISSN 0271-1966. Ancient navigation theme.",
+  "cover": "001250/01-1",
+  "image": "001250/01-1",
+  "images": [
+   {
+    "src": "001250/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001250/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001250/02-2"
+ },
+ {
+  "id": 1251,
+  "itemType": "Periodical",
+  "title": "Classical Calliope: The Muses' Magazine for Youth",
+  "author": "",
+  "publisher": "Cobblestone Publishing, Inc.",
+  "placeOfPublication": "Peterborough, New Hampshire",
+  "year": "1984",
+  "edition": "Vol. IV No. IV (Fall 1984)",
+  "printing": "",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "Owner label: Laurie McBurnie, Box 831, Damariscotta, ME 04543",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "classical antiquity",
+   "youth magazine",
+   "ancient Greece"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Periodical ISSN 0271-1966. Owner mailing label on cover (Damariscotta, ME).",
+  "cover": "001251/01-1",
+  "image": "001251/01-1",
+  "images": [
+   {
+    "src": "001251/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001251/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001251/02-2"
+ },
+ {
+  "id": 1252,
+  "itemType": "Periodical",
+  "title": "Classical Calliope: The Muses' Magazine for Youth",
+  "author": "",
+  "publisher": "Cobblestone Publishing, Inc.",
+  "placeOfPublication": "Peterborough, New Hampshire",
+  "year": "1987",
+  "edition": "Vol. VII No. III (Sep 1987)",
+  "printing": "",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "classical antiquity",
+   "youth magazine",
+   "ancient women"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Periodical ISSN 0271-1966. Ancient women theme (Sappho, Boudicca, Zenobia).",
+  "cover": "001252/01-1",
+  "image": "001252/01-1",
+  "images": [
+   {
+    "src": "001252/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001252/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001252/02-2"
+ },
+ {
+  "id": 1253,
+  "itemType": "Periodical",
+  "title": "Calliope: World History for Young People",
+  "author": "",
+  "publisher": "Cobblestone Publishing, Inc.",
+  "placeOfPublication": "Peterborough, New Hampshire",
+  "year": "1990",
+  "edition": "Vol. 1 No. 2 (Nov/Dec 1990)",
+  "printing": "",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "world history",
+   "Byzantium",
+   "youth magazine"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Periodical ISSN 1050-7086. Byzantium/Constantinople/Istanbul theme.",
+  "cover": "001253/01-1",
+  "image": "001253/01-1",
+  "images": [
+   {
+    "src": "001253/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001253/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001253/02-2"
+ },
+ {
+  "id": 1254,
+  "itemType": "Book",
+  "title": "Die Minnesinger in Bildern der Manessischen Handschrift",
+  "author": "",
+  "publisher": "Insel-Verlag zu Leipzig",
+  "placeOfPublication": "Leipzig",
+  "year": "",
+  "edition": "Insel-Bucherei Nr. 450",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Art",
+   "Poetry"
+  ],
+  "shelf": "Art",
+  "subjects": [
+   "Minnesang",
+   "medieval manuscript",
+   "Manesse Codex",
+   "German poetry",
+   "illuminated manuscript"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Foreword by Hans Naumann. No year printed. Insel-Bucherei patterned boards.",
+  "cover": "001254/01-1",
+  "image": "001254/01-1",
+  "images": [
+   {
+    "src": "001254/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001254/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001254/03-img-0582",
+    "label": "Img 0582"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Art",
+  "copyright": "001254/02-2"
+ },
+ {
+  "id": 1255,
+  "itemType": "Book",
+  "title": "The Book of Kells",
+  "author": "",
+  "publisher": "HarperCollins Publishers",
+  "placeOfPublication": "New York",
+  "year": "1995",
+  "edition": "First HarperCollins edition",
+  "printing": "First printing",
+  "isbn": "0-06-251131-9",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Art"
+  ],
+  "shelf": "Art",
+  "subjects": [
+   "Book of Kells",
+   "illuminated manuscript",
+   "Celtic art",
+   "medieval"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1993 Studio Editions. Printed Singapore. Red cloth, mounted plate.",
+  "cover": "001255/01-1",
+  "image": "001255/01-1",
+  "images": [
+   {
+    "src": "001255/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001255/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Art",
+  "copyright": "001255/02-2"
+ },
+ {
+  "id": 1256,
+  "itemType": "Book",
+  "title": "Gods of the Celts",
+  "author": "Lorraine MacDonald & Sam McSkimming",
+  "publisher": "Clan Dalriada",
+  "placeOfPublication": "Brodick, Isle of Arran, Scotland",
+  "year": "1992",
+  "edition": "",
+  "printing": "",
+  "isbn": "0-9520971-0-9",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Spirituality & Philosophy"
+  ],
+  "shelf": "Spirituality & Philosophy",
+  "subjects": [
+   "Celtic mythology",
+   "deities",
+   "paganism"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Saddle-stitched booklet. Deities: Dagda, Lugh, Manannan, Morrigan, Brighid.",
+  "cover": "001256/01-1",
+  "image": "001256/01-1",
+  "images": [
+   {
+    "src": "001256/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001256/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Spirituality & Philosophy",
+  "copyright": "001256/02-2"
+ },
+ {
+  "id": 1257,
+  "itemType": "Book",
+  "title": "The City in History: Its Origins, Its Transformations, and Its Prospects",
+  "author": "Lewis Mumford",
+  "publisher": "Harcourt, Brace & World, Inc.",
+  "placeOfPublication": "New York",
+  "year": "1961",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "urban history",
+   "cities",
+   "Lewis Mumford",
+   "civilization"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1961. LC 61-7689.",
+  "cover": "001257/01-1",
+  "image": "001257/01-1",
+  "images": [
+   {
+    "src": "001257/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001257/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001257/03-img-0589",
+    "label": "Img 0589"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001257/02-2"
+ },
+ {
+  "id": 1258,
+  "itemType": "Book",
+  "title": "Modern Architecture",
+  "author": "Vincent Scully, Jr.",
+  "publisher": "George Braziller, Inc.",
+  "placeOfPublication": "New York",
+  "year": "",
+  "edition": "The Great Ages of World Architecture",
+  "printing": "First Printing",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Art",
+   "History"
+  ],
+  "shelf": "Architecture",
+  "subjects": [
+   "modern architecture",
+   "architectural history",
+   "Vincent Scully"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "LC 61-13689. Printed Netherlands. No copyright year on page read (c.1961).",
+  "cover": "001258/01-1",
+  "image": "001258/01-1",
+  "images": [
+   {
+    "src": "001258/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001258/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001258/03-img-0591",
+    "label": "Img 0591"
+   },
+   {
+    "src": "001258/04-img-0592",
+    "label": "Img 0592"
+   },
+   {
+    "src": "001258/05-img-0594",
+    "label": "Img 0594"
+   },
+   {
+    "src": "001258/06-img-0595",
+    "label": "Img 0595"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Architecture",
+  "copyright": "001258/02-2"
+ },
+ {
+  "id": 1259,
+  "itemType": "Book",
+  "title": "Baroque and Rococo Architecture",
+  "author": "Henry A. Millon",
+  "publisher": "George Braziller, Inc.",
+  "placeOfPublication": "New York",
+  "year": "",
+  "edition": "The Great Ages of World Architecture",
+  "printing": "First Printing",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Art",
+   "History"
+  ],
+  "shelf": "Architecture",
+  "subjects": [
+   "Baroque architecture",
+   "Rococo",
+   "architectural history"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "LC 61-15492. Printed Netherlands. No copyright year on page read (c.1961).",
+  "cover": "001259/01-1",
+  "image": "001259/01-1",
+  "images": [
+   {
+    "src": "001259/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001259/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001259/03-img-0598",
+    "label": "Img 0598"
+   },
+   {
+    "src": "001259/04-img-0599",
+    "label": "Img 0599"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Architecture",
+  "copyright": "001259/02-2"
+ },
+ {
+  "id": 1260,
+  "itemType": "Book",
+  "title": "Gothic Architecture",
+  "author": "Robert Branner",
+  "publisher": "George Braziller, Inc.",
+  "placeOfPublication": "New York",
+  "year": "",
+  "edition": "The Great Ages of World Architecture",
+  "printing": "First Printing",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Art",
+   "History"
+  ],
+  "shelf": "Architecture",
+  "subjects": [
+   "Gothic architecture",
+   "medieval architecture",
+   "cathedrals"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "LC 61-13690. Printed Netherlands. No copyright year on page read (c.1961).",
+  "cover": "001260/01-1",
+  "image": "001260/01-1",
+  "images": [
+   {
+    "src": "001260/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001260/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001260/03-img-0602",
+    "label": "Img 0602"
+   },
+   {
+    "src": "001260/04-img-0603",
+    "label": "Img 0603"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Architecture",
+  "copyright": "001260/02-2"
+ },
+ {
+  "id": 1261,
+  "itemType": "Book",
+  "title": "Roman Architecture",
+  "author": "Frank E. Brown",
+  "publisher": "George Braziller, Inc.",
+  "placeOfPublication": "New York",
+  "year": "1961",
+  "edition": "The Great Ages of World Architecture",
+  "printing": "First Printing",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Art",
+   "History"
+  ],
+  "shelf": "Architecture",
+  "subjects": [
+   "Roman architecture",
+   "ancient architecture"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "LC 61-13688. Printed Netherlands.",
+  "cover": "001261/01-1",
+  "image": "001261/01-1",
+  "images": [
+   {
+    "src": "001261/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001261/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001261/03-img-0606",
+    "label": "Img 0606"
+   },
+   {
+    "src": "001261/04-img-0607",
+    "label": "Img 0607"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Architecture",
+  "copyright": "001261/02-2"
+ },
+ {
+  "id": 1262,
+  "itemType": "Book",
+  "title": "Beowulf: The Oldest English Epic",
+  "author": "trans. Charles W. Kennedy",
+  "publisher": "Oxford University Press",
+  "placeOfPublication": "New York",
+  "year": "1940",
+  "edition": "",
+  "printing": "Sixth Printing, 1953",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Poetry"
+  ],
+  "shelf": "Poetry",
+  "subjects": [
+   "Old English",
+   "epic poetry",
+   "Beowulf",
+   "Anglo-Saxon"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1940; 6th printing 1953. Trans. into alliterative verse, intro by Kennedy (Princeton).",
+  "cover": "001262/01-1",
+  "image": "001262/01-1",
+  "images": [
+   {
+    "src": "001262/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001262/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001262/03-img-0610",
+    "label": "Img 0610"
+   },
+   {
+    "src": "001262/04-img-0611",
+    "label": "Img 0611"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Poetry",
+  "copyright": "001262/02-2"
+ },
+ {
+  "id": 1263,
+  "itemType": "Book",
+  "title": "The Alhambra",
+  "author": "Washington Irving",
+  "publisher": "G. P. Putnam's Sons (The Knickerbocker Press)",
+  "placeOfPublication": "New York",
+  "year": "1894",
+  "edition": "Darro Edition; Author's Revised Edition; Vol. II",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Travel & Exploration",
+   "Fiction"
+  ],
+  "shelf": "Travel & Exploration",
+  "subjects": [
+   "Spain",
+   "Alhambra",
+   "Washington Irving",
+   "sketches"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyrights 1865, 1891. Decorative red/gold borders.",
+  "cover": "001263/01-1",
+  "image": "001263/01-1",
+  "images": [
+   {
+    "src": "001263/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001263/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001263/03-img-0614",
+    "label": "Img 0614"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Travel & Exploration",
+  "copyright": "001263/02-2"
+ },
+ {
+  "id": 1264,
+  "itemType": "Book",
+  "title": "Twelve Lives",
+  "author": "Plutarch (trans. John Dryden)",
+  "publisher": "Fine Editions Press / The World Publishing Company",
+  "placeOfPublication": "Cleveland",
+  "year": "1950",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History",
+   "Biography & Memoir"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "ancient biography",
+   "Plutarch",
+   "Greece",
+   "Rome",
+   "Dryden"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Intro Carl Van Doren. Special contents copyright 1950 World Publishing.",
+  "cover": "001264/01-1",
+  "image": "001264/01-1",
+  "images": [
+   {
+    "src": "001264/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001264/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001264/03-img-0617",
+    "label": "Img 0617"
+   },
+   {
+    "src": "001264/04-img-0619",
+    "label": "Img 0619"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001264/02-2"
+ },
+ {
+  "id": 1265,
+  "itemType": "Book",
+  "title": "The Book of Kells",
+  "author": "",
+  "publisher": "Thames and Hudson",
+  "placeOfPublication": "London",
+  "year": "1974",
+  "edition": "",
+  "printing": "Reprinted 1976",
+  "isbn": "0 500 23213 X",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Art"
+  ],
+  "shelf": "Art",
+  "subjects": [
+   "Book of Kells",
+   "illuminated manuscript",
+   "Celtic art",
+   "medieval"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1974, reprinted 1976. Licensed from Trinity College Dublin; photos John Kennedy.",
+  "cover": "001265/01-1",
+  "image": "001265/01-1",
+  "images": [
+   {
+    "src": "001265/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001265/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Art",
+  "copyright": "001265/02-2"
+ },
+ {
+  "id": 1266,
+  "itemType": "Book",
+  "title": "The Story of One Hundred Symphonic Favorites",
+  "author": "Paul Grabbe",
+  "publisher": "Grosset & Dunlap, Inc.",
+  "placeOfPublication": "",
+  "year": "1940",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Music"
+  ],
+  "shelf": "Music",
+  "subjects": [
+   "symphony",
+   "classical music",
+   "music appreciation"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1940. Blue cloth, gilt lettering.",
+  "cover": "001266/01-1",
+  "image": "001266/01-1",
+  "images": [
+   {
+    "src": "001266/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001266/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Music",
+  "copyright": "001266/02-2"
+ },
+ {
+  "id": 1267,
+  "itemType": "Book",
+  "title": "The Story of a Hundred Operas",
+  "author": "Felix Mendelsohn (copyright holder)",
+  "publisher": "Grosset & Dunlap, Inc.",
+  "placeOfPublication": "",
+  "year": "1940",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Music"
+  ],
+  "shelf": "Music",
+  "subjects": [
+   "opera",
+   "music appreciation"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1913/1940. Red boards, gilt cartouche, 'Invaluable to Radio Listeners.' Edge wear.",
+  "cover": "001267/01-1",
+  "image": "001267/01-1",
+  "images": [
+   {
+    "src": "001267/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001267/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Music",
+  "copyright": "001267/02-2"
+ },
+ {
+  "id": 1268,
+  "itemType": "Book",
+  "title": "The Story of a Hundred Operas",
+  "author": "Felix Mendelsohn (copyright holder)",
+  "publisher": "Grosset & Dunlap, Inc.",
+  "placeOfPublication": "",
+  "year": "1940",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Music"
+  ],
+  "shelf": "Music",
+  "subjects": [
+   "opera",
+   "music appreciation"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1913/1940. Red cloth, gilt title.",
+  "cover": "001268/01-1",
+  "image": "001268/01-1",
+  "images": [
+   {
+    "src": "001268/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001268/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Music",
+  "copyright": "001268/02-2"
+ },
+ {
+  "id": 1269,
+  "itemType": "Book",
+  "title": "The Story of One Hundred Great Composers",
+  "author": "Helen L. Kaufmann",
+  "publisher": "(Grosset & Dunlap, Inc.)",
+  "placeOfPublication": "",
+  "year": "1943",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Music"
+  ],
+  "shelf": "Music",
+  "subjects": [
+   "composers",
+   "classical music",
+   "biography"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1943 Kaufmann. Maroon cloth, gilt. Publisher not on page read.",
+  "cover": "001269/01-1",
+  "image": "001269/01-1",
+  "images": [
+   {
+    "src": "001269/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001269/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Music",
+  "copyright": "001269/02-2"
+ },
+ {
+  "id": 1270,
+  "itemType": "Book",
+  "title": "The Great Short Stories of Guy de Maupassant",
+  "author": "Guy de Maupassant",
+  "publisher": "Pocket Books, Inc.",
+  "placeOfPublication": "New York",
+  "year": "1939",
+  "edition": "Collector's Edition",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Fiction"
+  ],
+  "shelf": "Fiction",
+  "subjects": [
+   "French literature",
+   "short stories",
+   "Maupassant"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1939.",
+  "cover": "001270/01-1",
+  "image": "001270/01-1",
+  "images": [
+   {
+    "src": "001270/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001270/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001270/03-img-0632",
+    "label": "Img 0632"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Fiction",
+  "copyright": "001270/02-2"
+ },
+ {
+  "id": 1271,
+  "itemType": "Book",
+  "title": "The Great Short Stories of Robert Louis Stevenson",
+  "author": "Robert Louis Stevenson",
+  "publisher": "Pocket Books, Inc.",
+  "placeOfPublication": "",
+  "year": "1951",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Fiction"
+  ],
+  "shelf": "Fiction",
+  "subjects": [
+   "short stories",
+   "Robert Louis Stevenson"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1951. Decorative border.",
+  "cover": "001271/01-1",
+  "image": "001271/01-1",
+  "images": [
+   {
+    "src": "001271/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001271/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001271/03-img-0635",
+    "label": "Img 0635"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Fiction",
+  "copyright": "001271/02-2"
+ },
+ {
+  "id": 1272,
+  "itemType": "Book",
+  "title": "The Pocket Book of Great Operas",
+  "author": "Henry W. Simon and Abraham Veinus",
+  "publisher": "Pocket Books, Inc.",
+  "placeOfPublication": "New York",
+  "year": "1949",
+  "edition": "Collector's Edition",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Music"
+  ],
+  "shelf": "Music",
+  "subjects": [
+   "opera",
+   "synopses",
+   "music reference"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1949. Illustrated by Louis Glanzman.",
+  "cover": "001272/01-1",
+  "image": "001272/01-1",
+  "images": [
+   {
+    "src": "001272/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001272/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001272/03-img-0638",
+    "label": "Img 0638"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Music",
+  "copyright": "001272/02-2"
+ },
+ {
+  "id": 1273,
+  "itemType": "Book",
+  "title": "The Sir Roger de Coverley Papers, from The Spectator",
+  "author": "intro & notes William Henry Hudson",
+  "publisher": "D. C. Heath & Co.",
+  "placeOfPublication": "Boston",
+  "year": "1906",
+  "edition": "Heath's English Classics",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Essays"
+  ],
+  "shelf": "Essays",
+  "subjects": [
+   "The Spectator",
+   "Addison and Steele",
+   "English essays"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Intro/notes copyright 1899. School edition.",
+  "cover": "001273/01-1",
+  "image": "001273/01-1",
+  "images": [
+   {
+    "src": "001273/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001273/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001273/03-img-0641",
+    "label": "Img 0641"
+   },
+   {
+    "src": "001273/04-img-0642",
+    "label": "Img 0642"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Essays",
+  "copyright": "001273/02-2"
+ },
+ {
+  "id": 1274,
+  "itemType": "Book",
+  "title": "The Guide to Reading (The Pocket University, Vol. XXIII)",
+  "author": "ed. Lyman Abbott, Asa Don Dickinson, et al.",
+  "publisher": "Doubleday, Page & Company (for Nelson Doubleday)",
+  "placeOfPublication": "Garden City, New York",
+  "year": "1924",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Reference"
+  ],
+  "shelf": "Reference",
+  "subjects": [
+   "reading",
+   "literature",
+   "self-education",
+   "Pocket University"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1917/1922/1924. Country Life Press.",
+  "cover": "001274/01-1",
+  "image": "001274/01-1",
+  "images": [
+   {
+    "src": "001274/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001274/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001274/03-img-0645",
+    "label": "Img 0645"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Reference",
+  "copyright": "001274/02-2"
+ },
+ {
+  "id": 1275,
+  "itemType": "Book",
+  "title": "Selections from the Letters, Speeches, and State Papers of Abraham Lincoln",
+  "author": "Abraham Lincoln; ed. Ida M. Tarbell",
+  "publisher": "Ginn and Company",
+  "placeOfPublication": "Boston",
+  "year": "1911",
+  "edition": "Standard English Classics",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History",
+   "Biography & Memoir"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "Abraham Lincoln",
+   "American history",
+   "speeches",
+   "letters"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1911 Tarbell. Athenaeum Press.",
+  "cover": "001275/01-1",
+  "image": "001275/01-1",
+  "images": [
+   {
+    "src": "001275/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001275/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001275/03-img-0648",
+    "label": "Img 0648"
+   },
+   {
+    "src": "001275/04-img-0649",
+    "label": "Img 0649"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001275/02-2"
+ },
+ {
+  "id": 1276,
+  "itemType": "Book",
+  "title": "Flowers from Mediaeval History",
+  "author": "Minnie D. Kellogg",
+  "publisher": "Paul Elder and Company",
+  "placeOfPublication": "San Francisco",
+  "year": "1910",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "medieval history",
+   "illustrated",
+   "anecdotes"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1910. Illustrated. Keats epigraph.",
+  "cover": "001276/01-1",
+  "image": "001276/01-1",
+  "images": [
+   {
+    "src": "001276/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001276/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001276/03-img-0652",
+    "label": "Img 0652"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001276/02-2"
+ },
+ {
+  "id": 1277,
+  "itemType": "Book",
+  "title": "The Warden (The Chronicles of Barsetshire, Vol. I)",
+  "author": "Anthony Trollope",
+  "publisher": "Dodd, Mead & Company",
+  "placeOfPublication": "New York",
+  "year": "1892",
+  "edition": "Limited to 250 copies on Holland Hand-made Paper; copy No. 167",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Fiction"
+  ],
+  "shelf": "Fiction",
+  "subjects": [
+   "English fiction",
+   "Barsetshire",
+   "Trollope",
+   "limited edition"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Limitation page: 250 copies, Nov 1892, this copy No. 167. Printer John Wilson and Son (not author signature). Vol I of 13-vol Chronicles of Barsetshire.",
+  "cover": "001277/01-1",
+  "image": "001277/01-1",
+  "images": [
+   {
+    "src": "001277/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001277/02-1a",
+    "label": "1A"
+   },
+   {
+    "src": "001277/03-2",
+    "label": "2"
+   },
+   {
+    "src": "001277/04-img-0655",
+    "label": "Img 0655"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Fiction",
+  "copyright": "001277/02-1a"
+ },
+ {
+  "id": 1278,
+  "itemType": "Book",
+  "title": "The Children of Odin: The Book of Northern Myths",
+  "author": "Padraic Colum; illus. Willy Pogany",
+  "publisher": "The Macmillan Company",
+  "placeOfPublication": "New York",
+  "year": "1920",
+  "edition": "",
+  "printing": "Sixth Printing, 1967",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Fiction"
+  ],
+  "shelf": "Fiction",
+  "subjects": [
+   "Norse mythology",
+   "myths",
+   "Willy Pogany",
+   "Padraic Colum"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1920 (renewed 1948). LCCN 20-19525.",
+  "cover": "001278/01-1",
+  "image": "001278/01-1",
+  "images": [
+   {
+    "src": "001278/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001278/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001278/03-img-0659",
+    "label": "Img 0659"
+   },
+   {
+    "src": "001278/04-img-0660",
+    "label": "Img 0660"
+   },
+   {
+    "src": "001278/05-img-0661",
+    "label": "Img 0661"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Children's",
+  "copyright": "001278/02-2"
+ },
+ {
+  "id": 1279,
+  "itemType": "Book",
+  "title": "Myths of Greece and Rome, Narrated with Special Reference to Literature and Art",
+  "author": "H. A. Guerber",
+  "publisher": "American Book Company",
+  "placeOfPublication": "New York, Cincinnati, Chicago",
+  "year": "1921",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Reference",
+   "History"
+  ],
+  "shelf": "Reference",
+  "subjects": [
+   "Greek mythology",
+   "Roman mythology",
+   "classical myth"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1893/1921.",
+  "cover": "001279/01-1",
+  "image": "001279/01-1",
+  "images": [
+   {
+    "src": "001279/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001279/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001279/03-img-0664",
+    "label": "Img 0664"
+   },
+   {
+    "src": "001279/04-img-0665",
+    "label": "Img 0665"
+   },
+   {
+    "src": "001279/05-img-0666",
+    "label": "Img 0666"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Reference",
+  "copyright": "001279/02-2"
+ },
+ {
+  "id": 1280,
+  "itemType": "Book",
+  "title": "The Iliad",
+  "author": "Homer; trans. Robert Fagles; intro Bernard Knox",
+  "publisher": "Penguin Books (Penguin Classics)",
+  "placeOfPublication": "New York / London",
+  "year": "1990",
+  "edition": "",
+  "printing": "12th printing",
+  "isbn": "0 14 04.4592 7",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Poetry"
+  ],
+  "shelf": "Poetry",
+  "subjects": [
+   "Homer",
+   "epic poetry",
+   "Trojan War",
+   "Iliad"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Number line to 12. hc ISBN 0-670-83510-2. LCCN 89-70695.",
+  "cover": "001280/01-1",
+  "image": "001280/01-1",
+  "images": [
+   {
+    "src": "001280/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001280/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Poetry",
+  "copyright": "001280/02-2"
+ },
+ {
+  "id": 1281,
+  "itemType": "Book",
+  "title": "A Syllabus in the Humanities",
+  "author": "Philip Merlan; ed. Franciszka Merlan",
+  "publisher": "The Christopher Publishing House",
+  "placeOfPublication": "North Quincy, Massachusetts",
+  "year": "1973",
+  "edition": "",
+  "printing": "",
+  "isbn": "1-8158-0288-9",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Reference"
+  ],
+  "shelf": "Reference",
+  "subjects": [
+   "humanities",
+   "Western culture",
+   "intellectual history"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1973. LC 72-81304.",
+  "cover": "001281/01-1",
+  "image": "001281/01-1",
+  "images": [
+   {
+    "src": "001281/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001281/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001281/03-img-0671",
+    "label": "Img 0671"
+   },
+   {
+    "src": "001281/04-img-0674",
+    "label": "Img 0674"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Reference",
+  "copyright": "001281/02-2"
+ },
+ {
+  "id": 1282,
+  "itemType": "Book",
+  "title": "The Roman Empire",
+  "author": "M. P. Charlesworth",
+  "publisher": "Oxford University Press",
+  "placeOfPublication": "London",
+  "year": "1951",
+  "edition": "First edition 1951",
+  "printing": "Reprinted 1954 and 1958",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "ancient Rome",
+   "Roman Empire"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Amen House. Printed Great Britain.",
+  "cover": "001282/01-1",
+  "image": "001282/01-1",
+  "images": [
+   {
+    "src": "001282/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001282/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001282/03-img-0676",
+    "label": "Img 0676"
+   },
+   {
+    "src": "001282/04-img-0677",
+    "label": "Img 0677"
+   },
+   {
+    "src": "001282/05-img-0678",
+    "label": "Img 0678"
+   },
+   {
+    "src": "001282/06-img-0680",
+    "label": "Img 0680"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001282/02-2"
+ },
+ {
+  "id": 1283,
+  "itemType": "Book",
+  "title": "Latin Poetry in Verse Translation: From the Beginnings to the Renaissance",
+  "author": "ed. L. R. Lind",
+  "publisher": "Houghton Mifflin Company",
+  "placeOfPublication": "Boston",
+  "year": "1957",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Poetry"
+  ],
+  "shelf": "Poetry",
+  "subjects": [
+   "Latin poetry",
+   "translation",
+   "classical literature"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1957 L. R. Lind (Univ. Kansas). Riverside Press.",
+  "cover": "001283/01-1",
+  "image": "001283/01-1",
+  "images": [
+   {
+    "src": "001283/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001283/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001283/03-img-0681",
+    "label": "Img 0681"
+   },
+   {
+    "src": "001283/04-img-0682",
+    "label": "Img 0682"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Poetry",
+  "copyright": "001283/02-2"
+ },
+ {
+  "id": 1284,
+  "itemType": "Book",
+  "title": "Outlines of the History of Greek Philosophy",
+  "author": "Eduard Zeller",
+  "publisher": "Meridian Books",
+  "placeOfPublication": "New York",
+  "year": "1955",
+  "edition": "13th revised ed. (1931); Meridian 1955",
+  "printing": "Seventh printing, January 1960",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Spirituality & Philosophy"
+  ],
+  "shelf": "Spirituality & Philosophy",
+  "subjects": [
+   "Greek philosophy",
+   "ancient philosophy",
+   "Zeller"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Meridian M9, $1.45. LC 55-7579. From Humanities Press.",
+  "cover": "001284/01-1",
+  "image": "001284/01-1",
+  "images": [
+   {
+    "src": "001284/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001284/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001284/03-img-0686",
+    "label": "Img 0686"
+   },
+   {
+    "src": "001284/04-img-0687",
+    "label": "Img 0687"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Philosophy",
+  "copyright": "001284/02-2"
+ },
+ {
+  "id": 1285,
+  "itemType": "Book",
+  "title": "The Ethics of Aristotle",
+  "author": "Aristotle; trans. J. A. K. Thomson",
+  "publisher": "Penguin Books (Penguin Classics)",
+  "placeOfPublication": "Harmondsworth, Middlesex",
+  "year": "1953",
+  "edition": "",
+  "printing": "Reprinted 1956, 1958, 1959",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Spirituality & Philosophy"
+  ],
+  "shelf": "Spirituality & Philosophy",
+  "subjects": [
+   "ethics",
+   "Aristotle",
+   "ancient philosophy"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "First 1953; Penguin 1955. Whitefriars Press. 3/6.",
+  "cover": "001285/01-1",
+  "image": "001285/01-1",
+  "images": [
+   {
+    "src": "001285/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001285/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001285/03-img-0690",
+    "label": "Img 0690"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Philosophy",
+  "copyright": "001285/02-2"
+ },
+ {
+  "id": 1286,
+  "itemType": "Book",
+  "title": "The Birth of Tragedy",
+  "author": "Friedrich Nietzsche; trans. Clifton P. Fadiman",
+  "publisher": "Dover Publications, Inc. (Dover Thrift Editions)",
+  "placeOfPublication": "Mineola, New York",
+  "year": "1995",
+  "edition": "",
+  "printing": "",
+  "isbn": "0-486-28515-4",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Spirituality & Philosophy"
+  ],
+  "shelf": "Spirituality & Philosophy",
+  "subjects": [
+   "Nietzsche",
+   "aesthetics",
+   "Greek tragedy"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Dover 1995; Fadiman trans. (Modern Library 1927). LC 95-10004.",
+  "cover": "001286/01-1",
+  "image": "001286/01-1",
+  "images": [
+   {
+    "src": "001286/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001286/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Philosophy",
+  "copyright": "001286/02-2"
+ },
+ {
+  "id": 1287,
+  "itemType": "Exhibition catalog",
+  "title": "Treasures of Tutankhamun",
+  "author": "",
+  "publisher": "George Rainbird Ltd (for the Trustees of the British Museum)",
+  "placeOfPublication": "London",
+  "year": "1972",
+  "edition": "Exhibition catalogue",
+  "printing": "",
+  "isbn": "07 23 0007-00",
+  "format": "",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Art",
+   "History"
+  ],
+  "shelf": "Art",
+  "subjects": [
+   "ancient Egypt",
+   "Tutankhamun",
+   "British Museum",
+   "exhibition"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "British Museum 1972 exhibition; sponsored by The Times & Sunday Times. Colour plates.",
+  "cover": "001287/01-1",
+  "image": "001287/01-1",
+  "images": [
+   {
+    "src": "001287/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001287/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001287/03-img-0694",
+    "label": "Img 0694"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Art",
+  "copyright": "001287/02-2"
+ },
+ {
+  "id": 1288,
+  "itemType": "Book",
+  "title": "The Children of Sanchez: Autobiography of a Mexican Family",
+  "author": "Oscar Lewis",
+  "publisher": "Random House, Inc.",
+  "placeOfPublication": "New York",
+  "year": "1961",
+  "edition": "",
+  "printing": "First Printing",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Biography & Memoir",
+   "History"
+  ],
+  "shelf": "Biography & Memoir",
+  "subjects": [
+   "Mexico",
+   "anthropology",
+   "poverty",
+   "Oscar Lewis",
+   "oral history"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1961. LC 61-6270. First Printing.",
+  "cover": "001288/01-1",
+  "image": "001288/01-1",
+  "images": [
+   {
+    "src": "001288/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001288/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001288/03-img-0698",
+    "label": "Img 0698"
+   },
+   {
+    "src": "001288/04-img-0699",
+    "label": "Img 0699"
+   },
+   {
+    "src": "001288/05-img-0700",
+    "label": "Img 0700"
+   },
+   {
+    "src": "001288/06-img-0701",
+    "label": "Img 0701"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Biography & Memoir",
+  "copyright": "001288/02-2"
+ },
+ {
+  "id": 1289,
+  "itemType": "Book",
+  "title": "An Alphabet of Ancient Greece, Book One - Early Days",
+  "author": "Mary Chubb; illus. Jill Wyatt",
+  "publisher": "",
+  "placeOfPublication": "",
+  "year": "1967",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "ancient Greece",
+   "children's",
+   "illustrated"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1967. Printed Great Britain. LC 68-16604. No publisher on page read.",
+  "cover": "001289/01-1",
+  "image": "001289/01-1",
+  "images": [
+   {
+    "src": "001289/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001289/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Children's",
+  "copyright": "001289/02-2"
+ },
+ {
+  "id": 1290,
+  "itemType": "Book",
+  "title": "The Greek Way",
+  "author": "Edith Hamilton",
+  "publisher": "W. W. Norton & Company, Inc.",
+  "placeOfPublication": "New York",
+  "year": "1942",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History",
+   "Essays"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "ancient Greece",
+   "classical civilization",
+   "Edith Hamilton"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1930/1942. 1942 issue as 'The Great Age of Greek Literature' (5 new + 12 orig chapters).",
+  "cover": "001290/01-1",
+  "image": "001290/01-1",
+  "images": [
+   {
+    "src": "001290/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001290/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001290/03-img-0705",
+    "label": "Img 0705"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001290/02-2"
+ },
+ {
+  "id": 1291,
+  "itemType": "Book",
+  "title": "A Place to Stand",
+  "author": "Jimmy Santiago Baca",
+  "publisher": "Grove Press",
+  "placeOfPublication": "New York",
+  "year": "2001",
+  "edition": "First Paperback Edition",
+  "printing": "",
+  "isbn": "0-8021-3908-6",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Biography & Memoir",
+   "Poetry"
+  ],
+  "shelf": "Biography & Memoir",
+  "subjects": [
+   "memoir",
+   "prison",
+   "poetry",
+   "Chicano",
+   "Jimmy Santiago Baca"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 2001. LC 00-051400. 'the making of a poet'; International Prize winner.",
+  "cover": "001291/01-1",
+  "image": "001291/01-1",
+  "images": [
+   {
+    "src": "001291/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001291/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Biography & Memoir",
+  "copyright": "001291/02-2"
+ },
+ {
+  "id": 1292,
+  "itemType": "Book",
+  "title": "Democracy in America, Volume I",
+  "author": "Alexis de Tocqueville",
+  "publisher": "Vintage Books (Random House)",
+  "placeOfPublication": "New York",
+  "year": "1945",
+  "edition": "Vintage edition",
+  "printing": "Tenth printing, October 1961",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "democracy",
+   "America",
+   "political thought",
+   "Tocqueville"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Reeve text rev. Bowen, ed. Phillips Bradley. Copyright 1945 Knopf. Vintage 1954; 10th ptg 1961.",
+  "cover": "001292/01-1",
+  "image": "001292/01-1",
+  "images": [
+   {
+    "src": "001292/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001292/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001292/03-img-0710",
+    "label": "Img 0710"
+   },
+   {
+    "src": "001292/04-img-0711",
+    "label": "Img 0711"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001292/02-2"
+ },
+ {
+  "id": 1293,
+  "itemType": "Book",
+  "title": "Old Testament Narratives",
+  "author": "ed. Roy L. French and Mary Dawson",
+  "publisher": "D. C. Heath and Company",
+  "placeOfPublication": "Boston",
+  "year": "1931",
+  "edition": "Golden Key Series",
+  "printing": "5K4",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "Old Testament",
+   "Bible",
+   "school reader"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1931.",
+  "cover": "001293/01-1",
+  "image": "001293/01-1",
+  "images": [
+   {
+    "src": "001293/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001293/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001293/03-img-0714",
+    "label": "Img 0714"
+   },
+   {
+    "src": "001293/04-img-0715",
+    "label": "Img 0715"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Religion",
+  "copyright": "001293/02-2"
+ },
+ {
+  "id": 1294,
+  "itemType": "Book",
+  "title": "The Adventures of Odysseus and The Tale of Troy",
+  "author": "Padraic Colum",
+  "publisher": "The Macmillan Company",
+  "placeOfPublication": "New York",
+  "year": "1918",
+  "edition": "",
+  "printing": "Published December, 1918",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Fiction"
+  ],
+  "shelf": "Fiction",
+  "subjects": [
+   "Odyssey",
+   "Greek mythology",
+   "Trojan War",
+   "Padraic Colum"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1918. Decorated cloth, Greek ship in gilt.",
+  "cover": "001294/01-1",
+  "image": "001294/01-1",
+  "images": [
+   {
+    "src": "001294/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001294/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001294/03-img-0719",
+    "label": "Img 0719"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Children's",
+  "copyright": "001294/02-2"
+ },
+ {
+  "id": 1295,
+  "itemType": "Book",
+  "title": "Classics: Greek and Roman",
+  "author": "Meyer Reinhold",
+  "publisher": "Barron's Educational Series, Inc.",
+  "placeOfPublication": "Great Neck, N.Y.",
+  "year": "1946",
+  "edition": "reset/reprinted 1949",
+  "printing": "Sixteenth Printing, 1961",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Reference"
+  ],
+  "shelf": "Reference",
+  "subjects": [
+   "classical literature",
+   "study guide",
+   "Greek",
+   "Roman"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "$1.95. Designed Stefan Salter.",
+  "cover": "001295/01-1",
+  "image": "001295/01-1",
+  "images": [
+   {
+    "src": "001295/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001295/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001295/03-img-0722",
+    "label": "Img 0722"
+   },
+   {
+    "src": "001295/04-img-0724",
+    "label": "Img 0724"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Reference",
+  "copyright": "001295/02-2"
+ },
+ {
+  "id": 1296,
+  "itemType": "Book",
+  "title": "Classics: Greek and Roman",
+  "author": "Meyer Reinhold",
+  "publisher": "Barron's Educational Series, Inc.",
+  "placeOfPublication": "Great Neck, N.Y.",
+  "year": "1946",
+  "edition": "reset/reprinted 1949",
+  "printing": "Fifteenth Printing, 1960",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Reference"
+  ],
+  "shelf": "Reference",
+  "subjects": [
+   "classical literature",
+   "study guide",
+   "Greek",
+   "Roman"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "$1.95. 15th printing 1960.",
+  "cover": "001296/01-1",
+  "image": "001296/01-1",
+  "images": [
+   {
+    "src": "001296/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001296/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001296/03-img-0726",
+    "label": "Img 0726"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Reference",
+  "copyright": "001296/02-2"
+ },
+ {
+  "id": 1297,
+  "itemType": "Book",
+  "title": "Freedom in the Ancient World",
+  "author": "Herbert J. Muller",
+  "publisher": "Harper & Brothers",
+  "placeOfPublication": "New York",
+  "year": "1961",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "ancient history",
+   "freedom",
+   "Herbert Muller"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1961. LC 61-6437.",
+  "cover": "001297/01-1",
+  "image": "001297/01-1",
+  "images": [
+   {
+    "src": "001297/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001297/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001297/03-img-0728",
+    "label": "Img 0728"
+   },
+   {
+    "src": "001297/04-img-0729",
+    "label": "Img 0729"
+   },
+   {
+    "src": "001297/05-img-0730",
+    "label": "Img 0730"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "History",
+  "copyright": "001297/02-2"
+ },
+ {
+  "id": 1298,
+  "itemType": "Book",
+  "title": "The Rosetta Stone",
+  "author": "",
+  "publisher": "British Museum Publications Ltd",
+  "placeOfPublication": "London",
+  "year": "1971",
+  "edition": "First published 1913, Revised 1950",
+  "printing": "Fifteenth impression 1976",
+  "isbn": "0 7141 0911 8",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "History"
+  ],
+  "shelf": "History",
+  "subjects": [
+   "Rosetta Stone",
+   "ancient Egypt",
+   "British Museum",
+   "hieroglyphics"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "For the Trustees of the British Museum. Printed Oxford UP.",
+  "cover": "001298/01-1",
+  "image": "001298/01-1",
+  "images": [
+   {
+    "src": "001298/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001298/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001298/03-img-0734",
+    "label": "Img 0734"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "History",
+  "copyright": "001298/02-2"
+ },
+ {
+  "id": 1299,
+  "itemType": "Book",
+  "title": "A Literature of Their Own: British Women Novelists from Bronte to Lessing",
+  "author": "Elaine Showalter",
+  "publisher": "Princeton University Press",
+  "placeOfPublication": "Princeton, New Jersey",
+  "year": "1977",
+  "edition": "First Princeton Paperback printing, 1977",
+  "printing": "Second printing, with corrections, 1977",
+  "isbn": "",
+  "format": "Paperback",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Essays"
+  ],
+  "shelf": "Essays",
+  "subjects": [
+   "literary criticism",
+   "women novelists",
+   "British literature",
+   "Showalter"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1977. ISBN/LCCN stated to be on last printed page (not photographed).",
+  "cover": "001299/01-1",
+  "image": "001299/01-1",
+  "images": [
+   {
+    "src": "001299/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001299/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001299/03-img-0737",
+    "label": "Img 0737"
+   },
+   {
+    "src": "001299/04-img-0739",
+    "label": "Img 0739"
+   }
+  ],
+  "isbn_status": "unverified",
+  "section": "Essays",
+  "copyright": "001299/02-2"
+ },
+ {
+  "id": 1300,
+  "itemType": "Book",
+  "title": "The Country Diary of an Edwardian Lady",
+  "author": "Edith Holden",
+  "publisher": "Webb & Bower Ltd",
+  "placeOfPublication": "Exeter, England",
+  "year": "1977",
+  "edition": "",
+  "printing": "",
+  "isbn": "0-03-021026-7",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Nature"
+  ],
+  "shelf": "Nature",
+  "subjects": [
+   "nature diary",
+   "botany",
+   "English countryside",
+   "watercolour",
+   "Edith Holden"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Copyright 1977. LC 77-71198. Printed Italy (Mondadori). Facsimile nature diary, watercolours.",
+  "cover": "001300/01-1",
+  "image": "001300/01-1",
+  "images": [
+   {
+    "src": "001300/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001300/02-2",
+    "label": "2"
+   }
+  ],
+  "isbn_status": "present",
+  "section": "Nature",
+  "copyright": "001300/02-2"
+ },
+ {
+  "id": 1301,
+  "itemType": "Book",
+  "title": "A Midsummer-Night's Dream",
+  "author": "William Shakespeare; illus. Arthur Rackham",
+  "publisher": "Doubleday, Page & Co. (New York); William Heinemann (London)",
+  "placeOfPublication": "New York",
+  "year": "1908",
+  "edition": "",
+  "printing": "",
+  "isbn": "",
+  "format": "Hardcover",
+  "description": "",
+  "blurb": "",
+  "discussion": "",
+  "signed": false,
+  "inscription": "",
+  "genres": [
+   "Fiction",
+   "Art"
+  ],
+  "shelf": "Fiction",
+  "subjects": [
+   "Shakespeare",
+   "Arthur Rackham",
+   "illustrated",
+   "drama"
+  ],
+  "places": [],
+  "condition": "",
+  "location": "Maine",
+  "owner": "Valerie",
+  "notes": "Illustrated by Arthur Rackham, R.W.S. Title page 1908. Mounted cover illustration; tissue guards.",
+  "cover": "001301/01-1",
+  "image": "001301/01-1",
+  "images": [
+   {
+    "src": "001301/01-1",
+    "label": "1"
+   },
+   {
+    "src": "001301/02-2",
+    "label": "2"
+   },
+   {
+    "src": "001301/03-img-0744",
+    "label": "Img 0744"
+   },
+   {
+    "src": "001301/04-img-0745",
+    "label": "Img 0745"
+   }
+  ],
+  "isbn_status": "none",
+  "section": "Fiction",
+  "copyright": "001301/02-2"
  }
 ]
