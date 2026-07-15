@@ -5,9 +5,7 @@ import { getItems, writeLocalItems } from '@/lib/data';
 // POST /api/items/bulk-section  { ids: number[], section: string }
 // Sets the same section on many items in a single write.
 export async function POST(req: Request) {
-  if (process.env.DATABASE_URL) {
-    return NextResponse.json({ error: 'Editing is available only against the local JSON store.' }, { status: 400 });
-  }
+  // Persisted via writeLocalItems: Supabase when configured, else local JSON (both modes).
   let body: { ids?: number[]; section?: string };
   try {
     body = await req.json();

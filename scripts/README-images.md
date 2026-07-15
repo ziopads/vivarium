@@ -46,6 +46,19 @@ from the folder name).
 that word carries through to the image's label in the app (and a file with
 `cover` in the name becomes the item's default main image on new items).
 
+**Positional convention (recommended for new batches — no `title.txt` needed).**
+Name the photos by position and the pipeline labels them for you:
+
+| File | Label | Holds |
+|---|---|---|
+| `1.jpg` | Front Cover | title (and becomes the cover image) |
+| `2.jpg` | Copyright | publisher · year · ISBN (title-page verso) |
+| `3.jpg` | Rear Cover | optional — rear-cover ISBN barcode |
+
+With this convention the new item is created with a **blank title**, which marks it
+as needing analysis (see the analysis loop below). Each item still gets its own
+folder; only the photo names matter.
+
 Example:
 ```
 vivarium-content/image-intake/
@@ -105,6 +118,45 @@ Cover can be picked for you if a source file was named with `cover`; the copyrig
 page is always set here by hand.
 
 ---
+
+---
+
+## Analysis loop — filling the bibliographic data (new items)
+
+New items created by the positional convention come in blank (title/ISBN/etc.). Fill
+them with a CSV that Claude works through in a Cowork conversation:
+
+```
+apply_images.py ─writes→ _ingest/pending.json
+export_pending_csv.py ─→ _ingest/pending.csv   (id, image paths, empty fields)
+   → Claude reads each item's photos, captures the ISBN, looks it up
+     (Open Library → Google Books), fills the row, sets status=ready
+merge_results.py ─────→ folds the filled rows back into data/items.json
+```
+
+- `python3 scripts/export_pending_csv.py` — lists only items still needing analysis
+  (empty description), so re-running after a merge shrinks the list.
+- `python3 scripts/merge_results.py` — applies only rows marked `status=ready`.
+  It **fills, never clobbers** (a blank cell can't erase an existing value), validates
+  `section`/`shelf`/`genres` against `vocab.json` (unknown values are reported and
+  skipped, not written), and backs up to `items.json.mrgbak`.
+
+## Seeding live — safely (read this)
+
+The live data is the source of truth. **Never** run `migrate-to-supabase.mjs` for an
+incremental add — it upserts every row and will overwrite live edits with your local
+copy (it now refuses to run without `--full-reseed`). Instead:
+
+```
+1. node --env-file=.env.local scripts/sync_from_supabase.mjs   # pull live → local FIRST
+   (so new ids are assigned above the true live max — no collisions)
+2. lay out intake → prep_images.py → apply_images.py           # create skeletons
+3. export_pending_csv.py → analyze in Cowork → merge_results.py # fill locally
+4. node --env-file=.env.local scripts/seed-new-items.mjs --min <liveMax+1>
+   # INSERT-ONLY: aborts if any target id already exists. Existing rows & vocab untouched.
+```
+
+Step 1 is what prevents the id-collision that overwrites live records. Do it every time.
 
 ## Cleanup & notes
 - After a successful apply you can empty `image-intake/` and `image-ready/`.

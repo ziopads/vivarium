@@ -10,13 +10,7 @@ export async function POST(
   _req: Request,
   { params }: { params: { id: string } },
 ) {
-  if (process.env.DATABASE_URL) {
-    return NextResponse.json(
-      { error: 'Delete is available only against the local JSON store.' },
-      { status: 400 },
-    );
-  }
-
+  // Persisted via writeLocalItems: Supabase when configured, else local JSON (both modes).
   const id = Number(params.id);
   const items = await getItems();
   if (!items.some((i) => i.id === id)) {

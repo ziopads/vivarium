@@ -1,14 +1,30 @@
-// Seed Supabase from the local JSON files (hybrid schema: typed columns + attributes).
+// FULL RESEED of Supabase from local JSON (hybrid schema: typed columns + attributes).
 //
-//   npm i @supabase/supabase-js
-//   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/migrate-to-supabase.mjs
+// ⚠️  DANGER — this UPSERTS EVERY row by id (items, vocab, wishlist). If Supabase holds
+//     edits that are newer than your local data/items.json, this OVERWRITES them with the
+//     stale local copy. That has bitten us before. It is NOT an incremental tool.
+//
+//     • To add NEW items only, use  scripts/seed-new-items.mjs  (insert-only, aborts on
+//       id collision).
+//     • Before any incremental work, run  scripts/sync_from_supabase.mjs  to pull live
+//       down first.
+//     • Use THIS script only for a true from-scratch reseed of an EMPTY / disposable DB.
+//
+// Requires an explicit acknowledgement flag so it can't run by accident:
+//   node --env-file=.env.local scripts/migrate-to-supabase.mjs --full-reseed
 //
 // Run AFTER creating the project and running supabase/schema.sql.
-// Idempotent: upserts by id, so it's safe to re-run.
 
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+
+if (!process.argv.includes('--full-reseed')) {
+  console.error('REFUSING TO RUN: this upserts EVERY row and can overwrite live edits.');
+  console.error('If you truly want a full from-scratch reseed of a disposable DB, pass --full-reseed.');
+  console.error('To add new items safely instead, use scripts/seed-new-items.mjs (insert-only).');
+  process.exit(1);
+}
 
 const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
