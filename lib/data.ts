@@ -140,9 +140,22 @@ async function withScannedImages(items: Item[]): Promise<Item[]> {
 export async function getItems(): Promise<Item[]> {
   const sb = getSupabase();
   if (sb) {
-    const { data, error } = await sb.from('items').select('*').order('id');
-    if (error) throw new Error(`Supabase getItems: ${error.message}`);
-    return (data || []).map(rowToItem);
+    // Supabase caps a single select at 1000 rows ("Max rows"), so page through ALL
+    // of them. Without this the catalogue silently truncates past 1000 items — and
+    // that truncated read then made writeLocalItems delete the overflow. Keep the paging.
+    const PAGE = 1000;
+    const rows: Row[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await sb
+        .from('items')
+        .select('*')
+        .order('id')
+        .range(from, from + PAGE - 1);
+      if (error) throw new Error(`Supabase getItems: ${error.message}`);
+      rows.push(...(data || []));
+      if (!data || data.length < PAGE) break;
+    }
+    return rows.map(rowToItem);
   }
   return withScannedImages(await readLocalItems());
 }
@@ -183,9 +196,24 @@ export async function writeLocalItems(items: Item[]): Promise<void> {
       if (error) throw new Error(`Supabase upsert: ${error.message}`);
     }
     const keep = new Set(clean.map((i) => i.id));
-    const { data: existing, error: exErr } = await sb.from('items').select('id');
-    if (exErr) throw new Error(`Supabase select ids: ${exErr.message}`);
-    const toDelete = (existing || []).map((r: Row) => r.id).filter((id: number) => !keep.has(id));
+    // Page through ALL existing ids (the 1000-row cap applies to this select too).
+    const existingIds: number[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from('items').select('id').order('id').range(from, from + 999);
+      if (error) throw new Error(`Supabase select ids: ${error.message}`);
+      existingIds.push(...(data || []).map((r: Row) => r.id));
+      if (!data || data.length < 1000) break;
+    }
+    const toDelete = existingIds.filter((id) => !keep.has(id));
+    // Safety guard: an in-app save removes 0–1 items. A large deletion means the
+    // caller was handed a partial/truncated set — refuse rather than nuke live rows.
+    // (Upserts above have already persisted; only the destructive delete is skipped.)
+    if (toDelete.length > 10) {
+      throw new Error(
+        `writeLocalItems: refusing to delete ${toDelete.length} rows in one write — ` +
+        `this looks like a truncated read, not an intentional bulk delete. Nothing deleted.`,
+      );
+    }
     if (toDelete.length) {
       const { error: delErr } = await sb.from('items').delete().in('id', toDelete);
       if (delErr) throw new Error(`Supabase delete: ${delErr.message}`);
