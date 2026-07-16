@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { getViewer } from '@/lib/auth';
 import { getItems, writeLocalItems } from '@/lib/data';
-import { uploadToR2, r2Configured } from '@/lib/storage';
+import { uploadToR2, deleteFromR2, r2Configured } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,4 +63,55 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   revalidatePath(`/items/${id}`);
   revalidatePath('/');
   return NextResponse.json({ ok: true, added: added.length });
+}
+
+// DELETE /api/items/:id/images   { src: "<id6>/<stem>" }
+// Admin-only. Removes one shot from the item's gallery, fixes the cover/copyright
+// pointers if they referenced it, persists, then best-effort deletes the R2 objects.
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  const viewer = await getViewer();
+  if (!viewer.isAdmin) {
+    return NextResponse.json({ error: 'Admins only.' }, { status: 403 });
+  }
+
+  const id = Number(params.id);
+  let src = '';
+  try {
+    ({ src } = await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+  }
+  if (!src) return NextResponse.json({ error: 'Missing src' }, { status: 400 });
+
+  const items = await getItems();
+  const item = items.find((i) => i.id === id);
+  if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+
+  const imgs = item.images ?? [];
+  const idx = imgs.findIndex((im) => im.src === src);
+  if (idx < 0) return NextResponse.json({ error: 'src not in item images' }, { status: 400 });
+
+  item.images = imgs.filter((_, i) => i !== idx);
+  if (item.copyright === src) item.copyright = undefined;
+  if (item.cover === src || item.image === src) {
+    const first = item.images[0];
+    item.cover = first ? first.src : undefined;
+    item.image = first ? first.src : null;
+  }
+
+  await writeLocalItems(items);
+
+  // Best-effort R2 cleanup — orphaned objects are harmless, so never fail on this.
+  if (r2Configured()) {
+    try {
+      await deleteFromR2(`items/${src}.webp`);
+      await deleteFromR2(`items/${src}-thumb.webp`);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  revalidatePath(`/items/${id}`);
+  revalidatePath('/');
+  return NextResponse.json({ ok: true, remaining: item.images.length });
 }

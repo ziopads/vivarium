@@ -52,6 +52,36 @@ export default function Gallery({
     }
   }
 
+  async function deleteImage() {
+    if (
+      !window.confirm(
+        `Delete this image (“${current.label}”) from ${title}? This can’t be undone.`,
+      )
+    )
+      return;
+    setSaving(true);
+    setMsg('');
+    try {
+      const res = await fetch(`/api/items/${itemId}/images`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ src: current.src }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: 'Failed' }));
+        setMsg(error || 'Could not delete');
+      } else {
+        setMsg('Image deleted');
+        setActive(0);
+        router.refresh();
+      }
+    } catch {
+      setMsg('Could not reach the server');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function setAsCopyright() {
     setSaving(true);
     setMsg('');
@@ -108,6 +138,15 @@ export default function Gallery({
               }`}
             >
               {current.src === copyrightSrc ? '✓ copyright page' : 'Set as copyright page'}
+            </button>
+          )}
+          {editable && (
+            <button
+              onClick={deleteImage}
+              disabled={saving}
+              className="rounded-full border border-line px-2 py-0.5 text-rust hover:border-rust hover:bg-rust hover:text-white disabled:opacity-50"
+            >
+              Delete
             </button>
           )}
           {msg && <span className="text-moss">{msg}</span>}

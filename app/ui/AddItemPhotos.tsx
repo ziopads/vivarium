@@ -3,10 +3,27 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Downscale + webp-encode in the browser (full + thumbnail) so uploads stay small
-// and match the item image convention (each shot has a matching -thumb).
-async function resize(file: File, maxDim: number, quality: number): Promise<Blob> {
-  const bmp = await createImageBitmap(file);
+// Decode a picked file to a bitmap. Most formats (JPEG/PNG, and HEIC on Apple
+// devices) go straight through createImageBitmap. Desktop Chrome/Firefox can't
+// decode HEIC, so on failure we convert it to JPEG client-side via heic2any
+// (lazily imported — the ~1MB decoder only loads when a HEIC actually needs it).
+async function fileToBitmap(file: File): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(file);
+  } catch {
+    const heic2any = (await import('heic2any')).default as (o: {
+      blob: Blob;
+      toType?: string;
+      quality?: number;
+    }) => Promise<Blob | Blob[]>;
+    const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
+    return await createImageBitmap(Array.isArray(out) ? out[0] : out);
+  }
+}
+
+// Downscale + webp-encode a bitmap (full + thumbnail) so uploads stay small and
+// match the item image convention (each shot has a matching -thumb).
+async function encode(bmp: ImageBitmap, maxDim: number, quality: number): Promise<Blob> {
   const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
   const w = Math.round(bmp.width * scale);
   const h = Math.round(bmp.height * scale);
@@ -37,8 +54,9 @@ export default function AddItemPhotos({ itemId }: { itemId: number }) {
     try {
       const fd = new FormData();
       for (let i = 0; i < files.length; i++) {
-        const full = await resize(files[i], 1400, 0.82);
-        const thumb = await resize(files[i], 420, 0.8);
+        const bmp = await fileToBitmap(files[i]);   // decode once (HEIC-aware)
+        const full = await encode(bmp, 1400, 0.82);
+        const thumb = await encode(bmp, 420, 0.8);
         fd.append('full', full, `${i}.webp`);
         fd.append('thumb', thumb, `${i}-thumb.webp`);
       }
