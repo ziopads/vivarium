@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 // Server-only. Cloudflare R2 (S3-compatible) upload. Reusable file layer —
 // the same client serves the FOIA project's page images later.
@@ -27,4 +27,8 @@ export async function uploadToR2(key: string, body: Uint8Array | Buffer, content
   await getClient().send(
     new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }),
   );
+}
+
+export async function deleteFromR2(key: string): Promise<void> {
+  await getClient().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }
