@@ -11,13 +11,21 @@ async function fileToBitmap(file: File): Promise<ImageBitmap> {
   try {
     return await createImageBitmap(file);
   } catch {
-    const heic2any = (await import('heic2any')).default as (o: {
-      blob: Blob;
-      toType?: string;
-      quality?: number;
-    }) => Promise<Blob | Blob[]>;
-    const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
-    return await createImageBitmap(Array.isArray(out) ? out[0] : out);
+    try {
+      const heic2any = (await import('heic2any')).default as (o: {
+        blob: Blob;
+        toType?: string;
+        quality?: number;
+      }) => Promise<Blob | Blob[]>;
+      const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
+      return await createImageBitmap(Array.isArray(out) ? out[0] : out);
+    } catch (e) {
+      const why = e instanceof Error ? e.message : String(e);
+      throw new Error(
+        `Couldn’t read “${file.name || 'image'}” (${file.type || 'unknown type'}). ` +
+          `If it’s a HEIC, try a JPEG or upload from Safari. [${why}]`,
+      );
+    }
   }
 }
 
@@ -38,6 +46,7 @@ async function encode(bmp: ImageBitmap, maxDim: number, quality: number): Promis
 
 export default function AddItemPhotos({ itemId }: { itemId: number }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
@@ -69,16 +78,35 @@ export default function AddItemPhotos({ itemId }: { itemId: number }) {
         const d = await res.json().catch(() => ({}));
         setMsg(d.error || 'Upload failed.');
       }
-    } catch {
-      setMsg('Something went wrong.');
+    } catch (err) {
+      console.error('item photo upload failed:', err);
+      setMsg(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
       setBusy(false);
     }
   }
 
+  if (!open) {
+    return (
+      <div className="mt-6">
+        <button
+          onClick={() => setOpen(true)}
+          className="rounded-md border border-line px-3 py-1.5 text-sm text-rust hover:border-rust"
+        >
+          + Add photos
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-6 rounded-lg border border-line bg-card p-4">
-      <p className="mb-2 text-sm font-medium">Add photos</p>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-sm font-medium">Add photos</p>
+        <button onClick={() => setOpen(false)} className="text-xs text-muted hover:text-rust">
+          close
+        </button>
+      </div>
       <p className="mb-3 text-xs text-muted">
         Snap or choose one or more shots (cover, copyright page, etc.). After they land,
         use a thumbnail’s “Set as main / copyright” to label them.
