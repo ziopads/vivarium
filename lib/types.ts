@@ -31,6 +31,10 @@ export type Item = {
   section?: string;
   visibility?: string;
   maine?: boolean;
+  // Acquisition / provenance. ADMIN-ONLY — never rendered to the public catalogue.
+  // Lives in the JSONB attributes tail (no migration needed).
+  source?: string;
+  pricePaid?: string;
   // Type-specific fields (e.g. picture frames); stored in the JSONB attributes tail.
   frameOuterW?: string;
   frameOuterH?: string;

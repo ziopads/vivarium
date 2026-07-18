@@ -13,6 +13,44 @@ writes `items.json`.
 
 ---
 
+## The one-command way (recommended)
+
+`ingest.py` runs the whole batch as one resumable, safety-enforced command. It
+orchestrates the stage scripts below, so you normally never call them by hand.
+
+```bash
+# 1. Lay out the batch: <batch>/<one folder per book>/{1,2,3}.jpg
+python3 scripts/ingest.py "vivarium-content/2026 0712"
+#    → syncs live (records the true max id), preps, creates skeletons above that id,
+#      writes _ingest/pending.csv, then PAUSES.
+
+# 2. Fill _ingest/pending.csv in a Cowork conversation (capture ISBN, look it up,
+#    fill fields, set status=ready). Then:
+python3 scripts/ingest.py --resume
+#    → merges the reviewed rows into local items.json, then PAUSES with a summary.
+
+# 3. When the summary looks right, publish to live (images→R2, insert-only seed):
+python3 scripts/ingest.py --resume --approve
+```
+
+Safety is enforced, not remembered: it always syncs live first so new ids sit above
+the true max, the seed is always insert-only (aborts on any collision), and nothing
+touches live until `--approve`. State lives in `_ingest/ingest_state.json`, so an
+interrupted run picks up where it left off (`--status` shows progress). This one path
+supersedes the older `records_master`/`ingest_batch` flow.
+
+**You only manage your own batch folder** — `<batch>/<one folder per book>/{1,2,3}.jpg`,
+placed wherever you like (e.g. under `vivarium-content/`). The driver only *reads* it,
+never modifies it. It owns the scratch dirs (`image-intake/`, `image-ready/`, the
+`_ingest/` working files) and **clears them automatically at the start of each batch and
+again on successful completion**, so there is no manual cleanup and no way to inherit a
+previous batch's folders as duplicate records. The real images under `public/items/<id6>/`
+are kept (they're what gets uploaded to R2).
+
+The rest of this doc explains the individual stages `ingest.py` runs.
+
+---
+
 ## One-time setup
 ```bash
 pip3 install Pillow          # image resizing/conversion
