@@ -13,6 +13,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     section?: string; shelf?: string; genres?: string[]; subjects?: string[];
     location?: string; notes?: string; condition?: string; conditionNotes?: string;
     itemType?: string; fields?: Record<string, string>;
+    title?: string; author?: string; source?: string; pricePaid?: string;
   };
   try {
     body = await req.json();
@@ -27,6 +28,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const clean = (arr: string[]) =>
     Array.from(new Set(arr.map((s) => s.trim()).filter(Boolean)));
 
+  // Title must never be blanked; author may be cleared.
+  if (typeof body.title === 'string' && body.title.trim()) item.title = body.title.trim();
+  if (typeof body.author === 'string') item.author = body.author.trim();
+  // Acquisition / provenance — admin-only, shown only to admins on the detail page.
+  if (typeof body.source === 'string') item.source = body.source.trim();
+  if (typeof body.pricePaid === 'string') item.pricePaid = body.pricePaid.trim();
   if (typeof body.section === 'string') item.section = body.section.trim();
   if (typeof body.shelf === 'string') item.shelf = body.shelf.trim();
   if (Array.isArray(body.genres)) item.genres = clean(body.genres);

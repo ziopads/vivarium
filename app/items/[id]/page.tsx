@@ -10,6 +10,9 @@ import { getViewer } from '@/lib/auth';
 import { imgUrl } from '@/lib/img';
 import TypeFieldsEditor from '@/app/ui/TypeFieldsEditor';
 import AddItemPhotos from '@/app/ui/AddItemPhotos';
+import TitleEditor from '@/app/ui/TitleEditor';
+import DetailsEditor from '@/app/ui/DetailsEditor';
+import EditMode from '@/app/ui/EditMode';
 import { typeFields } from '@/lib/itemTypes';
 
 // Render on-demand so a cover change (writing items.json) shows up on refresh.
@@ -44,6 +47,13 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
       ...typeFields(item.itemType).map(
         (f) => [f.label, String((item as Record<string, any>)[f.key] || '')] as [string, string],
       ),
+      // Acquisition info is private — only ever rendered for admins.
+      ...((viewer.isAdmin
+        ? [
+            ['Source (private)', item.source || ''],
+            ['Price paid (private)', item.pricePaid || ''],
+          ]
+        : []) as [string, string][]),
     ] as [string, string][]
   ).filter(([, v]) => v);
 
@@ -54,8 +64,14 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
       </Link>
       <ItemNav itemId={item.id} />
       <p className="mt-4 font-mono text-xs text-muted">#{String(item.id).padStart(6, '0')}</p>
-      <h1 className="mt-1 font-serif text-2xl leading-tight sm:text-3xl">{item.title}</h1>
-      {item.author && <p className="mt-1 text-lg text-muted">{item.author}</p>}
+      {viewer.isAdmin ? (
+        <TitleEditor itemId={item.id} title={item.title} author={item.author} />
+      ) : (
+        <>
+          <h1 className="mt-1 font-serif text-2xl leading-tight sm:text-3xl">{item.title}</h1>
+          {item.author && <p className="mt-1 text-lg text-muted">{item.author}</p>}
+        </>
+      )}
       {item.signed && (
         <p className="mt-3 inline-block rounded-full bg-rust/10 px-3 py-1 text-sm text-rust">
           Signed / inscribed
@@ -105,24 +121,38 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
         ))}
       </dl>
 
+      {viewer.isAdmin && item.genres.length > 0 && <Tags label="Genres" values={item.genres} accent />}
+      {viewer.isAdmin && item.subjects.length > 0 && <Tags label="Subjects" values={item.subjects} />}
+
       {viewer.isAdmin && (
-        <MetaEditor
-          itemId={item.id}
-          shelf={item.shelf}
-          genres={item.genres}
-          subjects={item.subjects}
-          allShelves={allShelves}
-          allGenres={allGenres}
-        />
-      )}
-      {viewer.isAdmin && (
-        <TypeFieldsEditor
-          itemId={item.id}
-          itemType={item.itemType}
-          values={Object.fromEntries(
-            typeFields(item.itemType).map((f) => [f.key, String((item as Record<string, any>)[f.key] || '')]),
-          )}
-        />
+        <EditMode>
+          <DetailsEditor
+            itemId={item.id}
+            values={{
+              condition: item.condition || '',
+              conditionNotes: item.conditionNotes || '',
+              location: item.location || '',
+              notes: item.notes || '',
+              source: item.source || '',
+              pricePaid: item.pricePaid || '',
+            }}
+          />
+          <TypeFieldsEditor
+            itemId={item.id}
+            itemType={item.itemType}
+            values={Object.fromEntries(
+              typeFields(item.itemType).map((f) => [f.key, String((item as Record<string, any>)[f.key] || '')]),
+            )}
+          />
+          <MetaEditor
+            itemId={item.id}
+            shelf={item.shelf}
+            genres={item.genres}
+            subjects={item.subjects}
+            allShelves={allShelves}
+            allGenres={allGenres}
+          />
+        </EditMode>
       )}
       {item.places.length > 0 && <Tags label="Places" values={item.places} />}
 
