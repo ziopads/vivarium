@@ -30,7 +30,7 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
   // Non-admins see only the fields currently on the public allowlist. Enforced
   // here as well as in /api/items, because this page renders type-field values
   // (which include price, provenance, sale history) directly into the table.
-  const visible = viewer.isAdmin ? item : publicView(item, (await getVocab()).publicFields);
+  const visible = viewer.isAdmin ? item : publicView(item, (await getVocab()).publicFields ?? []);
   const canSee = (key: string) =>
     viewer.isAdmin || Object.prototype.hasOwnProperty.call(visible, key);
 
