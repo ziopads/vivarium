@@ -7,13 +7,15 @@ import Discussion from '@/app/ui/Discussion';
 import ItemActions from '@/app/ui/ItemActions';
 import ItemNav from '@/app/ui/ItemNav';
 import { getViewer } from '@/lib/auth';
-import { imgUrl } from '@/lib/img';
+import { coverImage, imageUrl } from '@/lib/img';
 import TypeFieldsEditor from '@/app/ui/TypeFieldsEditor';
 import AddItemPhotos from '@/app/ui/AddItemPhotos';
 import TitleEditor from '@/app/ui/TitleEditor';
 import DetailsEditor from '@/app/ui/DetailsEditor';
 import EditMode from '@/app/ui/EditMode';
 import { typeFields } from '@/lib/itemTypes';
+import { getVocab } from '@/lib/vocab';
+import { publicView } from '@/lib/fieldVisibility';
 
 // Render on-demand so a cover change (writing items.json) shows up on refresh.
 export const dynamic = 'force-dynamic';
@@ -24,6 +26,13 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
 
   const viewer = await getViewer();
   if (item.visibility === 'restricted' && !viewer.isAdmin) notFound();
+
+  // Non-admins see only the fields currently on the public allowlist. Enforced
+  // here as well as in /api/items, because this page renders type-field values
+  // (which include price, provenance, sale history) directly into the table.
+  const visible = viewer.isAdmin ? item : publicView(item, (await getVocab()).publicFields ?? []);
+  const canSee = (key: string) =>
+    viewer.isAdmin || Object.prototype.hasOwnProperty.call(visible, key);
 
   const all = await getItems();
   const allShelves = Array.from(new Set(all.map((i) => i.shelf).filter(Boolean))).sort();
@@ -40,13 +49,19 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
       ['Printing', item.printing],
       ['ISBN', item.isbn],
       ['Format', item.format],
-      ['Shelf', item.shelf],
+      ['Shelf', canSee('shelf') ? item.shelf : ''],
       ['Condition', item.condition],
-      ['Condition notes', item.conditionNotes || ''],
-      ['Location', item.location],
-      ...typeFields(item.itemType).map(
-        (f) => [f.label, String((item as Record<string, any>)[f.key] || '')] as [string, string],
-      ),
+      ['Condition notes', canSee('conditionNotes') ? item.conditionNotes || '' : ''],
+      ['Location', canSee('location') ? item.location : ''],
+      // publicView drops `location`, `conditionNotes`, `notes` etc. for
+      // non-admins, so canSee() returns false and these render blank. `shelf`
+      // is a library concept with no meaning in the catalogue; hidden from the
+      // public tier because it is not on PUBLIC_SPINE.
+      ...typeFields(item.itemType)
+        .filter((f) => canSee(f.key))
+        .map(
+          (f) => [f.label, String((item as Record<string, any>)[f.key] || '')] as [string, string],
+        ),
       // Acquisition info is private — only ever rendered for admins.
       ...((viewer.isAdmin
         ? [
@@ -88,7 +103,7 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
       ) : (
         item.image && (
           <img
-            src={imgUrl(item.image)}
+            src={imageUrl(coverImage(item)!, 'web')}
             alt={item.title}
             className="mt-6 max-h-[28rem] w-auto max-w-full rounded shadow-sm"
           />
@@ -161,7 +176,7 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
           {item.inscription}
         </blockquote>
       )}
-      {item.notes && <p className="mt-6 text-sm text-muted">{item.notes}</p>}
+      {item.notes && canSee('notes') && <p className="mt-6 text-sm text-muted">{item.notes}</p>}
 
       <ItemNav itemId={item.id} />
       {viewer.isAdmin && <ItemActions itemId={item.id} visibility={item.visibility} />}

@@ -41,7 +41,26 @@ export function validateItem(raw: any): Item {
   it.images = Array.isArray(raw.images)
     ? raw.images
         .filter((im: any) => im && typeof im.src === 'string')
-        .map((im: any) => ({ src: im.src, label: s(im.label) }))
+        .map((im: any) => {
+          // Rebuilt rather than spread, to keep the shape canonical. Any
+          // pipeline-resolved fields must therefore be carried explicitly —
+          // dropping them here would break images only on the next SAVE,
+          // long after the ingest that looked fine.
+          const out: any = { src: im.src, label: s(im.label) };
+          if (im.files && typeof im.files === 'object') {
+            const f = im.files;
+            const tiers: any = {};
+            if (typeof f.thumb === 'string') tiers.thumb = f.thumb;
+            if (typeof f.web === 'string') tiers.web = f.web;
+            if (typeof f.full === 'string') tiers.full = f.full;
+            // zoom is legitimately null — preserve the distinction between
+            // "no zoom tier exists" and "not recorded".
+            if (f.zoom === null || typeof f.zoom === 'string') tiers.zoom = f.zoom;
+            if (tiers.thumb && tiers.web) out.files = tiers;
+          }
+          if (typeof im.base === 'string' && im.base.trim()) out.base = im.base.trim();
+          return out;
+        })
     : [];
   if (raw.section != null) it.section = s(raw.section);
   if (raw.discussion != null) it.discussion = s(raw.discussion);

@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { SECTIONS } from './sections';
 import { getSupabase } from './supabase';
+import { dataSource } from './data';
+import { PUBLICABLE_FIELDS, NEVER_PUBLIC_FIELDS, DEFAULT_PUBLIC_FIELDS } from './fieldVisibility';
 
 // Server-only. Shelves are now scoped to their section (shelvesBySection), so
 // e.g. "Maine" under Art and "Maine" under Regions/Cultures are distinct, and
@@ -12,10 +14,60 @@ export type Vocab = {
   sections: string[];
   genres: string[];
   shelvesBySection: Record<string, string[]>;
+  /** Attribute keys currently exposed to the public tier. A subset of
+   *  PUBLICABLE_FIELDS; edited in /admin/vocab; read by publicView at request
+   *  time so a toggle is live without a deploy. Optional so existing Vocab
+   *  literals keep compiling; normalize() always fills it, so reads never see
+   *  undefined. */
+  publicFields?: string[];
 };
 
-const FILE = path.join(process.cwd(), 'data', 'vocab.json');
-const DEFAULTS: Vocab = { sections: [...SECTIONS], genres: [], shelvesBySection: {} };
+/**
+ * Vocabulary must live in the same store as the items it describes. Two bugs
+ * would otherwise bite: getVocab checked Supabase independently of the item
+ * mode, so LOCAL_DATA_FILE could give you one instance's items with another's
+ * sections; and the file path was hardcoded, so every local instance shared
+ * data/vocab.json.
+ *
+ * Path resolution: VOCAB_FILE wins; otherwise it is derived from the active
+ * data file by swapping the leading `items` in the basename for `vocab`
+ * (items.tamplin.json → vocab.tamplin.json), which keeps the one-env-line
+ * switch intact.
+ */
+function vocabFile(): string {
+  const explicit = process.env.VOCAB_FILE?.trim();
+  if (explicit) return path.resolve(process.cwd(), explicit);
+
+  const src = dataSource();
+  if (src.file) {
+    const dir = path.dirname(src.file);
+    const base = path.basename(src.file);
+    return path.join(dir, base.startsWith('items') ? 'vocab' + base.slice('items'.length) : `vocab.${base}`);
+  }
+  return path.join(process.cwd(), 'data', 'vocab.json');
+}
+
+const DEFAULTS: Vocab = {
+  sections: [...SECTIONS],
+  genres: [],
+  shelvesBySection: {},
+  publicFields: [...DEFAULT_PUBLIC_FIELDS],
+};
+
+const PUBLICABLE = new Set<string>(PUBLICABLE_FIELDS);
+const NEVER = new Set<string>(NEVER_PUBLIC_FIELDS);
+
+/**
+ * Sanitize the stored allowlist on every read. A hand-edited or corrupted
+ * vocab file can never widen what publicView exposes: only keys that are
+ * publicable AND not never-public survive. This is defence in depth — publicView
+ * intersects too, but enforcing here means the rest of the app also sees a
+ * clean list.
+ */
+function cleanPublicFields(raw: any): string[] {
+  if (!Array.isArray(raw)) return [...DEFAULT_PUBLIC_FIELDS];
+  return raw.filter((k) => typeof k === 'string' && PUBLICABLE.has(k) && !NEVER.has(k));
+}
 
 function normalize(raw: any): Vocab {
   return {
@@ -23,6 +75,7 @@ function normalize(raw: any): Vocab {
     genres: Array.isArray(raw?.genres) ? raw.genres : [],
     shelvesBySection:
       raw?.shelvesBySection && typeof raw.shelvesBySection === 'object' ? raw.shelvesBySection : {},
+    publicFields: cleanPublicFields(raw?.publicFields),
   };
 }
 
@@ -36,25 +89,27 @@ export function shelvesFor(v: Vocab, section: string | undefined): string[] {
 }
 
 export async function getVocab(): Promise<Vocab> {
-  const sb = getSupabase();
-  if (sb) {
+  if (dataSource().mode === 'supabase') {
+    const sb = getSupabase()!;
     const { data, error } = await sb.from('vocab').select('data').eq('id', 1).maybeSingle();
     if (error) throw new Error(`Supabase getVocab: ${error.message}`);
     return data?.data ? normalize(data.data) : DEFAULTS;
   }
   try {
-    return normalize(JSON.parse(fs.readFileSync(FILE, 'utf8')));
+    return normalize(JSON.parse(fs.readFileSync(vocabFile(), 'utf8')));
   } catch {
+    // Absent vocab is the first-run case for a new instance. Unlike items,
+    // there is nothing to lose by starting from defaults.
     return DEFAULTS;
   }
 }
 
 export async function writeVocab(v: Vocab): Promise<void> {
-  const sb = getSupabase();
-  if (sb) {
+  if (dataSource().mode === 'supabase') {
+    const sb = getSupabase()!;
     const { error } = await sb.from('vocab').upsert({ id: 1, data: v }, { onConflict: 'id' });
     if (error) throw new Error(`Supabase writeVocab: ${error.message}`);
     return;
   }
-  fs.writeFileSync(FILE, JSON.stringify(v, null, 2));
+  fs.writeFileSync(vocabFile(), JSON.stringify(v, null, 2));
 }
