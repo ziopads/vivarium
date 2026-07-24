@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getItems } from '@/lib/data';
+import { getVocab } from '@/lib/vocab';
+import { getViewer } from '@/lib/auth';
+import { publicView } from '@/lib/fieldVisibility';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/items?q=&type=&subject=&place=  (read-only)
+//
+// Field visibility is enforced HERE, on the server, before serialization.
+// Admins get full records; everyone else gets publicView-stripped ones, so the
+// wire never carries prices to the public tier no matter what the client does.
 export async function GET(req: Request) {
-  const items = await getItems();
+  const [items, viewer] = await Promise.all([getItems(), getViewer()]);
   const { searchParams } = new URL(req.url);
   const q = searchParams.get('q')?.toLowerCase();
   const type = searchParams.get('type');
@@ -24,5 +31,9 @@ export async function GET(req: Request) {
     return true;
   });
 
-  return NextResponse.json(result);
+  if (viewer.isAdmin) {
+    return NextResponse.json(result);
+  }
+  const { publicFields } = await getVocab();
+  return NextResponse.json(result.map((i) => publicView(i, publicFields)));
 }
