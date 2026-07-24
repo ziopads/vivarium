@@ -34,6 +34,9 @@ export async function GET(req: Request) {
   if (viewer.isAdmin) {
     return NextResponse.json(result);
   }
-  const { publicFields } = await getVocab();
+  // Default to [] so the definite string[] type holds even though publicFields
+  // is optional on Vocab — and [] is the correct fail-closed value: expose
+  // nothing. (normalize() always fills it at runtime; this satisfies the type.)
+  const { publicFields = [] } = await getVocab();
   return NextResponse.json(result.map((i) => publicView(i, publicFields)));
 }
