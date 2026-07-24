@@ -7,7 +7,55 @@ import { validateItem } from './validation';
 import { getViewer } from './auth';
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'items.json');
-const ITEMS_DIR = path.join(process.cwd(), 'public', 'items');
+
+// ---------------------------------------------------------------------------
+// Which dataset is live?
+//
+// LOCAL_DATA_FILE names a JSON file relative to the project root. Setting it
+// FORCES local mode even when Supabase is configured — naming a dataset is an
+// unambiguous statement about which one you want to work against. Unset,
+// behaviour is exactly as before: Supabase when configured, else data/items.json.
+//
+// The mode is computed once here and used by every read AND write below. They
+// must never disagree: reading one store while writing to another would upsert
+// one dataset into the other and then delete-guard its way through the
+// difference.
+// ---------------------------------------------------------------------------
+const EXPLICIT_DATA_FILE = process.env.LOCAL_DATA_FILE?.trim() || null;
+
+const ACTIVE_FILE = EXPLICIT_DATA_FILE
+  ? path.resolve(process.cwd(), EXPLICIT_DATA_FILE)
+  : DATA_FILE;
+
+export type DataSource = {
+  mode: 'supabase' | 'local';
+  /** Absolute path to the JSON file backing local mode; null in supabase mode. */
+  file: string | null;
+  /** True when LOCAL_DATA_FILE named this dataset explicitly. */
+  explicit: boolean;
+  /** Short label for the dev badge, e.g. "local · items.tamplin.json". */
+  label: string;
+};
+
+export function dataSource(): DataSource {
+  if (EXPLICIT_DATA_FILE) {
+    return {
+      mode: 'local',
+      file: ACTIVE_FILE,
+      explicit: true,
+      label: `local · ${path.basename(ACTIVE_FILE)}`,
+    };
+  }
+  if (getSupabase()) {
+    return { mode: 'supabase', file: null, explicit: false, label: 'supabase' };
+  }
+  return {
+    mode: 'local',
+    file: ACTIVE_FILE,
+    explicit: false,
+    label: `local · ${path.basename(ACTIVE_FILE)}`,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Hybrid row <-> Item mapping. Shared spine lives in typed columns; everything
@@ -83,63 +131,42 @@ function rowToItem(row: Row): Item {
 }
 
 // ---------------------------------------------------------------------------
-// Local-file helpers (used when Supabase is not configured)
+// Local-file helpers (used when Supabase is not configured, or when
+// LOCAL_DATA_FILE names a dataset explicitly)
 // ---------------------------------------------------------------------------
 async function readLocalItems(): Promise<Item[]> {
+  let raw: string;
   try {
-    return JSON.parse(await fs.readFile(DATA_FILE, 'utf8')) as Item[];
-  } catch {
+    raw = await fs.readFile(ACTIVE_FILE, 'utf8');
+  } catch (err: any) {
+    if (EXPLICIT_DATA_FILE) {
+      // Falling back here would serve a different dataset than the one named —
+      // the precise commingling LOCAL_DATA_FILE exists to prevent.
+      throw new Error(
+        `LOCAL_DATA_FILE is set to "${EXPLICIT_DATA_FILE}" but that file could not be read ` +
+          `(${err?.code || err?.message}). Refusing to fall back to the bundled snapshot.`,
+      );
+    }
+    // Default path only: a missing data/items.json is the first-run case.
     return bundled as unknown as Item[];
   }
-}
 
-function humanize(stem: string): string {
-  return stem
-    .replace(/^\d+-/, '')
-    .replace(/-/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-    .trim();
-}
-
-// Local mode only: rebuild a gallery by scanning public/items/<id6>/ so that
-// moving image files between folders re-associates them on refresh.
-async function scanImages(
-  id: number,
-  cover: string | undefined,
-): Promise<{ src: string; label: string }[]> {
-  const id6 = String(id).padStart(6, '0');
-  let files: string[];
   try {
-    files = await fs.readdir(path.join(ITEMS_DIR, id6));
-  } catch {
-    return [];
+    return JSON.parse(raw) as Item[];
+  } catch (err: any) {
+    // A file that exists but will not parse is corruption, never first-run.
+    // The old code fell back to the compiled-in snapshot here, and the next
+    // save would persist that stale set over the real file.
+    throw new Error(`Could not parse ${ACTIVE_FILE}: ${err?.message}`);
   }
-  const stems = files
-    .filter((f) => f.endsWith('.webp') && !f.endsWith('-thumb.webp'))
-    .map((f) => f.slice(0, -'.webp'.length))
-    .sort();
-  const imgs = stems.map((s) => ({ src: `${id6}/${s}`, label: humanize(s) }));
-  const ci = imgs.findIndex((im) => im.src === cover);
-  if (ci > 0) imgs.unshift(imgs.splice(ci, 1)[0]);
-  return imgs;
-}
-
-async function withScannedImages(items: Item[]): Promise<Item[]> {
-  return Promise.all(
-    items.map(async (it) => {
-      const scanned = await scanImages(it.id, it.cover);
-      if (scanned.length === 0) return it;
-      return { ...it, images: scanned, image: scanned[0].src };
-    }),
-  );
 }
 
 // ---------------------------------------------------------------------------
 // Public API — database-aware, with local-file fallback
 // ---------------------------------------------------------------------------
 export async function getItems(): Promise<Item[]> {
-  const sb = getSupabase();
-  if (sb) {
+  if (dataSource().mode === 'supabase') {
+    const sb = getSupabase()!;
     // Supabase caps a single select at 1000 rows ("Max rows"), so page through ALL
     // of them. Without this the catalogue silently truncates past 1000 items — and
     // that truncated read then made writeLocalItems delete the overflow. Keep the paging.
@@ -157,7 +184,9 @@ export async function getItems(): Promise<Item[]> {
     }
     return rows.map(rowToItem);
   }
-  return withScannedImages(await readLocalItems());
+  // The record is authoritative in both modes. Folder scanning is an explicit
+  // write now — see lib/rescan.ts.
+  return readLocalItems();
 }
 
 // Display helper: `restricted` items are visible only to admins — hidden from
@@ -169,16 +198,13 @@ export async function getVisibleItems(): Promise<Item[]> {
 }
 
 export async function getItem(id: number): Promise<Item | null> {
-  const sb = getSupabase();
-  if (sb) {
+  if (dataSource().mode === 'supabase') {
+    const sb = getSupabase()!;
     const { data, error } = await sb.from('items').select('*').eq('id', id).maybeSingle();
     if (error) throw new Error(`Supabase getItem: ${error.message}`);
     return data ? rowToItem(data) : null;
   }
-  const it = (await readLocalItems()).find((i) => i.id === id);
-  if (!it) return null;
-  const scanned = await scanImages(it.id, it.cover);
-  return scanned.length ? { ...it, images: scanned, image: scanned[0].src } : it;
+  return (await readLocalItems()).find((i) => i.id === id) ?? null;
 }
 
 // Persists the full desired item set. In Supabase mode this upserts every item
@@ -188,8 +214,8 @@ export async function getItem(id: number): Promise<Item | null> {
 // the most efficient; if saves feel slow we can switch to targeted writes.
 export async function writeLocalItems(items: Item[]): Promise<void> {
   const clean = items.map(validateItem);
-  const sb = getSupabase();
-  if (sb) {
+  if (dataSource().mode === 'supabase') {
+    const sb = getSupabase()!;
     const rows = clean.map(itemToRow);
     for (let i = 0; i < rows.length; i += 500) {
       const { error } = await sb.from('items').upsert(rows.slice(i, i + 500), { onConflict: 'id' });
@@ -220,5 +246,5 @@ export async function writeLocalItems(items: Item[]): Promise<void> {
     }
     return;
   }
-  await fs.writeFile(DATA_FILE, JSON.stringify(clean, null, 1), 'utf8');
+  await fs.writeFile(ACTIVE_FILE, JSON.stringify(clean, null, 1), 'utf8');
 }

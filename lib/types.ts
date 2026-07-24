@@ -17,7 +17,27 @@ export type Item = {
   inscription: string;
   genres: string[];
   shelf: string;
-  images: { src: string; label: string }[];
+  images: {
+    /** Identity/key. Legacy books: "000042/01-cover", resolved as
+     *  items/<src>{-thumb}.webp. */
+    src: string;
+    label: string;
+    /**
+     * Pipeline-resolved filenames, relative to `base`. When present the
+     * resolver uses them verbatim and constructs nothing — which is how a
+     * four-tier jpg catalogue and a two-tier webp library coexist without
+     * branching on item type. Absent means legacy behaviour.
+     * `zoom` is null when the source was too small to warrant the tier.
+     */
+    files?: {
+      thumb: string;
+      web: string;
+      zoom?: string | null;
+      full?: string;
+    };
+    /** Public/R2 prefix the `files` paths sit under. Defaults to 'items'. */
+    base?: string;
+  }[];
   subjects: string[];
   places: string[];
   condition: string;
