@@ -4,6 +4,36 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Item } from '@/lib/types';
 import { CONDITIONS } from '@/lib/sections';
+import { coverImage, imageUrl } from '@/lib/img';
+
+/**
+ * Row thumbnail. Lives inside the sticky Title column deliberately: the Section
+ * dropdown sits far to the right, and a non-sticky thumbnail would scroll out of
+ * view at the moment you need to see the work to categorise it.
+ *
+ * Renders a dashed placeholder rather than nothing when there is no image, so
+ * row heights stay even and a missing image reads as a fact about the record.
+ */
+function Thumb({ item }: { item: Item }) {
+  const img = coverImage(item);
+  if (!img) {
+    return (
+      <span
+        aria-hidden
+        title="No image"
+        className="mt-0.5 block h-10 w-10 shrink-0 rounded border border-dashed border-line"
+      />
+    );
+  }
+  return (
+    <img
+      src={imageUrl(img, 'thumb')}
+      alt=""
+      loading="lazy"
+      className="mt-0.5 h-10 w-10 shrink-0 rounded border border-line bg-parchment object-cover"
+    />
+  );
+}
 
 type Row = Item;
 type Patch = Partial<
@@ -59,15 +89,15 @@ export default function CatalogList({
   const ro = !editable;
   const th = 'sticky top-0 z-20 bg-card px-2 py-2 font-medium';
   const thId = 'sticky top-0 left-0 z-30 w-[64px] bg-card px-2 py-2 font-medium';
-  const thTitle = 'sticky top-0 left-[64px] z-30 w-[220px] border-r border-line bg-card px-2 py-2 font-medium';
+  const thTitle = 'sticky top-0 left-[64px] z-30 w-[280px] border-r border-line bg-card px-2 py-2 font-medium';
   const tdId =
     'sticky left-0 z-10 w-[64px] whitespace-nowrap bg-parchment px-2 py-1.5 font-mono text-[11px] text-muted';
-  const tdTitle = 'sticky left-[64px] z-10 w-[220px] border-r border-line bg-parchment px-2 py-1.5';
+  const tdTitle = 'sticky left-[64px] z-10 w-[280px] border-r border-line bg-parchment px-2 py-1.5';
 
   return (
     <div>
       <div className="max-h-[calc(100vh-8rem)] overflow-auto rounded-lg border border-line">
-        <table className="w-full min-w-[1650px] border-collapse text-sm">
+        <table className="w-full min-w-[1710px] border-collapse text-sm">
           <thead>
             <tr className="text-left text-muted">
               <th className={thId}>ID</th>
@@ -92,8 +122,14 @@ export default function CatalogList({
                   {saved === r.id && <span className="ml-1 text-moss">✓</span>}
                 </td>
                 <td className={tdTitle}>
-                  <Link href={`/items/${r.id}`} className="font-serif hover:text-rust hover:underline">
-                    {r.title}
+                  <Link
+                    href={`/items/${r.id}`}
+                    className="flex items-start gap-2 hover:text-rust"
+                  >
+                    <Thumb item={r} />
+                    <span className="font-serif leading-snug hover:underline">
+                      {r.title || <em className="text-muted">Untitled</em>}
+                    </span>
                   </Link>
                 </td>
                 <td className="px-2 py-1.5 text-muted">{r.author}</td>
