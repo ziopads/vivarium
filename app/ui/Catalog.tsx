@@ -5,7 +5,7 @@ import Link from 'next/link';
 import type { Item } from '@/lib/types';
 import CatalogList from './CatalogList';
 import { sectionOf, isMaine } from '@/lib/sections';
-import { imgUrl } from '@/lib/img';
+import { coverImage, imageUrl } from '@/lib/img';
 
 function spineColor(seed: string) {
   let h = 0;
@@ -278,7 +278,7 @@ export default function Catalog({
                 )}
                 {i.image && (
                   <div className="mb-3 flex h-44 items-center justify-center overflow-hidden rounded bg-parchment">
-                    <img src={imgUrl(i.image, true)} alt="" loading="lazy" className="max-h-44 w-auto object-contain" />
+                    <img src={imageUrl(coverImage(i)!, 'thumb')} alt="" loading="lazy" className="max-h-44 w-auto object-contain" />
                   </div>
                 )}
                 <p className="font-mono text-[10px] text-muted">#{String(i.id).padStart(6, '0')}</p>
