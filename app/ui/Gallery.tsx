@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { imgUrl } from '@/lib/img';
+import { imageUrl, hasZoom, type ItemImage } from '@/lib/img';
 
-type Shot = { src: string; label: string };
+// Carries the optional `files` block through, so tiered records resolve to real
+// filenames instead of a constructed webp path.
+type Shot = ItemImage & { label: string };
 
 export default function Gallery({
   images,
@@ -109,12 +111,22 @@ export default function Gallery({
     <div className="mt-6">
       <figure>
         <img
-          src={imgUrl(current.src)}
+          src={imageUrl(current, 'web')}
           alt={`${title} — ${current.label}`}
           className="max-h-[30rem] w-auto max-w-full rounded shadow-sm"
         />
         <figcaption className="mt-2 flex items-center gap-3 text-xs text-muted">
           <span>{current.label}</span>
+          {hasZoom(current) && (
+            <a
+              href={imageUrl(current, 'zoom')}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-line px-2 py-0.5 hover:border-rust hover:text-rust"
+            >
+              Zoom
+            </a>
+          )}
           {isPrimary && (
             <span className="rounded-full bg-rust/10 px-2 py-0.5 text-rust">main image</span>
           )}
@@ -170,7 +182,7 @@ export default function Gallery({
                 }`}
               >
                 <img
-                  src={imgUrl(s.src, true)}
+                  src={imageUrl(s, 'thumb')}
                   alt={s.label}
                   loading="lazy"
                   className="h-20 w-16 bg-parchment object-cover"
