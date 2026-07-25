@@ -36,8 +36,24 @@ if (!url || !key) {
 const supabase = createClient(url, key, { auth: { persistSession: false } });
 const root = process.cwd();
 
-const items = JSON.parse(readFileSync(path.join(root, 'data', 'items.json'), 'utf8'));
-const vocab = JSON.parse(readFileSync(path.join(root, 'data', 'vocab.json'), 'utf8'));
+// Which dataset seeds which database. LOCAL_DATA_FILE names the items file (the
+// same var the app uses to switch instances); vocab is derived from it
+// (items.tamplin.json -> vocab.tamplin.json), matching lib/vocab.ts. Unset =
+// the library's data/items.json, as before.
+const ITEMS_FILE = process.env.LOCAL_DATA_FILE
+  ? path.resolve(root, process.env.LOCAL_DATA_FILE)
+  : path.join(root, 'data', 'items.json');
+const base = path.basename(ITEMS_FILE);
+const VOCAB_FILE = path.join(
+  path.dirname(ITEMS_FILE),
+  base.startsWith('items') ? 'vocab' + base.slice('items'.length) : 'vocab.json',
+);
+
+console.log(`Seeding FROM:\n  items: ${path.relative(root, ITEMS_FILE)}\n  vocab: ${path.relative(root, VOCAB_FILE)}`);
+console.log(`Seeding INTO: ${url}\n`);
+
+const items = JSON.parse(readFileSync(ITEMS_FILE, 'utf8'));
+const vocab = JSON.parse(readFileSync(VOCAB_FILE, 'utf8'));
 
 // Fields promoted to typed columns; everything else falls into `attributes`.
 const COLUMN_KEYS = new Set([

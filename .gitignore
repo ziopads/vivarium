@@ -17,3 +17,20 @@ public/items/
 # python cache from the image/ingest scripts
 __pycache__/
 *.pyc
+
+# ── Valerie Tamplin CR working data ───────────────────────────────────────────
+# Local staging only. The canonical record lives in Supabase (data) and R2
+# (images); full-resolution masters and the source workbook must never enter git.
+/cr-working/
+/data/tamplin/
+data/items.tamplin.json
+
+# source spreadsheets and Excel lock files
+*.xlsx
+*.xls
+~$*
+
+# reconciliation + ingest reports
+/reports/
+public/cr
+public/items-tamplin/
