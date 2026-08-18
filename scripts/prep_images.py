@@ -29,7 +29,7 @@ USAGE:   python3 scripts/prep_images.py
 
 REQUIRES: pip3 install Pillow          (and, for iPhone HEIC files: pip3 install pillow-heif)
 """
-import os, re, shutil
+import os, re, json, shutil
 from PIL import Image, ImageOps
 try:
     import pillow_heif; pillow_heif.register_heif_opener()
@@ -55,8 +55,14 @@ def slug(fname: str) -> str:
     s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
     return s[:40] or "image"
 
-def save_webp(im: Image.Image, path: str, maxdim: int, q: int) -> None:
+def save_webp(im: Image.Image, path: str, maxdim: int, q: int, angle: int = 0) -> None:
     im = ImageOps.exif_transpose(im)            # honor camera rotation
+    # Sidecar correction from group_batch.py. CONVENTION: `angle` is degrees
+    # CLOCKWISE required to make the image upright, measured AFTER exif_transpose.
+    # PIL rotates counter-clockwise, hence the negation. Applied to the pixels here
+    # because WebP does not carry orientation metadata reliably.
+    if angle:
+        im = im.rotate(-angle, expand=True)
     if im.mode not in ("RGB", "RGBA"):
         im = im.convert("RGB")
     w, h = im.size
@@ -71,6 +77,14 @@ def process(name: str):
     src_dir = f"{INTAKE}/{name}"
     files = sorted(f for f in os.listdir(src_dir)
                    if f.lower().endswith(EXTS) and not f.startswith("."))
+    # Optional rotation sidecar written by vivarium-batch-processor: {filename: degrees}
+    rot = {}
+    rot_path = f"{src_dir}/rotate.json"
+    if os.path.exists(rot_path):
+        try:
+            rot = json.load(open(rot_path))
+        except Exception as e:
+            print(f"    ! ignoring bad rotate.json in {name}: {e}")
     out_dir = f"{READY}/{name}"
     if os.path.isdir(out_dir):
         shutil.rmtree(out_dir)                  # regenerate cleanly
@@ -78,10 +92,11 @@ def process(name: str):
     made = 0
     for i, f in enumerate(files, start=1):
         base = f"{i:02d}-{slug(f)}"
+        angle = int(rot.get(f, 0) or 0)
         try:
             with Image.open(f"{src_dir}/{f}") as im:
-                save_webp(im.copy(), f"{out_dir}/{base}.webp", COVER_MAX, COVER_Q)
-                save_webp(im.copy(), f"{out_dir}/{base}-thumb.webp", THUMB_MAX, THUMB_Q)
+                save_webp(im.copy(), f"{out_dir}/{base}.webp", COVER_MAX, COVER_Q, angle)
+                save_webp(im.copy(), f"{out_dir}/{base}-thumb.webp", THUMB_MAX, THUMB_Q, angle)
             made += 1
         except Exception as e:
             print(f"    ! skipped {f}: {e}")

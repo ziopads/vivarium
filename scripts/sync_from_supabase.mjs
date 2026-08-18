@@ -57,7 +57,12 @@ if (!rows.length) { console.error('Supabase returned 0 items — refusing to ove
 
 const items = rows.map(rowToItem);
 const maxId = items.reduce((m, i) => Math.max(m, i.id), 0);
-const dest = path.join(process.cwd(), 'data', 'items.json');
+// Honour LOCAL_DATA_FILE, mirroring lib/data.ts. Without this the script always wrote
+// data/items.json, so syncing the CR instance would pull Valerie's records straight
+// over the library's local file while items.tamplin.json sat untouched.
+const dest = process.env.LOCAL_DATA_FILE
+  ? path.resolve(process.cwd(), process.env.LOCAL_DATA_FILE)
+  : path.join(process.cwd(), 'data', 'items.json');
 if (existsSync(dest)) copyFileSync(dest, dest + '.syncdownbak');
 writeFileSync(dest, JSON.stringify(items, null, 1), 'utf8');
 console.log(`Pulled ${items.length} items from Supabase -> ${dest}`);

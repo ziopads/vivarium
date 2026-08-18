@@ -1,8 +1,24 @@
 {
+  "genres": [
+    "Art",
+    "Biography & Memoir",
+    "Craft & How-to",
+    "Essays",
+    "Fiction",
+    "History",
+    "Maritime",
+    "Music",
+    "Nature",
+    "Poetry",
+    "Reference",
+    "Science",
+    "Spirituality & Religion",
+    "Travel & Exploration",
+    "Philosophy"
+  ],
   "sections": [
     "Animals",
-    "Architecture",
-    "Art",
+    "Art & Architecture",
     "Biography & Memoir",
     "Children's",
     "Craft & How-to",
@@ -21,57 +37,49 @@
     "Religion",
     "Sailing",
     "Science",
-    "Spirituality & Philosophy",
-    "Travel",
-    "Travel & Exploration"
+    "Spirituality & Religion",
+    "Regions & Cultures",
+    "Travel & Exploration",
+    "Writing",
+    "Food"
   ],
-  "genres": [
-    "Art",
-    "Biography & Memoir",
-    "Craft & How-to",
-    "Essays",
-    "Fiction",
-    "History",
-    "Maritime",
-    "Music",
-    "Nature",
-    "Poetry",
-    "Reference",
-    "Science",
-    "Spirituality & Philosophy",
-    "Travel & Exploration"
+  "publicFields": [
+    "refNumber",
+    "medium",
+    "dimensions",
+    "exhibitions"
   ],
   "shelvesBySection": {
-    "Animals": [
-      "Nature"
+    "Food": [
+      "Cookbooks",
+      "Nutrition"
     ],
-    "Architecture": [
-      "Architecture",
-      "History"
-    ],
-    "Art": [
-      "Art",
+    "Music": [
       "Craft & How-to",
-      "History",
-      "Spirituality & Philosophy"
-    ],
-    "Biography & Memoir": [
-      "Biography & Memoir"
-    ],
-    "Children's": [
-      "Art",
-      "Fiction",
-      "History",
-      "Nature"
-    ],
-    "Craft & How-to": [
-      "Art",
-      "Craft & How-to",
-      "Reference"
+      "Essays",
+      "Music",
+      "Science"
     ],
     "Essays": [
       "Essays",
       "Nature"
+    ],
+    "Nature": [
+      "Essays",
+      "Nature",
+      "Reference",
+      "Spirituality & Philosophy",
+      "Animals",
+      "Oceans"
+    ],
+    "Poetry": [
+      "Craft & How-to",
+      "Poetry"
+    ],
+    "Animals": [
+      "Nature",
+      "Birds",
+      "Ocean"
     ],
     "Fiction": [
       "Biography & Memoir",
@@ -81,23 +89,34 @@
       "History",
       "Reference"
     ],
-    "Languages": [
-      "Reference"
+    "Sailing": [
+      "Maritime"
     ],
+    "Science": [
+      "Craft & How-to",
+      "Science"
+    ],
+    "Writing": [],
     "Maritime": [
       "Maritime"
     ],
-    "Music": [
-      "Craft & How-to",
-      "Essays",
-      "Music",
-      "Science"
-    ],
-    "Nature": [
-      "Essays",
-      "Nature",
+    "Religion": [
+      "History",
       "Reference",
       "Spirituality & Philosophy"
+    ],
+    "Languages": [
+      "Reference"
+    ],
+    "Reference": [
+      "Reference"
+    ],
+    "Children's": [
+      "Art",
+      "Fiction",
+      "History",
+      "Nature",
+      "Picture"
     ],
     "Philosophy": [
       "Music",
@@ -110,41 +129,41 @@
       "Nature",
       "Poetry"
     ],
-    "Physical Culture & Sports": [
-      "Biography & Memoir",
+    "Craft & How-to": [
+      "Art",
       "Craft & How-to",
-      "Science",
-      "Spirituality & Philosophy"
-    ],
-    "Poetry": [
-      "Craft & How-to",
-      "Poetry"
-    ],
-    "Reference": [
       "Reference"
     ],
-    "Religion": [
+    "Art & Architecture": [
+      "Art",
+      "Tradecraft & How-to",
       "History",
-      "Reference",
-      "Spirituality & Philosophy"
+      "Criticism & Theory",
+      "Color",
+      "Architecture"
     ],
-    "Sailing": [
-      "Maritime"
+    "Biography & Memoir": [
+      "Biography & Memoir"
     ],
-    "Science": [
-      "Craft & How-to",
-      "Science"
-    ],
-    "Spirituality & Philosophy": [
-      "Spirituality & Philosophy"
-    ],
-    "Travel": [
+    "Regions & Cultures": [
       "Biography & Memoir",
       "History",
-      "Travel & Exploration"
+      "Travel & Exploration",
+      "Maine"
     ],
     "Travel & Exploration": [
       "Travel & Exploration"
+    ],
+    "Spirituality & Religion": [
+      "Spirituality & Philosophy"
+    ],
+    "Physical Culture & Sports": [
+      "Yoga",
+      "Martial Arts",
+      "Strength & Conditioning",
+      "Spirituality & Philosophy",
+      "Sailing",
+      "Golf"
     ]
   }
 }
