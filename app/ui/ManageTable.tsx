@@ -19,6 +19,20 @@ function shelfOptions(sbs: Record<string, string[]>, section: string, current: s
   return [...merged].sort((a, b) => a.localeCompare(b));
 }
 
+// Every shelf name across all sections, de-duped — for filtering when no section is
+// chosen. Shelves are section-scoped, so a name like "Maritime" can appear under more
+// than one section; matching by name here is deliberate, and is what makes "show me
+// everything on a Maine shelf" work.
+function allShelfNames(sbs: Record<string, string[]>): string[] {
+  return Array.from(new Set(Object.values(sbs).flat())).sort((a, b) => a.localeCompare(b));
+}
+
+// Sentinels for the bulk bar. Splitting "leave alone" from "clear" matters: the old
+// single — none — default meant one stray click on Apply with everything selected
+// would wipe the section off the whole catalogue.
+const NO_CHANGE = '__nochange__';
+const CLEAR = '__clear__';
+
 export default function ManageTable({
   rows: initial,
   sections,
@@ -35,23 +49,62 @@ export default function ManageTable({
   const [rows, setRows] = useState<Row[]>(initial);
   const [q, setQ] = useState('');
   const [filterSection, setFilterSection] = useState('All');
+  const [filterShelf, setFilterShelf] = useState('All');
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [bulkSection, setBulkSection] = useState('');
+  const [bulkSection, setBulkSection] = useState(NO_CHANGE);
+  const [bulkShelf, setBulkShelf] = useState(NO_CHANGE);
+  const [bulkNote, setBulkNote] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [saving, setSaving] = useState<Set<number>>(new Set());
   const [busyBulk, setBusyBulk] = useState(false);
 
   const unsorted = rows.filter((r) => !r.section).length;
+  // Items that have a section but no shelf — the actionable shelving backlog. An
+  // item with no section can't meaningfully have one, so those aren't counted here.
+  const unshelved = rows.filter((r) => r.section && !r.shelf).length;
+
+  const flatShelves = useMemo(() => allShelfNames(shelvesBySection), [shelvesBySection]);
+
+  // With a section chosen, offer only its shelves; otherwise the flat union.
+  const filterShelfChoices = useMemo(
+    () =>
+      filterSection !== 'All' && filterSection !== 'Unsorted'
+        ? shelfOptions(shelvesBySection, filterSection, '')
+        : flatShelves,
+    [filterSection, shelvesBySection, flatShelves],
+  );
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (filterSection === 'Unsorted' ? !!r.section : filterSection !== 'All' && r.section !== filterSection)
         return false;
+      if (filterShelf === 'Unshelved' ? !!r.shelf : filterShelf !== 'All' && r.shelf !== filterShelf)
+        return false;
       if (needle && !r.title.toLowerCase().includes(needle)) return false;
       return true;
     });
-  }, [rows, q, filterSection]);
+  }, [rows, q, filterSection, filterShelf]);
+
+  // Which shelves can legally be set on the current selection. If a section is being
+  // set at the same time, that section's shelves are all valid. Otherwise only shelves
+  // common to every selected item's existing section are — anything else would be
+  // rejected per-item by the API.
+  const bulkShelfChoices = useMemo(() => {
+    if (bulkSection !== NO_CHANGE && bulkSection !== CLEAR) {
+      return shelfOptions(shelvesBySection, bulkSection, '');
+    }
+    const sections = new Set(
+      rows.filter((r) => selected.has(r.id)).map((r) => r.section).filter(Boolean),
+    );
+    if (!sections.size) return [];
+    let inter: string[] | null = null;
+    for (const s of sections) {
+      const list = shelvesBySection[s] || [];
+      inter = inter === null ? [...list] : inter.filter((x) => list.includes(x));
+    }
+    return (inter || []).sort((a, b) => a.localeCompare(b));
+  }, [bulkSection, rows, selected, shelvesBySection]);
 
   function mark(id: number, on: boolean) {
     setSaving((s) => {
@@ -93,18 +146,46 @@ export default function ManageTable({
     });
   }
 
+  const bulkWouldChange = bulkSection !== NO_CHANGE || bulkShelf !== NO_CHANGE;
+
   async function applyBulk() {
     const ids = [...selected];
-    if (!ids.length) return;
+    if (!ids.length || !bulkWouldChange) return;
+
+    const payload: { ids: number[]; section?: string; shelf?: string } = { ids };
+    if (bulkSection !== NO_CHANGE) payload.section = bulkSection === CLEAR ? '' : bulkSection;
+    if (bulkShelf !== NO_CHANGE) payload.shelf = bulkShelf === CLEAR ? '' : bulkShelf;
+
     setBusyBulk(true);
+    setBulkNote(null);
     try {
-      await fetch('/api/items/bulk-section', {
+      const res = await fetch('/api/items/bulk-section', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids, section: bulkSection }),
+        body: JSON.stringify(payload),
       });
-      setRows((rs) => rs.map((r) => (selected.has(r.id) ? { ...r, section: bulkSection } : r)));
+      const out = await res.json().catch(() => null);
+
+      setRows((rs) =>
+        rs.map((r) => {
+          if (!selected.has(r.id)) return r;
+          const section = payload.section !== undefined ? payload.section : r.section;
+          let shelf = payload.shelf !== undefined ? payload.shelf : r.shelf;
+          // mirror the server's rules so the table doesn't drift from what was written
+          if (shelf && !(shelvesBySection[section] || []).includes(shelf)) shelf = '';
+          return { ...r, section, shelf };
+        }),
+      );
+
+      const bits: string[] = [];
+      if (out?.updated) bits.push(`${out.updated} updated`);
+      if (out?.shelvesCleared) bits.push(`${out.shelvesCleared} shelf cleared as invalid for the new section`);
+      if (out?.skipped) bits.push(`${out.skipped} skipped — that shelf isn't under their section`);
+      setBulkNote(bits.length ? bits.join(' · ') : null);
+
       setSelected(new Set());
+      setBulkSection(NO_CHANGE);
+      setBulkShelf(NO_CHANGE);
     } finally {
       setBusyBulk(false);
     }
@@ -125,7 +206,17 @@ export default function ManageTable({
           Section:{' '}
           <select
             value={filterSection}
-            onChange={(e) => setFilterSection(e.target.value)}
+            onChange={(e) => {
+              const ns = e.target.value;
+              setFilterSection(ns);
+              // a shelf filter that isn't offered under the new section would silently
+              // show nothing, so drop back to All rather than leave a dead filter set
+              if (filterShelf !== 'All' && filterShelf !== 'Unshelved') {
+                const allowed =
+                  ns !== 'All' && ns !== 'Unsorted' ? shelvesBySection[ns] || [] : flatShelves;
+                if (!allowed.includes(filterShelf)) setFilterShelf('All');
+              }
+            }}
             className="rounded-md border border-line bg-card px-2 py-1 text-sm"
           >
             <option>All</option>
@@ -135,8 +226,22 @@ export default function ManageTable({
             ))}
           </select>
         </label>
+        <label className="text-sm text-muted">
+          Shelf:{' '}
+          <select
+            value={filterShelf}
+            onChange={(e) => setFilterShelf(e.target.value)}
+            className="rounded-md border border-line bg-card px-2 py-1 text-sm"
+          >
+            <option>All</option>
+            <option>Unshelved</option>
+            {filterShelfChoices.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+        </label>
         <span className="text-sm text-muted">
-          {filtered.length} shown · {unsorted} unsorted
+          {filtered.length} shown · {unsorted} unsorted · {unshelved} unshelved
         </span>
       </div>
 
@@ -144,29 +249,71 @@ export default function ManageTable({
         <div className="sticky top-0 z-20 mb-2 flex flex-wrap items-center gap-3 rounded-md border border-rust/40 bg-rust/5 px-3 py-2 text-sm">
           <span className="font-medium">{selected.size} selected</span>
           <label>
-            Set section to{' '}
+            Section{' '}
             <select
               value={bulkSection}
-              onChange={(e) => setBulkSection(e.target.value)}
+              onChange={(e) => {
+                const ns = e.target.value;
+                setBulkSection(ns);
+                // the shelf list is about to change under it; don't carry a stale pick
+                setBulkShelf(NO_CHANGE);
+              }}
               className="rounded-md border border-line bg-card px-2 py-1"
             >
-              <option value="">— none —</option>
+              <option value={NO_CHANGE}>— no change —</option>
+              <option value={CLEAR}>— clear —</option>
               {sections.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Shelf{' '}
+            <select
+              value={bulkShelf}
+              onChange={(e) => setBulkShelf(e.target.value)}
+              className="rounded-md border border-line bg-card px-2 py-1 disabled:opacity-40"
+              disabled={bulkShelfChoices.length === 0 && bulkShelf === NO_CHANGE}
+              title={
+                bulkShelfChoices.length === 0
+                  ? 'The selected items span sections with no shelf in common — set a section too.'
+                  : undefined
+              }
+            >
+              <option value={NO_CHANGE}>— no change —</option>
+              <option value={CLEAR}>— clear —</option>
+              {bulkShelfChoices.map((s) => (
                 <option key={s}>{s}</option>
               ))}
             </select>
           </label>
           <button
             onClick={applyBulk}
-            disabled={busyBulk}
+            disabled={busyBulk || !bulkWouldChange}
             className="rounded-md bg-rust px-3 py-1 text-white disabled:opacity-50"
           >
             {busyBulk ? 'Applying…' : 'Apply'}
           </button>
-          <button onClick={() => setSelected(new Set())} className="text-muted hover:text-rust">
+          <button
+            onClick={() => {
+              setSelected(new Set());
+              setBulkSection(NO_CHANGE);
+              setBulkShelf(NO_CHANGE);
+            }}
+            className="text-muted hover:text-rust"
+          >
             Clear
           </button>
+          {bulkShelfChoices.length === 0 && bulkSection === NO_CHANGE && (
+            <span className="text-xs text-muted">
+              No shelf is common to every selected item’s section — set a section to shelve them together.
+            </span>
+          )}
         </div>
+      )}
+
+      {bulkNote && (
+        <p className="mb-2 text-xs text-moss">{bulkNote}</p>
       )}
 
       <div className="overflow-x-auto rounded-lg border border-line">

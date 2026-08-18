@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { getItems, writeLocalItems } from '@/lib/data';
-import { getVocab, writeVocab, type VocabKind } from '@/lib/vocab';
+import { getVocab, writeVocab, sortVocab, type VocabKind } from '@/lib/vocab';
 
 // POST /api/vocab  { kind, action, value, newValue?, section? }
 // Shelf ops require `section` (shelves are scoped to a section). Renames cascade
@@ -40,7 +40,10 @@ export async function POST(req: Request) {
     revalidatePath('/');
     revalidatePath('/browse');
     revalidatePath('/admin/vocab');
-    return NextResponse.json({ ok: true, vocab, affected });
+    revalidatePath('/manage');
+    // sorted, so a newly added value lands in its alphabetical place in the editor
+    // straight away rather than at the bottom until the next reload
+    return NextResponse.json({ ok: true, vocab: sortVocab(vocab), affected });
   };
 
   // --- Genres (flat, cross-cutting) ---

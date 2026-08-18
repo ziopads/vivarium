@@ -24,8 +24,10 @@ export default async function Manage() {
       <h1 className="mt-3 font-serif text-2xl">Tag items</h1>
       <p className="mt-1 max-w-prose text-sm text-muted">
         Section and shelf are locked to the managed vocabulary — no free-typing new ones. Filter to
-        “Unsorted” to assign sections to the books that lack one, or tick several rows and set them
-        all at once. Everything saves as you go.
+        “Unsorted” to assign sections to the books that lack one, or “Unshelved” to work through
+        those that have a section but no shelf. Tick several rows to set section and shelf together.
+        Shelves are scoped to their section, so with no section chosen the shelf filter matches a
+        name wherever it appears. Everything saves as you go.
       </p>
       <div className="mt-5">
         <ManageTable

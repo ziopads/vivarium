@@ -69,14 +69,42 @@ function cleanPublicFields(raw: any): string[] {
   return raw.filter((k) => typeof k === 'string' && PUBLICABLE.has(k) && !NEVER.has(k));
 }
 
-function normalize(raw: any): Vocab {
+const byName = (a: string, b: string) => a.localeCompare(b);
+
+/**
+ * Alphabetise sections, genres, and every shelf list (plus the shelvesBySection
+ * keys themselves, so the admin editor's section picker matches the sections panel).
+ *
+ * Storage order is insertion order — /api/vocab appends with push — which put newly
+ * added sections at the bottom of every dropdown in the app. Rather than sort at each
+ * of the many render sites, sorting happens here, on the way in and on the way out:
+ * normalize() covers every read (Supabase and file alike), writeVocab covers every
+ * write so the persisted JSON stays tidy too.
+ *
+ * publicFields is deliberately left alone — it is an allowlist, not a menu, and its
+ * order is never shown to anyone.
+ */
+export function sortVocab(v: Vocab): Vocab {
+  const shelvesBySection: Record<string, string[]> = {};
+  for (const key of Object.keys(v.shelvesBySection).sort(byName)) {
+    shelvesBySection[key] = [...(v.shelvesBySection[key] || [])].sort(byName);
+  }
   return {
+    ...v,
+    sections: [...v.sections].sort(byName),
+    genres: [...v.genres].sort(byName),
+    shelvesBySection,
+  };
+}
+
+function normalize(raw: any): Vocab {
+  return sortVocab({
     sections: Array.isArray(raw?.sections) ? raw.sections : [...SECTIONS],
     genres: Array.isArray(raw?.genres) ? raw.genres : [],
     shelvesBySection:
       raw?.shelvesBySection && typeof raw.shelvesBySection === 'object' ? raw.shelvesBySection : {},
     publicFields: cleanPublicFields(raw?.publicFields),
-  };
+  });
 }
 
 // Every shelf across all sections, de-duped — for surfaces not yet section-aware.
@@ -105,11 +133,12 @@ export async function getVocab(): Promise<Vocab> {
 }
 
 export async function writeVocab(v: Vocab): Promise<void> {
+  const sorted = sortVocab(v);
   if (dataSource().mode === 'supabase') {
     const sb = getSupabase()!;
-    const { error } = await sb.from('vocab').upsert({ id: 1, data: v }, { onConflict: 'id' });
+    const { error } = await sb.from('vocab').upsert({ id: 1, data: sorted }, { onConflict: 'id' });
     if (error) throw new Error(`Supabase writeVocab: ${error.message}`);
     return;
   }
-  fs.writeFileSync(vocabFile(), JSON.stringify(v, null, 2));
+  fs.writeFileSync(vocabFile(), JSON.stringify(sorted, null, 2));
 }
