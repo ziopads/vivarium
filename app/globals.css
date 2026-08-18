@@ -2,8 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Theme tokens.
+
+   Colors are stored as space-separated RGB channels so Tailwind's
+   `rgb(var(--x) / <alpha-value>)` opacity syntax (e.g. `bg-rust/10`) keeps
+   working. The default :root is the Vivarium library palette; the
+   [data-theme="tamplin"] block is the Valerie Tamplin catalogue's monochrome,
+   white-ground, Instrument Sans skin.
+
+   layout.tsx sets `data-theme` per instance from NEXT_PUBLIC_INSTANCE, so the
+   same codebase serves either look with no component changes — the token names
+   below are unchanged, only their values differ per instance.
+   ========================================================================== */
 :root {
   color-scheme: light;
+
+  --parchment: 244 239 227; /* #f4efe3 */
+  --card:      251 248 240; /* #fbf8f0 */
+  --ink:        34  40  47; /* #22282f */
+  --muted:     107 114 128; /* #6b7280 */
+  --rust:      177  64  47; /* #b1402f */
+  --moss:       90 107  79; /* #5a6b4f */
+  --line:      226 220 203; /* #e2dccb */
+
+  --font-serif: "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Valerie Tamplin catalogue — matches valerietamplin.com: gallery white,
+   near-black ink, hairline grey, and a single sans (Instrument Sans). Monochrome
+   by decision: the two accent tokens collapse to ink / grey, so interactive
+   affordances lean on weight and hover rather than colour. */
+[data-theme="tamplin"] {
+  --parchment: 255 255 255; /* #ffffff */
+  --card:      255 255 255; /* #ffffff */
+  --ink:        26  26  26; /* #1a1a1a */
+  --muted:     102 102 102; /* #666666 */
+  --rust:       26  26  26; /* accent -> near-black */
+  --moss:      102 102 102; /* secondary accent -> grey */
+  --line:      229 229 229; /* #e5e5e5 */
+
+  /* Instrument Sans is loaded in layout.tsx via next/font (--font-instrument).
+     The site uses one sans for everything, so the serif token maps to it too —
+     titles and the wordmark render in Instrument Sans under this theme. */
+  --font-serif: var(--font-instrument), system-ui, sans-serif;
+  --font-sans:  var(--font-instrument), system-ui, sans-serif;
 }
 
 body {
