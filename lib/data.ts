@@ -1,5 +1,8 @@
 import type { Item } from './types';
-import bundled from '@/data/items.json';
+// First-run fallback only, used when data/items.json does not exist yet. The real
+// file is gitignored — it is the operator's catalogue, not part of the app — so a
+// fresh clone compiles and runs against these three example records instead.
+import bundled from '@/data/items.example.json';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { getSupabase } from './supabase';

@@ -9,21 +9,23 @@
     "Maritime",
     "Music",
     "Nature",
+    "Philosophy",
     "Poetry",
     "Reference",
     "Science",
     "Spirituality & Religion",
-    "Travel & Exploration",
-    "Philosophy"
+    "Travel & Exploration"
   ],
   "sections": [
-    "Animals",
+    "Animals & Nature",
     "Art & Architecture",
     "Biography & Memoir",
+    "Business",
     "Children's",
     "Craft & How-to",
     "Essays",
     "Fiction",
+    "Food",
     "History",
     "Languages",
     "Maritime",
@@ -33,15 +35,14 @@
     "Photography",
     "Physical Culture & Sports",
     "Poetry",
+    "Psychology",
     "Reference",
+    "Regions & Cultures",
     "Religion",
-    "Sailing",
     "Science",
     "Spirituality & Religion",
-    "Regions & Cultures",
     "Travel & Exploration",
-    "Writing",
-    "Food"
+    "Writing"
   ],
   "publicFields": [
     "refNumber",
@@ -65,21 +66,17 @@
       "Nature"
     ],
     "Nature": [
+      "Animals",
       "Essays",
       "Nature",
+      "Oceans",
       "Reference",
-      "Spirituality & Philosophy",
-      "Animals",
-      "Oceans"
+      "Spirituality & Philosophy"
     ],
     "Poetry": [
+      "Anthologies",
       "Craft & How-to",
       "Poetry"
-    ],
-    "Animals": [
-      "Nature",
-      "Birds",
-      "Ocean"
     ],
     "Fiction": [
       "Biography & Memoir",
@@ -89,14 +86,17 @@
       "History",
       "Reference"
     ],
-    "Sailing": [
-      "Maritime"
-    ],
     "Science": [
       "Craft & How-to",
       "Science"
     ],
     "Writing": [],
+    "Business": [
+      "Advertising",
+      "Economics",
+      "Personal Finance",
+      "Stock Market"
+    ],
     "Maritime": [
       "Maritime"
     ],
@@ -119,10 +119,9 @@
       "Picture"
     ],
     "Philosophy": [
-      "Music",
-      "Reference",
-      "Spirituality & Philosophy"
+      "Ancient"
     ],
+    "Psychology": [],
     "Photography": [
       "Art",
       "Craft & How-to",
@@ -131,16 +130,26 @@
     ],
     "Craft & How-to": [
       "Art",
+      "Coding",
       "Craft & How-to",
       "Reference"
     ],
+    "Animals & Nature": [
+      "Birds",
+      "Nature",
+      "Ocean"
+    ],
     "Art & Architecture": [
+      "Ancient",
+      "Architecture",
       "Art",
-      "Tradecraft & How-to",
-      "History",
-      "Criticism & Theory",
       "Color",
-      "Architecture"
+      "Criticism & Theory",
+      "Eastern",
+      "History",
+      "Medieval",
+      "Renaissance",
+      "Tradecraft & How-to"
     ],
     "Biography & Memoir": [
       "Biography & Memoir"
@@ -148,8 +157,8 @@
     "Regions & Cultures": [
       "Biography & Memoir",
       "History",
-      "Travel & Exploration",
-      "Maine"
+      "Maine",
+      "Travel & Exploration"
     ],
     "Travel & Exploration": [
       "Travel & Exploration"
@@ -158,12 +167,12 @@
       "Spirituality & Philosophy"
     ],
     "Physical Culture & Sports": [
-      "Yoga",
+      "Golf",
       "Martial Arts",
-      "Strength & Conditioning",
-      "Spirituality & Philosophy",
       "Sailing",
-      "Golf"
+      "Spirituality & Philosophy",
+      "Strength & Conditioning",
+      "Yoga"
     ]
   }
 }

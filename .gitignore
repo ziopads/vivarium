@@ -16,6 +16,12 @@ public/items/
 *.bak*
 *bak
 
+# The catalogue itself. data/items.example.json is committed in its place and is
+# what lib/data.ts falls back to on first run; the real file is this machine's
+# records and never belongs in git.
+data/items.json
+data/wishlist.json
+
 # python cache from the image/ingest scripts
 __pycache__/
 *.pyc
