@@ -1,0 +1,11 @@
+[
+ {
+  "id": 1,
+  "title": "An Example Wanted Book",
+  "author": "",
+  "section": "",
+  "note": "First-run example. The real data/wishlist.json is gitignored; in production the wishlist lives in the Supabase `wishlist` table.",
+  "addedBy": "you@example.com",
+  "createdAt": "2026-01-01T00:00:00.000Z"
+ }
+]

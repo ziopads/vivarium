@@ -1,6 +1,8 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import bundled from '@/data/wishlist.json';
+// First-run fallback only. The real data/wishlist.json is gitignored, and in
+// production the wishlist lives in the Supabase `wishlist` table.
+import bundled from '@/data/wishlist.example.json';
 import { getSupabase } from './supabase';
 
 export type Wish = {
