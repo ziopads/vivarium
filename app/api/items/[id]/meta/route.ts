@@ -25,11 +25,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   }
 
-  // Read the current record for its itemType, which decides which type-specific
-  // field keys are writable below.
-  const current = await getItem(id);
-  if (!current) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-
+  // Only type-specific `fields` need the current record, and only for its
+  // itemType. Everything else goes straight to updateItem, which for a
+  // column-only patch is a single UPDATE with no read — so a section change is
+  // one round trip rather than three.
   const clean = (arr: string[]) =>
     Array.from(new Set(arr.map((s) => s.trim()).filter(Boolean)));
 
@@ -55,7 +54,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     // Only allow keys defined for this item's type — no arbitrary property
     // writes. A type change in the same request takes effect first, matching the
     // previous behaviour.
-    const nextType = patch.itemType || current.itemType;
+    let nextType = patch.itemType;
+    if (!nextType) {
+      const current = await getItem(id);
+      if (!current) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      nextType = current.itemType;
+    }
     const allowed = new Set(typeFields(nextType).map((f) => f.key));
     for (const [k, v] of Object.entries(body.fields)) {
       if (allowed.has(k)) patch[k] = typeof v === 'string' ? v.trim() : v;

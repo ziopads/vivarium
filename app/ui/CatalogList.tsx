@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { Item } from '@/lib/types';
 import { CONDITIONS } from '@/lib/sections';
@@ -102,6 +102,192 @@ function shelfOpts(sbs: Record<string, string[]>, section: string, current: stri
   return [...merged].sort((a, b) => a.localeCompare(b));
 }
 
+type CellClasses = { tdId: string; tdTitle: string; cell: string; sel: string };
+
+/**
+ * One row, memoized.
+ *
+ * setRows replaces only the edited record's object and leaves the other 1,600
+ * identities alone, so with a shallow prop compare a save re-renders one row
+ * instead of reconciling the whole table. That only holds if `save` and `pick`
+ * keep the same identity between renders — see the refs in CatalogList — and if
+ * the class strings are the same literals each time, which they are.
+ */
+const TableRow = memo(function TableRow({
+  r,
+  editable,
+  selected,
+  isSaved,
+  sections,
+  shelvesBySection,
+  classes,
+  save,
+  pick,
+}: {
+  r: Row;
+  editable: boolean;
+  selected: boolean;
+  isSaved: boolean;
+  sections: string[];
+  shelvesBySection: Record<string, string[]>;
+  classes: CellClasses;
+  save: (id: number, patch: Patch) => void;
+  pick: (id: number, shift: boolean) => void;
+}) {
+  const { tdId, tdTitle, cell, sel } = classes;
+  const ro = !editable;
+  const toList = (s: string) =>
+    Array.from(new Set(s.split(',').map((x) => x.trim()).filter(Boolean)));
+
+  return (
+    <tr className="border-b border-line/60 align-top">
+      <td className={tdId}>
+        {editable && (
+          <input
+            type="checkbox"
+            className="mr-1.5 align-middle"
+            checked={selected}
+            onChange={() => {}}
+            onClick={(e) => pick(r.id, e.shiftKey)}
+            aria-label={`select ${r.title || r.id}`}
+          />
+        )}
+        {String(r.id).padStart(6, '0')}
+        {isSaved && <span className="ml-1 text-moss">✓</span>}
+      </td>
+      <td className={tdTitle}>
+        {/* Same marker, same condition, as the card view — see lib/writeup.ts.
+            It sits in the sticky Title column for the same reason the thumbnail
+            does: the table is wider than the screen, and a mark in a scrolling
+            column is gone at the moment you are deciding. */}
+        {needsWriteup(r) && (
+          <span
+            aria-hidden
+            title="Write-up incomplete"
+            className="pointer-events-none absolute right-0 top-0 h-0 w-0 border-l-[14px] border-t-[14px] border-l-transparent border-t-amber-400"
+          />
+        )}
+        <Link href={`/items/${r.id}`} className="flex items-start gap-2 hover:text-rust">
+          <Thumb item={r} />
+          <span className="font-serif leading-snug hover:underline">
+            {r.title || <em className="text-muted">Untitled</em>}
+          </span>
+        </Link>
+      </td>
+      <td className="px-2 py-1.5 text-muted">{r.author}</td>
+      <td className="px-2 py-1.5 text-muted">{r.year}</td>
+
+      {/* Section — controlled dropdown */}
+      <td className="px-2 py-1.5">
+        {editable ? (
+          <LazySelect
+            value={r.section || ''}
+            options={sections}
+            className={`w-full ${sel}`}
+            onChange={(ns) => {
+              const keep = (shelvesBySection[ns] || []).includes(r.shelf);
+              save(r.id, keep ? { section: ns } : { section: ns, shelf: '' });
+            }}
+          />
+        ) : (
+          <span className="px-1">{r.section}</span>
+        )}
+      </td>
+
+      {/* Shelf — section-aware dropdown */}
+      <td className="px-2 py-1.5">
+        {editable ? (
+          <LazySelect
+            value={r.shelf || ''}
+            disabled={!r.section}
+            options={() => shelfOpts(shelvesBySection, r.section || '', r.shelf)}
+            className={`w-full ${sel} disabled:opacity-40`}
+            onChange={(v) => save(r.id, { shelf: v })}
+          />
+        ) : (
+          <span className="px-1">{r.shelf}</span>
+        )}
+      </td>
+
+      <td className="px-2 py-1.5">
+        <input
+          list="genreopts"
+          readOnly={ro}
+          defaultValue={r.genres.join(', ')}
+          onBlur={(e) => {
+            if (!editable) return;
+            const v = toList(e.target.value);
+            if (v.join('|') !== r.genres.join('|')) save(r.id, { genres: v });
+          }}
+          className={`w-full ${cell}`}
+        />
+      </td>
+      <td className="px-2 py-1.5">
+        <input
+          readOnly={ro}
+          defaultValue={r.subjects.join(', ')}
+          onBlur={(e) => {
+            if (!editable) return;
+            const v = toList(e.target.value);
+            if (v.join('|') !== r.subjects.join('|')) save(r.id, { subjects: v });
+          }}
+          className={`w-full ${cell}`}
+        />
+      </td>
+      <td className="px-2 py-1.5">
+        <input
+          list="locopts"
+          readOnly={ro}
+          defaultValue={r.location || ''}
+          onBlur={(e) =>
+            editable &&
+            e.target.value !== (r.location || '') &&
+            save(r.id, { location: e.target.value.trim() })
+          }
+          className={`w-full ${cell}`}
+        />
+      </td>
+      <td className="px-2 py-1.5">
+        <input
+          readOnly={ro}
+          defaultValue={r.notes || ''}
+          onBlur={(e) =>
+            editable && e.target.value !== (r.notes || '') && save(r.id, { notes: e.target.value })
+          }
+          className={`w-full ${cell}`}
+        />
+      </td>
+
+      {/* Condition — controlled dropdown */}
+      <td className="px-2 py-1.5">
+        {editable ? (
+          <LazySelect
+            value={r.condition || ''}
+            options={CONDITIONS as unknown as string[]}
+            className={`w-full ${sel}`}
+            onChange={(v) => save(r.id, { condition: v })}
+          />
+        ) : (
+          <span className="px-1">{r.condition}</span>
+        )}
+      </td>
+
+      <td className="px-2 py-1.5">
+        <input
+          readOnly={ro}
+          defaultValue={r.conditionNotes || ''}
+          onBlur={(e) =>
+            editable &&
+            e.target.value !== (r.conditionNotes || '') &&
+            save(r.id, { conditionNotes: e.target.value })
+          }
+          className={`w-full ${cell}`}
+        />
+      </td>
+    </tr>
+  );
+});
+
 export default function CatalogList({
   items,
   sections,
@@ -118,7 +304,6 @@ export default function CatalogList({
   const [rows, setRows] = useState<Row[]>(items);
   const [saved, setSaved] = useState<number | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [anchor, setAnchor] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -130,7 +315,6 @@ export default function CatalogList({
   useEffect(() => {
     setRows(items);
     setSelected(new Set());
-    setAnchor(null);
     setConfirming(false);
   }, [items]);
 
@@ -138,18 +322,28 @@ export default function CatalogList({
   // filter — not id order. Shift-click extends from the last row you clicked,
   // and takes its on/off sense from what the clicked row is becoming, so a
   // shift-click inside a selected run clears the run.
-  function pick(id: number, shift: boolean) {
+  //
+  // `rows` and `anchor` are read through refs so this callback keeps one
+  // identity for the life of the component. Passing a fresh function to 1,600
+  // memoized rows on every render would defeat the memo entirely.
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const anchorRef = useRef<number | null>(null);
+
+  const pick = useCallback((id: number, shift: boolean) => {
+    const list = rowsRef.current;
+    const anchor = anchorRef.current;
     setSelected((prev) => {
       const next = new Set(prev);
       const turningOn = !prev.has(id);
       if (shift && anchor !== null) {
-        const a = rows.findIndex((r) => r.id === anchor);
-        const b = rows.findIndex((r) => r.id === id);
+        const a = list.findIndex((r) => r.id === anchor);
+        const b = list.findIndex((r) => r.id === id);
         if (a !== -1 && b !== -1) {
           const [lo, hi] = a < b ? [a, b] : [b, a];
           for (let i = lo; i <= hi; i++) {
-            if (turningOn) next.add(rows[i].id);
-            else next.delete(rows[i].id);
+            if (turningOn) next.add(list[i].id);
+            else next.delete(list[i].id);
           }
           return next;
         }
@@ -158,13 +352,15 @@ export default function CatalogList({
       else next.delete(id);
       return next;
     });
-    setAnchor(id);
+    anchorRef.current = id;
     setConfirming(false);
-  }
+  }, []);
 
   function pickAll() {
-    setSelected((prev) => (prev.size === rows.length ? new Set() : new Set(rows.map((r) => r.id))));
-    setAnchor(null);
+    setSelected((prev) =>
+      prev.size === rows.length ? new Set() : new Set(rows.map((r) => r.id)),
+    );
+    anchorRef.current = null;
     setConfirming(false);
   }
 
@@ -189,7 +385,7 @@ export default function CatalogList({
       const gone = new Set<number>(out?.removed || []);
       setRows((rs) => rs.filter((r) => !gone.has(r.id)));
       setSelected(new Set());
-      setAnchor(null);
+      anchorRef.current = null;
       setConfirming(false);
       const missing = (out?.missing || []).length;
       setNote(
@@ -204,7 +400,7 @@ export default function CatalogList({
     }
   }
 
-  async function save(id: number, patch: Patch) {
+  const save = useCallback(async (id: number, patch: Patch) => {
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
     try {
       await fetch(`/api/items/${id}/meta`, {
@@ -217,16 +413,12 @@ export default function CatalogList({
     } catch {
       /* keep optimistic value */
     }
-  }
-
-  const toList = (s: string) =>
-    Array.from(new Set(s.split(',').map((x) => x.trim()).filter(Boolean)));
+  }, []);
 
   const cell = editable
     ? 'rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-line focus:border-rust focus:bg-parchment'
     : 'bg-transparent px-1 py-0.5 text-ink';
   const sel = 'rounded border border-line bg-card px-1 py-0.5';
-  const ro = !editable;
   // Column widths live in the <colgroup> below and the table is table-fixed, so
   // these sticky left offsets are exact rather than a guess at what auto layout
   // will do with them. Change a width there and change left-[…] here to match,
@@ -238,6 +430,13 @@ export default function CatalogList({
   const tdId =
     'sticky left-0 z-10 whitespace-nowrap bg-parchment px-2 py-1.5 font-mono text-[11px] text-muted';
   const tdTitle = 'sticky left-[92px] z-10 border-r border-line bg-parchment px-2 py-1.5';
+
+  // One object, kept stable, so it doesn't invalidate every memoized row on
+  // every render.
+  const classes = useMemo(
+    () => ({ tdId, tdTitle, cell, sel }),
+    [tdId, tdTitle, cell, sel],
+  );
 
   return (
     <div>
@@ -254,8 +453,8 @@ export default function CatalogList({
               </button>
               <button
                 onClick={() => {
-                  setSelected(new Set());
-                  setAnchor(null);
+                setSelected(new Set());
+                  anchorRef.current = null;
                 }}
                 className="text-muted hover:text-rust"
               >
@@ -343,145 +542,18 @@ export default function CatalogList({
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="border-b border-line/60 align-top">
-                <td className={tdId}>
-                  {editable && (
-                    <input
-                      type="checkbox"
-                      className="mr-1.5 align-middle"
-                      checked={selected.has(r.id)}
-                      onChange={() => {}}
-                      onClick={(e) => pick(r.id, e.shiftKey)}
-                      aria-label={`select ${r.title || r.id}`}
-                    />
-                  )}
-                  {String(r.id).padStart(6, '0')}
-                  {saved === r.id && <span className="ml-1 text-moss">✓</span>}
-                </td>
-                <td className={tdTitle}>
-                  {/* Same marker, same condition, as the card view — see
-                      lib/writeup.ts. It sits in the sticky Title column for the
-                      same reason the thumbnail does: the table is wider than the
-                      screen, and a mark in a scrolling column is gone at the
-                      moment you are deciding. */}
-                  {needsWriteup(r) && (
-                    <span
-                      aria-hidden
-                      title="Write-up incomplete"
-                      className="pointer-events-none absolute right-0 top-0 h-0 w-0 border-l-[14px] border-t-[14px] border-l-transparent border-t-amber-400"
-                    />
-                  )}
-                  <Link
-                    href={`/items/${r.id}`}
-                    className="flex items-start gap-2 hover:text-rust"
-                  >
-                    <Thumb item={r} />
-                    <span className="font-serif leading-snug hover:underline">
-                      {r.title || <em className="text-muted">Untitled</em>}
-                    </span>
-                  </Link>
-                </td>
-                <td className="px-2 py-1.5 text-muted">{r.author}</td>
-                <td className="px-2 py-1.5 text-muted">{r.year}</td>
-
-                {/* Section — controlled dropdown */}
-                <td className="px-2 py-1.5">
-                  {editable ? (
-                    <LazySelect
-                      value={r.section || ''}
-                      options={sections}
-                      className={`w-full ${sel}`}
-                      onChange={(ns) => {
-                        const keep = (shelvesBySection[ns] || []).includes(r.shelf);
-                        save(r.id, keep ? { section: ns } : { section: ns, shelf: '' });
-                      }}
-                    />
-                  ) : (
-                    <span className="px-1">{r.section}</span>
-                  )}
-                </td>
-
-                {/* Shelf — section-aware dropdown */}
-                <td className="px-2 py-1.5">
-                  {editable ? (
-                    <LazySelect
-                      value={r.shelf || ''}
-                      disabled={!r.section}
-                      options={() => shelfOpts(shelvesBySection, r.section || '', r.shelf)}
-                      className={`w-full ${sel} disabled:opacity-40`}
-                      onChange={(v) => save(r.id, { shelf: v })}
-                    />
-                  ) : (
-                    <span className="px-1">{r.shelf}</span>
-                  )}
-                </td>
-
-                <td className="px-2 py-1.5">
-                  <input
-                    list="genreopts"
-                    readOnly={ro}
-                    defaultValue={r.genres.join(', ')}
-                    onBlur={(e) => {
-                      if (!editable) return;
-                      const v = toList(e.target.value);
-                      if (v.join('|') !== r.genres.join('|')) save(r.id, { genres: v });
-                    }}
-                    className={`w-full ${cell}`}
-                  />
-                </td>
-                <td className="px-2 py-1.5">
-                  <input
-                    readOnly={ro}
-                    defaultValue={r.subjects.join(', ')}
-                    onBlur={(e) => {
-                      if (!editable) return;
-                      const v = toList(e.target.value);
-                      if (v.join('|') !== r.subjects.join('|')) save(r.id, { subjects: v });
-                    }}
-                    className={`w-full ${cell}`}
-                  />
-                </td>
-                <td className="px-2 py-1.5">
-                  <input
-                    list="locopts"
-                    readOnly={ro}
-                    defaultValue={r.location || ''}
-                    onBlur={(e) => editable && e.target.value !== (r.location || '') && save(r.id, { location: e.target.value.trim() })}
-                    className={`w-full ${cell}`}
-                  />
-                </td>
-                <td className="px-2 py-1.5">
-                  <input
-                    readOnly={ro}
-                    defaultValue={r.notes || ''}
-                    onBlur={(e) => editable && e.target.value !== (r.notes || '') && save(r.id, { notes: e.target.value })}
-                    className={`w-full ${cell}`}
-                  />
-                </td>
-
-                {/* Condition — controlled dropdown */}
-                <td className="px-2 py-1.5">
-                  {editable ? (
-                    <LazySelect
-                      value={r.condition || ''}
-                      options={CONDITIONS as unknown as string[]}
-                      className={`w-full ${sel}`}
-                      onChange={(v) => save(r.id, { condition: v })}
-                    />
-                  ) : (
-                    <span className="px-1">{r.condition}</span>
-                  )}
-                </td>
-
-                <td className="px-2 py-1.5">
-                  <input
-                    readOnly={ro}
-                    defaultValue={r.conditionNotes || ''}
-                    onBlur={(e) => editable && e.target.value !== (r.conditionNotes || '') && save(r.id, { conditionNotes: e.target.value })}
-                    className={`w-full ${cell}`}
-                  />
-                </td>
-              </tr>
+              <TableRow
+                key={r.id}
+                r={r}
+                editable={editable}
+                selected={selected.has(r.id)}
+                isSaved={saved === r.id}
+                sections={sections}
+                shelvesBySection={shelvesBySection}
+                classes={classes}
+                save={save}
+                pick={pick}
+              />
             ))}
           </tbody>
         </table>

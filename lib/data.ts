@@ -302,8 +302,35 @@ export async function updateItem(id: number, patch: Record<string, any>): Promis
   const keys = Object.keys(patch).filter((k) => k !== 'id');
   if (!keys.length) return getItem(id);
 
+  const touchesAttributes = keys.some((k) => !ITEM_TO_COLUMN[k]);
+
   if (dataSource().mode === 'supabase') {
     const sb = getSupabase()!;
+
+    // Fast path: the patch names only typed columns, so nothing in the JSONB
+    // tail is being rewritten and the current record is not needed. One UPDATE,
+    // no read. This covers section, shelf, genres, subjects, places, owner,
+    // title and author — which is the whole shelving loop.
+    //
+    // validateItem still does the normalizing, fed a stub rather than the real
+    // record: it fills defaults for every field the patch didn't name, and we
+    // read back only the ones it did. That keeps one set of rules rather than a
+    // second copy here that could drift from it.
+    if (!touchesAttributes) {
+      const row = itemToRow(validateItem({ id, ...patch }));
+      const update: Row = { updated_at: row.updated_at };
+      for (const k of keys) update[ITEM_TO_COLUMN[k]] = row[ITEM_TO_COLUMN[k]];
+
+      const { data, error } = await sb
+        .from('items')
+        .update(update)
+        .eq('id', id)
+        .select('*')
+        .maybeSingle();
+      if (error) throw new Error(`Supabase updateItem: ${error.message}`);
+      return data ? rowToItem(data) : null;
+    }
+
     const { data, error } = await sb.from('items').select('*').eq('id', id).maybeSingle();
     if (error) throw new Error(`Supabase updateItem read: ${error.message}`);
     if (!data) return null;
@@ -311,14 +338,11 @@ export async function updateItem(id: number, patch: Record<string, any>): Promis
     const merged = validateItem({ ...rowToItem(data), ...patch, id });
     const row = itemToRow(merged);
 
-    const update: Row = { updated_at: row.updated_at };
-    let touchesAttributes = false;
+    const update: Row = { updated_at: row.updated_at, attributes: row.attributes };
     for (const k of keys) {
       const col = ITEM_TO_COLUMN[k];
       if (col) update[col] = row[col];
-      else touchesAttributes = true;
     }
-    if (touchesAttributes) update.attributes = row.attributes;
 
     const { error: upErr } = await sb.from('items').update(update).eq('id', id);
     if (upErr) throw new Error(`Supabase updateItem: ${upErr.message}`);
