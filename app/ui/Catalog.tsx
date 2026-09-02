@@ -192,7 +192,7 @@ export default function Catalog({
   );
 
   return (
-    <div className="overflow-x-clip">
+    <div>
       {/* sticky toolbar — always reachable without scrolling to the top */}
       <div className="sticky top-0 z-30 -mx-4 mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line bg-parchment/90 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6">
         <button
