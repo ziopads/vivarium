@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { getItems, writeLocalItems } from '@/lib/data';
+import { getItem, updateItem } from '@/lib/data';
 import { typeFields } from '@/lib/itemTypes';
 
 // POST /api/items/:id/meta
 //   { section?, shelf?, genres?, subjects?, location?, notes?, condition?, conditionNotes? }
-// Edits fields against the local JSON store (used when no DATABASE_URL).
+//
+// Writes through updateItem, which touches one row. This route used to read the
+// whole catalogue, mutate one object in it and write every record back, so a
+// single dropdown change in /manage or the list view rewrote the table — and two
+// edits in flight together could revert each other, because last-write-wins
+// applied to the entire set rather than the edited field.
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  // Persisted via writeLocalItems: Supabase when configured, else local JSON (both modes).
   const id = Number(params.id);
   let body: {
     section?: string; shelf?: string; genres?: string[]; subjects?: string[];
@@ -21,39 +25,48 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   }
 
-  const items = await getItems();
-  const item = items.find((i) => i.id === id);
-  if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+  // Read the current record for its itemType, which decides which type-specific
+  // field keys are writable below.
+  const current = await getItem(id);
+  if (!current) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
 
   const clean = (arr: string[]) =>
     Array.from(new Set(arr.map((s) => s.trim()).filter(Boolean)));
 
+  const patch: Record<string, any> = {};
+
   // Title must never be blanked; author may be cleared.
-  if (typeof body.title === 'string' && body.title.trim()) item.title = body.title.trim();
-  if (typeof body.author === 'string') item.author = body.author.trim();
+  if (typeof body.title === 'string' && body.title.trim()) patch.title = body.title.trim();
+  if (typeof body.author === 'string') patch.author = body.author.trim();
   // Acquisition / provenance — admin-only, shown only to admins on the detail page.
-  if (typeof body.source === 'string') item.source = body.source.trim();
-  if (typeof body.pricePaid === 'string') item.pricePaid = body.pricePaid.trim();
-  if (typeof body.section === 'string') item.section = body.section.trim();
-  if (typeof body.shelf === 'string') item.shelf = body.shelf.trim();
-  if (Array.isArray(body.genres)) item.genres = clean(body.genres);
-  if (Array.isArray(body.subjects)) item.subjects = clean(body.subjects);
-  if (typeof body.location === 'string') item.location = body.location.trim();
-  if (typeof body.notes === 'string') item.notes = body.notes.trim();
-  if (typeof body.condition === 'string') item.condition = body.condition.trim();
-  if (typeof body.conditionNotes === 'string') item.conditionNotes = body.conditionNotes.trim();
-  if (typeof body.itemType === 'string' && body.itemType.trim()) item.itemType = body.itemType.trim();
+  if (typeof body.source === 'string') patch.source = body.source.trim();
+  if (typeof body.pricePaid === 'string') patch.pricePaid = body.pricePaid.trim();
+  if (typeof body.section === 'string') patch.section = body.section.trim();
+  if (typeof body.shelf === 'string') patch.shelf = body.shelf.trim();
+  if (Array.isArray(body.genres)) patch.genres = clean(body.genres);
+  if (Array.isArray(body.subjects)) patch.subjects = clean(body.subjects);
+  if (typeof body.location === 'string') patch.location = body.location.trim();
+  if (typeof body.notes === 'string') patch.notes = body.notes.trim();
+  if (typeof body.condition === 'string') patch.condition = body.condition.trim();
+  if (typeof body.conditionNotes === 'string') patch.conditionNotes = body.conditionNotes.trim();
+  if (typeof body.itemType === 'string' && body.itemType.trim()) patch.itemType = body.itemType.trim();
+
   if (body.fields && typeof body.fields === 'object') {
-    // Only allow keys defined for this item's type — no arbitrary property writes.
-    const allowed = new Set(typeFields(item.itemType).map((f) => f.key));
+    // Only allow keys defined for this item's type — no arbitrary property
+    // writes. A type change in the same request takes effect first, matching the
+    // previous behaviour.
+    const nextType = patch.itemType || current.itemType;
+    const allowed = new Set(typeFields(nextType).map((f) => f.key));
     for (const [k, v] of Object.entries(body.fields)) {
-      if (allowed.has(k)) (item as Record<string, any>)[k] = typeof v === 'string' ? v.trim() : v;
+      if (allowed.has(k)) patch[k] = typeof v === 'string' ? v.trim() : v;
     }
   }
 
-  await writeLocalItems(items);
+  const updated = await updateItem(id, patch);
+  if (!updated) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+
   revalidatePath(`/items/${id}`);
   revalidatePath('/');
   revalidatePath('/browse');
-  return NextResponse.json({ ok: true, ...item });
+  return NextResponse.json({ ok: true, ...updated });
 }
