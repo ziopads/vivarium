@@ -251,3 +251,153 @@ export async function writeLocalItems(items: Item[]): Promise<void> {
   }
   await fs.writeFile(ACTIVE_FILE, JSON.stringify(clean, null, 1), 'utf8');
 }
+
+// ---------------------------------------------------------------------------
+// Targeted row operations
+//
+// getItems + writeLocalItems is O(catalogue) per edit: it reads every row, runs
+// validateItem over all of them, upserts all of them, then pages the id list
+// again to compute deletions. Fine for one edit an hour; the reason shelving 500
+// books an afternoon is not currently possible.
+//
+// These touch one row, or the named rows, and nothing else. Two consequences
+// worth stating:
+//
+//   - Concurrent edits stop clobbering each other. The full-set path has
+//     last-write-wins semantics over the WHOLE catalogue, so a save that starts
+//     before another and lands after it silently reverts the other's field.
+//   - The >10 delete guard in writeLocalItems stays exactly as it is. It exists
+//     to stop a truncated read from emptying the table, and a deliberate bulk
+//     delete should not be the reason it gets loosened. deleteItems does not go
+//     through that path at all.
+// ---------------------------------------------------------------------------
+
+// Item field -> Postgres column, for the typed spine. Anything absent lives in
+// the JSONB `attributes` tail (publisher, isbn, condition, location, notes,
+// source, pricePaid, the frame dimensions, …). Derived from itemToRow above;
+// the two must agree.
+const ITEM_TO_COLUMN: Record<string, string> = {
+  itemType: 'item_type', title: 'title', author: 'author', year: 'year',
+  section: 'section', shelf: 'shelf', genres: 'genres', subjects: 'subjects',
+  places: 'places', visibility: 'visibility', owner: 'owner', signed: 'signed',
+  maine: 'maine', cover: 'cover', copyright: 'copyright', image: 'image',
+  images: 'images', description: 'description', discussion: 'discussion',
+};
+
+/**
+ * Apply a partial patch to one item. Returns the updated item, or null when no
+ * such id exists.
+ *
+ * The patch is merged into the current record and run through validateItem, so
+ * normalization is identical to the full-set path — no second set of rules to
+ * drift. Only the columns the patch actually named are written.
+ *
+ * NOTE on `location`: it is not a typed column, it lives in `attributes`.
+ * Patching it therefore rewrites that row's whole attributes object, which is
+ * why the current record is read first rather than the patch being sent blind.
+ * Six of the seven fields left blank by ingest are columns; location is the odd
+ * one out.
+ */
+export async function updateItem(id: number, patch: Record<string, any>): Promise<Item | null> {
+  const keys = Object.keys(patch).filter((k) => k !== 'id');
+  if (!keys.length) return getItem(id);
+
+  if (dataSource().mode === 'supabase') {
+    const sb = getSupabase()!;
+    const { data, error } = await sb.from('items').select('*').eq('id', id).maybeSingle();
+    if (error) throw new Error(`Supabase updateItem read: ${error.message}`);
+    if (!data) return null;
+
+    const merged = validateItem({ ...rowToItem(data), ...patch, id });
+    const row = itemToRow(merged);
+
+    const update: Row = { updated_at: row.updated_at };
+    let touchesAttributes = false;
+    for (const k of keys) {
+      const col = ITEM_TO_COLUMN[k];
+      if (col) update[col] = row[col];
+      else touchesAttributes = true;
+    }
+    if (touchesAttributes) update.attributes = row.attributes;
+
+    const { error: upErr } = await sb.from('items').update(update).eq('id', id);
+    if (upErr) throw new Error(`Supabase updateItem: ${upErr.message}`);
+    return merged;
+  }
+
+  const items = await readLocalItems();
+  const idx = items.findIndex((i) => i.id === id);
+  if (idx === -1) return null;
+  const merged = validateItem({ ...items[idx], ...patch, id });
+  items[idx] = merged;
+  // Local mode has no row granularity — the file is the row. Still one write.
+  await writeLocalItems(items);
+  return merged;
+}
+
+/**
+ * Apply the same patch to many items in one pass. Returns the ids actually
+ * changed; ids that don't exist are skipped rather than erroring, so a stale
+ * selection can't fail the whole batch.
+ *
+ * Deliberately NOT a single UPDATE ... WHERE id IN (...): validateItem needs each
+ * record's current state, and a patch that touches `attributes` is per-row by
+ * nature. This is O(selection), which is the point — it is not O(catalogue).
+ */
+export async function updateItems(
+  ids: number[],
+  patch: Record<string, any>,
+): Promise<number[]> {
+  const unique = Array.from(new Set(ids.map(Number).filter(Number.isFinite)));
+  const done: number[] = [];
+  for (const id of unique) {
+    const out = await updateItem(id, patch);
+    if (out) done.push(id);
+  }
+  return done;
+}
+
+/**
+ * Delete the named rows. Returns the ids that were actually removed, which is
+ * how a caller distinguishes "deleted 340" from "asked for 340, 338 existed".
+ *
+ * This is the bulk-delete path. It carries no size guard on purpose: the guard
+ * in writeLocalItems protects against an accidental delete implied by a
+ * truncated read, and that hazard does not exist here because the ids are named
+ * explicitly. Confirmation belongs at the UI boundary, where the operator can
+ * see what is about to go.
+ *
+ * Does NOT remove images — neither the local public/items/<id6>/ folders nor the
+ * R2 objects. Callers that delete records with images must handle that.
+ */
+export async function deleteItems(ids: number[]): Promise<number[]> {
+  const unique = Array.from(new Set(ids.map(Number).filter(Number.isFinite)));
+  if (!unique.length) return [];
+
+  if (dataSource().mode === 'supabase') {
+    const sb = getSupabase()!;
+    const removed: number[] = [];
+    // Chunked: the id list goes into the request URL, and a few hundred ids is
+    // where that starts to get long.
+    for (let i = 0; i < unique.length; i += 200) {
+      const chunk = unique.slice(i, i + 200);
+      const { data, error } = await sb.from('items').delete().in('id', chunk).select('id');
+      if (error) throw new Error(`Supabase deleteItems: ${error.message}`);
+      removed.push(...(data || []).map((r: Row) => r.id));
+    }
+    return removed;
+  }
+
+  const items = await readLocalItems();
+  const drop = new Set(unique);
+  const keep = items.filter((i) => !drop.has(i.id));
+  const removed = items.filter((i) => drop.has(i.id)).map((i) => i.id);
+  if (removed.length) {
+    await fs.writeFile(
+      ACTIVE_FILE,
+      JSON.stringify(keep.map(validateItem), null, 1),
+      'utf8',
+    );
+  }
+  return removed;
+}
