@@ -62,6 +62,9 @@ export default function Catalog({
   const fromUrl = initialSection !== undefined || initialQ !== undefined || initialShelf !== undefined;
 
   const [q, setQ] = useState(DEFAULTS.q);
+  // The applied query lags what you type. Filtering 1,600 items and rebuilding
+  // the table on every keystroke is the other half of why search felt frozen.
+  const [qApplied, setQApplied] = useState(DEFAULTS.q);
   const [type, setType] = useState(DEFAULTS.type);
   const [genre, setGenre] = useState(DEFAULTS.genre);
   const [shelf, setShelf] = useState(DEFAULTS.shelf);
@@ -87,6 +90,24 @@ export default function Catalog({
     setHydrated(true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const t = setTimeout(() => setQApplied(q), 200);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  // Built once per item set. The filter used to rebuild this string — including
+  // the full description and blurb — for every item on every keystroke.
+  const haystacks = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const i of items) {
+      m.set(
+        i.id,
+        `${i.title} ${i.author} ${i.publisher} ${i.genres.join(' ')} ${i.subjects.join(' ')} ${i.places.join(' ')} ${i.description ?? ''} ${i.blurb ?? ''}`.toLowerCase(),
+      );
+    }
+    return m;
+  }, [items]);
+
   const opts = (vals: string[]) => ['All', ...Array.from(new Set(vals.filter(Boolean))).sort()];
   const types = useMemo(() => opts(items.map((i) => i.itemType)), [items]);
   const genres = useMemo(() => opts(items.flatMap((i) => i.genres)), [items]);
@@ -100,12 +121,9 @@ export default function Catalog({
   }, [items]);
 
   const filtered = useMemo(() => {
+    const needle = qApplied.trim().toLowerCase();
     const out = items.filter((i) => {
-      if (q) {
-        const hay =
-          `${i.title} ${i.author} ${i.publisher} ${i.genres.join(' ')} ${i.subjects.join(' ')} ${i.places.join(' ')} ${i.description ?? ''} ${i.blurb ?? ''}`.toLowerCase();
-        if (!hay.includes(q.toLowerCase())) return false;
-      }
+      if (needle && !(haystacks.get(i.id) || '').includes(needle)) return false;
       if (section !== 'All') {
         if (section === 'Maine') { if (!isMaine(i)) return false; }
         else if (sectionOf(i) !== section) return false;
@@ -129,7 +147,7 @@ export default function Catalog({
       Year: (a, b) => (a.year || '').localeCompare(b.year || ''),
     };
     return [...out].sort(cmp[sort]);
-  }, [items, q, section, type, genre, shelf, subject, place, sort]);
+  }, [items, qApplied, haystacks, section, type, genre, shelf, subject, place, sort]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -141,16 +159,21 @@ export default function Catalog({
   }, [hydrated, q, type, genre, shelf, subject, place, section, view, sort]);
 
   // Record the current ordered set so item pages can offer prev/next through it.
+  // Debounced: this stringifies the whole filtered list, and mid-typing nobody
+  // is about to click through to an item.
   useEffect(() => {
     if (!hydrated) return;
-    try {
-      sessionStorage.setItem(
-        'vivarium.browse.seq',
-        JSON.stringify(filtered.map((i) => ({ i: i.id, t: i.title }))),
-      );
-    } catch {
-      /* ignore quota errors */
-    }
+    const t = setTimeout(() => {
+      try {
+        sessionStorage.setItem(
+          'vivarium.browse.seq',
+          JSON.stringify(filtered.map((i) => ({ i: i.id, t: i.title }))),
+        );
+      } catch {
+        /* ignore quota errors */
+      }
+    }, 300);
+    return () => clearTimeout(t);
   }, [hydrated, filtered]);
 
   useEffect(() => {

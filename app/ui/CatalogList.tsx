@@ -36,6 +36,60 @@ function Thumb({ item }: { item: Item }) {
   );
 }
 
+/**
+ * A <select> that does not build its options until you reach for it.
+ *
+ * With 1,600 rows, three dropdowns per row and 26 sections in the first of
+ * them, the table was putting 60,000-odd <option> nodes into the document, and
+ * every re-render walked all of them — which is most of why typing in the
+ * search box felt like a freeze. Closed, this renders one option: the current
+ * value, which is all a closed control ever displays. The full list fills in on
+ * hover or focus, before any click can open the popup.
+ *
+ * `options` may be a function so that per-row work (sorting a section's shelves)
+ * is skipped for the rows you never touch.
+ */
+function LazySelect({
+  value,
+  options,
+  onChange,
+  className,
+  disabled = false,
+}: {
+  value: string;
+  options: string[] | (() => string[]);
+  onChange: (v: string) => void;
+  className?: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  let list: string[];
+  if (!open) {
+    list = value ? [value] : [];
+  } else {
+    const base = typeof options === 'function' ? options() : options;
+    // A value the vocabulary no longer lists would otherwise vanish from its own
+    // dropdown the moment you opened it.
+    list = value && !base.includes(value) ? [...base, value] : base;
+  }
+  return (
+    <select
+      value={value}
+      disabled={disabled}
+      className={className}
+      onPointerEnter={() => setOpen(true)}
+      onFocus={() => setOpen(true)}
+      onPointerDown={() => setOpen(true)}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="">— none —</option>
+      {list.map((o) => (
+        <option key={o}>{o}</option>
+      ))}
+    </select>
+  );
+}
+
 type Row = Item;
 type Patch = Partial<
   Pick<Item, 'section' | 'shelf' | 'genres' | 'subjects' | 'location' | 'notes' | 'condition' | 'conditionNotes'>
@@ -333,18 +387,15 @@ export default function CatalogList({
                 {/* Section — controlled dropdown */}
                 <td className="px-2 py-1.5">
                   {editable ? (
-                    <select
+                    <LazySelect
                       value={r.section || ''}
-                      onChange={(e) => {
-                        const ns = e.target.value;
+                      options={sections}
+                      className={`w-full ${sel}`}
+                      onChange={(ns) => {
                         const keep = (shelvesBySection[ns] || []).includes(r.shelf);
                         save(r.id, keep ? { section: ns } : { section: ns, shelf: '' });
                       }}
-                      className={`w-full ${sel}`}
-                    >
-                      <option value="">— none —</option>
-                      {sections.map((s) => (<option key={s}>{s}</option>))}
-                    </select>
+                    />
                   ) : (
                     <span className="px-1">{r.section}</span>
                   )}
@@ -353,15 +404,13 @@ export default function CatalogList({
                 {/* Shelf — section-aware dropdown */}
                 <td className="px-2 py-1.5">
                   {editable ? (
-                    <select
+                    <LazySelect
                       value={r.shelf || ''}
                       disabled={!r.section}
-                      onChange={(e) => save(r.id, { shelf: e.target.value })}
+                      options={() => shelfOpts(shelvesBySection, r.section || '', r.shelf)}
                       className={`w-full ${sel} disabled:opacity-40`}
-                    >
-                      <option value="">— none —</option>
-                      {shelfOpts(shelvesBySection, r.section || '', r.shelf).map((s) => (<option key={s}>{s}</option>))}
-                    </select>
+                      onChange={(v) => save(r.id, { shelf: v })}
+                    />
                   ) : (
                     <span className="px-1">{r.shelf}</span>
                   )}
@@ -413,14 +462,12 @@ export default function CatalogList({
                 {/* Condition — controlled dropdown */}
                 <td className="px-2 py-1.5">
                   {editable ? (
-                    <select
+                    <LazySelect
                       value={r.condition || ''}
-                      onChange={(e) => save(r.id, { condition: e.target.value })}
+                      options={CONDITIONS as unknown as string[]}
                       className={`w-full ${sel}`}
-                    >
-                      <option value="">— none —</option>
-                      {CONDITIONS.map((s) => (<option key={s}>{s}</option>))}
-                    </select>
+                      onChange={(v) => save(r.id, { condition: v })}
+                    />
                   ) : (
                     <span className="px-1">{r.condition}</span>
                   )}
