@@ -173,14 +173,17 @@ export default function CatalogList({
     : 'bg-transparent px-1 py-0.5 text-ink';
   const sel = 'rounded border border-line bg-card px-1 py-0.5';
   const ro = !editable;
-  // The ID column widened from 64px to 92px to hold the checkbox. Every sticky
-  // left offset below has to agree with that width or the Title column overlaps it.
+  // Column widths live in the <colgroup> below and the table is table-fixed, so
+  // these sticky left offsets are exact rather than a guess at what auto layout
+  // will do with them. Change a width there and change left-[…] here to match,
+  // or the Title cell's opaque background starts covering the first characters
+  // of every author name.
   const th = 'sticky top-0 z-20 bg-card px-2 py-2 font-medium';
-  const thId = 'sticky top-0 left-0 z-30 w-[92px] bg-card px-2 py-2 font-medium';
-  const thTitle = 'sticky top-0 left-[92px] z-30 w-[280px] border-r border-line bg-card px-2 py-2 font-medium';
+  const thId = 'sticky top-0 left-0 z-30 bg-card px-2 py-2 font-medium';
+  const thTitle = 'sticky top-0 left-[92px] z-30 border-r border-line bg-card px-2 py-2 font-medium';
   const tdId =
-    'sticky left-0 z-10 w-[92px] whitespace-nowrap bg-parchment px-2 py-1.5 font-mono text-[11px] text-muted';
-  const tdTitle = 'sticky left-[92px] z-10 w-[280px] border-r border-line bg-parchment px-2 py-1.5';
+    'sticky left-0 z-10 whitespace-nowrap bg-parchment px-2 py-1.5 font-mono text-[11px] text-muted';
+  const tdTitle = 'sticky left-[92px] z-10 border-r border-line bg-parchment px-2 py-1.5';
 
   return (
     <div>
@@ -239,7 +242,24 @@ export default function CatalogList({
       {note && <p className="mb-2 text-xs text-moss">{note}</p>}
 
       <div className="max-h-[calc(100vh-8rem)] overflow-auto rounded-lg border border-line">
-        <table className="w-full min-w-[1710px] border-collapse text-sm">
+        <table className="w-full min-w-[1800px] table-fixed border-collapse text-sm">
+          {/* Fixed layout with explicit widths. The three columns left without a
+              width — Subjects, Notes, Cond. notes — absorb whatever the monitor
+              has spare, which is where extra room is actually useful. */}
+          <colgroup>
+            <col className="w-[92px]" />
+            <col className="w-[320px]" />
+            <col className="w-[200px]" />
+            <col className="w-[56px]" />
+            <col className="w-[150px]" />
+            <col className="w-[140px]" />
+            <col className="w-[220px]" />
+            <col />
+            <col className="w-[120px]" />
+            <col />
+            <col className="w-[130px]" />
+            <col />
+          </colgroup>
           <thead>
             <tr className="text-left text-muted">
               <th className={thId}>
@@ -320,7 +340,7 @@ export default function CatalogList({
                         const keep = (shelvesBySection[ns] || []).includes(r.shelf);
                         save(r.id, keep ? { section: ns } : { section: ns, shelf: '' });
                       }}
-                      className={`w-32 ${sel}`}
+                      className={`w-full ${sel}`}
                     >
                       <option value="">— none —</option>
                       {sections.map((s) => (<option key={s}>{s}</option>))}
@@ -337,7 +357,7 @@ export default function CatalogList({
                       value={r.shelf || ''}
                       disabled={!r.section}
                       onChange={(e) => save(r.id, { shelf: e.target.value })}
-                      className={`w-28 ${sel} disabled:opacity-40`}
+                      className={`w-full ${sel} disabled:opacity-40`}
                     >
                       <option value="">— none —</option>
                       {shelfOpts(shelvesBySection, r.section || '', r.shelf).map((s) => (<option key={s}>{s}</option>))}
@@ -357,7 +377,7 @@ export default function CatalogList({
                       const v = toList(e.target.value);
                       if (v.join('|') !== r.genres.join('|')) save(r.id, { genres: v });
                     }}
-                    className={`w-52 ${cell}`}
+                    className={`w-full ${cell}`}
                   />
                 </td>
                 <td className="px-2 py-1.5">
@@ -369,7 +389,7 @@ export default function CatalogList({
                       const v = toList(e.target.value);
                       if (v.join('|') !== r.subjects.join('|')) save(r.id, { subjects: v });
                     }}
-                    className={`w-64 ${cell}`}
+                    className={`w-full ${cell}`}
                   />
                 </td>
                 <td className="px-2 py-1.5">
@@ -378,7 +398,7 @@ export default function CatalogList({
                     readOnly={ro}
                     defaultValue={r.location || ''}
                     onBlur={(e) => editable && e.target.value !== (r.location || '') && save(r.id, { location: e.target.value.trim() })}
-                    className={`w-28 ${cell}`}
+                    className={`w-full ${cell}`}
                   />
                 </td>
                 <td className="px-2 py-1.5">
@@ -386,7 +406,7 @@ export default function CatalogList({
                     readOnly={ro}
                     defaultValue={r.notes || ''}
                     onBlur={(e) => editable && e.target.value !== (r.notes || '') && save(r.id, { notes: e.target.value })}
-                    className={`w-72 ${cell}`}
+                    className={`w-full ${cell}`}
                   />
                 </td>
 
@@ -396,7 +416,7 @@ export default function CatalogList({
                     <select
                       value={r.condition || ''}
                       onChange={(e) => save(r.id, { condition: e.target.value })}
-                      className={`w-28 ${sel}`}
+                      className={`w-full ${sel}`}
                     >
                       <option value="">— none —</option>
                       {CONDITIONS.map((s) => (<option key={s}>{s}</option>))}
@@ -411,7 +431,7 @@ export default function CatalogList({
                     readOnly={ro}
                     defaultValue={r.conditionNotes || ''}
                     onBlur={(e) => editable && e.target.value !== (r.conditionNotes || '') && save(r.id, { conditionNotes: e.target.value })}
-                    className={`w-64 ${cell}`}
+                    className={`w-full ${cell}`}
                   />
                 </td>
               </tr>

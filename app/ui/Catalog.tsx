@@ -192,7 +192,7 @@ export default function Catalog({
   );
 
   return (
-    <div>
+    <div className="overflow-x-clip">
       {/* sticky toolbar — always reachable without scrolling to the top */}
       <div className="sticky top-0 z-30 -mx-4 mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line bg-parchment/90 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6">
         <button
@@ -253,13 +253,17 @@ export default function Catalog({
       )}
 
       {view === 'list' ? (
-        <CatalogList
-          items={filtered}
-          sections={vocab?.sections ?? []}
-          shelvesBySection={vocab?.shelvesBySection ?? {}}
-          genres={vocab?.genres ?? genres.slice(1)}
-          editable={isAdmin}
-        />
+        /* The list breaks out of the page's max-w-6xl column. Cards want a
+           readable measure; a twelve-column table wants the monitor. */
+        <div className="mx-[calc(50%-50vw)] w-screen px-4 sm:px-6">
+          <CatalogList
+            items={filtered}
+            sections={vocab?.sections ?? []}
+            shelvesBySection={vocab?.shelvesBySection ?? {}}
+            genres={vocab?.genres ?? genres.slice(1)}
+            editable={isAdmin}
+          />
+        </div>
       ) : view === 'cards' ? (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((i) => (
