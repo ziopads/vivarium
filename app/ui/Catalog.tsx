@@ -6,6 +6,7 @@ import type { Item } from '@/lib/types';
 import CatalogList from './CatalogList';
 import { sectionOf, isMaine } from '@/lib/sections';
 import { coverImage, imageUrl } from '@/lib/img';
+import { needsWriteup } from '@/lib/writeup';
 
 function spineColor(seed: string) {
   let h = 0;
@@ -267,9 +268,7 @@ export default function Catalog({
                 href={`/items/${i.id}`}
                 className="relative block h-full overflow-hidden rounded-lg border border-line bg-card p-4 transition hover:border-rust hover:shadow-sm"
               >
-                {(!i.description?.trim() ||
-                  !i.discussion?.trim() ||
-                  i.discussion.trim().startsWith('**Needs review**')) && (
+                {needsWriteup(i) && (
                   <span
                     aria-hidden
                     title="Write-up incomplete"

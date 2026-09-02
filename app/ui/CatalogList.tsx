@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Item } from '@/lib/types';
 import { CONDITIONS } from '@/lib/sections';
 import { coverImage, imageUrl } from '@/lib/img';
+import { needsWriteup } from '@/lib/writeup';
 
 /**
  * Row thumbnail. Lives inside the sticky Title column deliberately: the Section
@@ -122,6 +123,18 @@ export default function CatalogList({
                   {saved === r.id && <span className="ml-1 text-moss">✓</span>}
                 </td>
                 <td className={tdTitle}>
+                  {/* Same marker, same condition, as the card view — see
+                      lib/writeup.ts. It sits in the sticky Title column for the
+                      same reason the thumbnail does: the table is wider than the
+                      screen, and a mark in a scrolling column is gone at the
+                      moment you are deciding. */}
+                  {needsWriteup(r) && (
+                    <span
+                      aria-hidden
+                      title="Write-up incomplete"
+                      className="pointer-events-none absolute right-0 top-0 h-0 w-0 border-l-[14px] border-t-[14px] border-l-transparent border-t-amber-400"
+                    />
+                  )}
                   <Link
                     href={`/items/${r.id}`}
                     className="flex items-start gap-2 hover:text-rust"
