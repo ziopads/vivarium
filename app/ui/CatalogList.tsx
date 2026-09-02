@@ -63,7 +63,92 @@ export default function CatalogList({
 }) {
   const [rows, setRows] = useState<Row[]>(items);
   const [saved, setSaved] = useState<number | null>(null);
-  useEffect(() => setRows(items), [items]);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [anchor, setAnchor] = useState<number | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  // Clearing the selection whenever the displayed set changes is deliberate.
+  // Filters and sort live in the parent, so a selection made under one filter
+  // could otherwise survive into another and delete rows that are no longer on
+  // screen. Nothing gets deleted that you cannot currently see.
+  useEffect(() => {
+    setRows(items);
+    setSelected(new Set());
+    setAnchor(null);
+    setConfirming(false);
+  }, [items]);
+
+  // Ranges run over `rows` — the displayed order, after the parent's sort and
+  // filter — not id order. Shift-click extends from the last row you clicked,
+  // and takes its on/off sense from what the clicked row is becoming, so a
+  // shift-click inside a selected run clears the run.
+  function pick(id: number, shift: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const turningOn = !prev.has(id);
+      if (shift && anchor !== null) {
+        const a = rows.findIndex((r) => r.id === anchor);
+        const b = rows.findIndex((r) => r.id === id);
+        if (a !== -1 && b !== -1) {
+          const [lo, hi] = a < b ? [a, b] : [b, a];
+          for (let i = lo; i <= hi; i++) {
+            if (turningOn) next.add(rows[i].id);
+            else next.delete(rows[i].id);
+          }
+          return next;
+        }
+      }
+      if (turningOn) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+    setAnchor(id);
+    setConfirming(false);
+  }
+
+  function pickAll() {
+    setSelected((prev) => (prev.size === rows.length ? new Set() : new Set(rows.map((r) => r.id))));
+    setAnchor(null);
+    setConfirming(false);
+  }
+
+  const chosen = rows.filter((r) => selected.has(r.id));
+  const withImages = chosen.filter((r) => (r.images && r.images.length > 0) || r.image).length;
+  const withWriteup = chosen.filter((r) => !needsWriteup(r)).length;
+
+  async function runDelete() {
+    setBusy(true);
+    setNote(null);
+    try {
+      const res = await fetch('/api/items/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [...selected] }),
+      });
+      const out = await res.json().catch(() => null);
+      if (!res.ok) {
+        setNote(out?.error ? `Not deleted — ${out.error}` : 'Not deleted — the request failed.');
+        return;
+      }
+      const gone = new Set<number>(out?.removed || []);
+      setRows((rs) => rs.filter((r) => !gone.has(r.id)));
+      setSelected(new Set());
+      setAnchor(null);
+      setConfirming(false);
+      const missing = (out?.missing || []).length;
+      setNote(
+        `${gone.size} record${gone.size === 1 ? '' : 's'} deleted` +
+          (missing ? ` · ${missing} were already gone` : '') +
+          '.',
+      );
+    } catch {
+      setNote('Not deleted — the request failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function save(id: number, patch: Patch) {
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -88,20 +173,87 @@ export default function CatalogList({
     : 'bg-transparent px-1 py-0.5 text-ink';
   const sel = 'rounded border border-line bg-card px-1 py-0.5';
   const ro = !editable;
+  // The ID column widened from 64px to 92px to hold the checkbox. Every sticky
+  // left offset below has to agree with that width or the Title column overlaps it.
   const th = 'sticky top-0 z-20 bg-card px-2 py-2 font-medium';
-  const thId = 'sticky top-0 left-0 z-30 w-[64px] bg-card px-2 py-2 font-medium';
-  const thTitle = 'sticky top-0 left-[64px] z-30 w-[280px] border-r border-line bg-card px-2 py-2 font-medium';
+  const thId = 'sticky top-0 left-0 z-30 w-[92px] bg-card px-2 py-2 font-medium';
+  const thTitle = 'sticky top-0 left-[92px] z-30 w-[280px] border-r border-line bg-card px-2 py-2 font-medium';
   const tdId =
-    'sticky left-0 z-10 w-[64px] whitespace-nowrap bg-parchment px-2 py-1.5 font-mono text-[11px] text-muted';
-  const tdTitle = 'sticky left-[64px] z-10 w-[280px] border-r border-line bg-parchment px-2 py-1.5';
+    'sticky left-0 z-10 w-[92px] whitespace-nowrap bg-parchment px-2 py-1.5 font-mono text-[11px] text-muted';
+  const tdTitle = 'sticky left-[92px] z-10 w-[280px] border-r border-line bg-parchment px-2 py-1.5';
 
   return (
     <div>
+      {editable && selected.size > 0 && (
+        <div className="mb-2 flex flex-wrap items-center gap-3 rounded-md border border-rust/40 bg-rust/5 px-3 py-2 text-sm">
+          <span className="font-medium">{selected.size} selected</span>
+          {!confirming ? (
+            <>
+              <button
+                onClick={() => setConfirming(true)}
+                className="rounded-md border border-rust px-3 py-1 text-rust hover:bg-rust hover:text-white"
+              >
+                Delete…
+              </button>
+              <button
+                onClick={() => {
+                  setSelected(new Set());
+                  setAnchor(null);
+                }}
+                className="text-muted hover:text-rust"
+              >
+                Clear
+              </button>
+            </>
+          ) : (
+            <>
+              {/* The counts are the guard. A shift-click range is one gesture and
+                  can overshoot, and the whole point of this pass is deleting
+                  records that have neither images nor a write-up — so anything
+                  in the selection that HAS one gets said out loud first. */}
+              <span>
+                Delete {selected.size} record{selected.size === 1 ? '' : 's'} permanently?
+                {withImages > 0 && (
+                  <strong className="text-rust"> {withImages} of them have images.</strong>
+                )}
+                {withWriteup > 0 && (
+                  <strong className="text-rust"> {withWriteup} have a write-up.</strong>
+                )}
+                {withImages === 0 && withWriteup === 0 && ' None have images or a write-up.'}
+              </span>
+              <button
+                onClick={runDelete}
+                disabled={busy}
+                className="rounded-md bg-rust px-3 py-1 text-white disabled:opacity-50"
+              >
+                {busy ? 'Deleting…' : 'Yes, delete'}
+              </button>
+              <button onClick={() => setConfirming(false)} className="text-muted hover:text-rust">
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {note && <p className="mb-2 text-xs text-moss">{note}</p>}
+
       <div className="max-h-[calc(100vh-8rem)] overflow-auto rounded-lg border border-line">
         <table className="w-full min-w-[1710px] border-collapse text-sm">
           <thead>
             <tr className="text-left text-muted">
-              <th className={thId}>ID</th>
+              <th className={thId}>
+                {editable && (
+                  <input
+                    type="checkbox"
+                    className="mr-1.5 align-middle"
+                    checked={rows.length > 0 && selected.size === rows.length}
+                    onChange={pickAll}
+                    aria-label="select all shown"
+                  />
+                )}
+                ID
+              </th>
               <th className={thTitle}>Title</th>
               <th className={th}>Author</th>
               <th className={th}>Yr</th>
@@ -119,6 +271,16 @@ export default function CatalogList({
             {rows.map((r) => (
               <tr key={r.id} className="border-b border-line/60 align-top">
                 <td className={tdId}>
+                  {editable && (
+                    <input
+                      type="checkbox"
+                      className="mr-1.5 align-middle"
+                      checked={selected.has(r.id)}
+                      onChange={() => {}}
+                      onClick={(e) => pick(r.id, e.shiftKey)}
+                      aria-label={`select ${r.title || r.id}`}
+                    />
+                  )}
                   {String(r.id).padStart(6, '0')}
                   {saved === r.id && <span className="ml-1 text-moss">✓</span>}
                 </td>
