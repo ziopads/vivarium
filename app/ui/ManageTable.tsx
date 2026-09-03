@@ -137,11 +137,15 @@ export default function ManageTable({
   const anchorRef = useRef<number | null>(null);
 
   function toggle(id: number, shift = false) {
+    // Read the anchor BEFORE setSelected. The updater does not run until React
+    // re-renders, and the assignment at the end of this function has already
+    // overwritten the ref by then — which made every shift-click a range from
+    // the clicked row to itself.
+    const anchor = anchorRef.current;
     setSelected((prev) => {
       const next = new Set(prev);
       const turningOn = !prev.has(id);
-      const anchor = anchorRef.current;
-      if (shift && anchor !== null) {
+      if (shift && anchor !== null && anchor !== id) {
         const a = filtered.findIndex((r) => r.id === anchor);
         const b = filtered.findIndex((r) => r.id === id);
         if (a !== -1 && b !== -1) {
@@ -150,7 +154,6 @@ export default function ManageTable({
             if (turningOn) next.add(filtered[i].id);
             else next.delete(filtered[i].id);
           }
-          anchorRef.current = id;
           return next;
         }
       }
