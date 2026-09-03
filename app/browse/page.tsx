@@ -4,8 +4,40 @@ import { getVocab, flatShelves } from '@/lib/vocab';
 import Catalog from '@/app/ui/Catalog';
 import { getViewer } from '@/lib/auth';
 import { sectionOf } from '@/lib/sections';
+import { needsWriteup } from '@/lib/writeup';
+import type { Item } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * What actually crosses the wire.
+ *
+ * Catalog is a client component, so every record it receives is serialized into
+ * the RSC payload, transferred, parsed and hydrated. At 1,600 records the two
+ * heaviest things in that payload are the discussion markdown (kilobytes each
+ * across the written-up records) and the images array, of which the three views
+ * use exactly one entry: the cover.
+ *
+ * Both are replaced here. `writeupDone` carries what the triangle needs;
+ * `images` keeps the cover alone. Everything the list view edits — notes,
+ * condition, location, subjects — stays, because those are typed into the
+ * table.
+ *
+ * CONSEQUENCE: the browse search box no longer matches description text. It
+ * matches title, author, publisher, genres, subjects and places.
+ */
+function forBrowsing(i: Item): Item {
+  const cover = i.images?.find((im) => im.src === i.cover) || i.images?.[0];
+  return {
+    ...i,
+    description: '',
+    discussion: undefined,
+    blurb: '',
+    writeupDone: !needsWriteup(i),
+    images: cover ? [cover] : [],
+    cover: cover?.src,
+  };
+}
 
 export default async function Browse({
   searchParams,
@@ -63,7 +95,7 @@ export default async function Browse({
 
       <div className="mt-3">
         <Catalog
-          items={items}
+          items={items.map(forBrowsing)}
           initialSection={section}
           initialQ={searchParams.q}
           initialShelf={shelf}

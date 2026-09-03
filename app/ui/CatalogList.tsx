@@ -140,7 +140,7 @@ const TableRow = memo(function TableRow({
     Array.from(new Set(s.split(',').map((x) => x.trim()).filter(Boolean)));
 
   return (
-    <tr className="border-b border-line/60 align-top">
+    <tr className="row-offscreen border-b border-line/60 align-top">
       <td className={tdId}>
         {editable && (
           <input

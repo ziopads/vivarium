@@ -57,6 +57,13 @@ export type Item = {
   pricePaid?: string;
   /** Ids of records absorbed into this one by /admin/duplicates. */
   mergedFrom?: number[];
+  /**
+   * Set only on the trimmed records /browse sends to the browser, standing in
+   * for description + discussion so neither has to cross the wire. Never
+   * stored: itemToRow puts unknown keys in `attributes`, so a trimmed record
+   * must never reach a write path.
+   */
+  writeupDone?: boolean;
   // Type-specific fields (e.g. picture frames); stored in the JSONB attributes tail.
   frameOuterW?: string;
   frameOuterH?: string;

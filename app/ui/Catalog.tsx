@@ -97,12 +97,14 @@ export default function Catalog({
 
   // Built once per item set. The filter used to rebuild this string — including
   // the full description and blurb — for every item on every keystroke.
+  // /browse no longer sends description or blurb at all, so search matches
+  // title, author, publisher, genres, subjects and places.
   const haystacks = useMemo(() => {
     const m = new Map<number, string>();
     for (const i of items) {
       m.set(
         i.id,
-        `${i.title} ${i.author} ${i.publisher} ${i.genres.join(' ')} ${i.subjects.join(' ')} ${i.places.join(' ')} ${i.description ?? ''} ${i.blurb ?? ''}`.toLowerCase(),
+        `${i.title} ${i.author} ${i.publisher} ${i.genres.join(' ')} ${i.subjects.join(' ')} ${i.places.join(' ')}`.toLowerCase(),
       );
     }
     return m;
@@ -253,7 +255,7 @@ export default function Catalog({
               autoFocus
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search title, author, subject, description…"
+              placeholder="Search title, author, subject…"
               className="rounded-md border border-line bg-card px-3 py-2 outline-none focus:border-rust"
             />
             <Select label="Section" value={section} onChange={setSection} options={sections} />

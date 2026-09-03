@@ -58,3 +58,20 @@ body {
   writing-mode: vertical-rl;
   text-orientation: mixed;
 }
+
+/* Catalogue list rows.
+
+   The list keeps all ~1,600 rows in the document so browser find-in-page still
+   works across the whole catalogue — capping or virtualising would break that.
+   content-visibility lets the browser skip layout, style and paint for rows
+   that are off screen while they remain in the DOM and remain findable: Chrome
+   searches skipped content and scrolls to it.
+
+   contain-intrinsic-size is the placeholder height used for a row that hasn't
+   been rendered yet, so the scrollbar stays roughly honest. It is deliberately
+   a guess at an average row rather than a minimum — titles wrap to two and
+   three lines — and it only affects scrollbar proportions, never content. */
+.row-offscreen {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 52px;
+}
