@@ -21,13 +21,17 @@ export default function WishGallery({ photos, title }: { photos: WishShot[]; tit
   const current = photos[Math.min(active, photos.length - 1)];
 
   return (
-    <div className="shrink-0">
+    // A fixed column width. Without one, `shrink-0` plus a wrapping thumbnail
+    // strip sets the intrinsic width to the whole strip laid end to end, which
+    // crushes the text beside it to a single word per line. The width is what
+    // makes the thumbnails wrap.
+    <div className="w-full sm:w-[22rem] sm:shrink-0">
       <figure>
         <a href={current.full} target="_blank" rel="noreferrer" title="Open full size">
           <img
             src={current.full}
             alt={`${title} — ${current.label}`}
-            className="max-h-[28rem] w-auto max-w-full rounded border border-line shadow-sm"
+            className="max-h-[26rem] w-auto max-w-full rounded border border-line shadow-sm"
           />
         </a>
         {photos.length > 1 && (
@@ -36,7 +40,7 @@ export default function WishGallery({ photos, title }: { photos: WishShot[]; tit
       </figure>
 
       {photos.length > 1 && (
-        <ul className="mt-3 flex flex-wrap gap-2">
+        <ul className="mt-3 flex flex-wrap gap-1.5">
           {photos.map((p, i) => (
             <li key={p.full}>
               <button
@@ -52,7 +56,7 @@ export default function WishGallery({ photos, title }: { photos: WishShot[]; tit
                   src={p.thumb}
                   alt={p.label}
                   loading="lazy"
-                  className="h-20 w-16 bg-parchment object-cover"
+                  className="h-14 w-11 bg-parchment object-cover"
                 />
               </button>
             </li>
