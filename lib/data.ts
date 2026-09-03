@@ -424,6 +424,59 @@ export async function createItem(item: Item): Promise<Item> {
 }
 
 /**
+ * Set the same typed-column values on many rows in one statement per chunk.
+ *
+ * updateItems loops updateItem, which is right when each row needs its own
+ * treatment, and wrong for a bulk assignment where every selected row is
+ * getting the same value: a thousand rows would be a thousand round trips.
+ * This is one UPDATE per 200 ids.
+ *
+ * Column fields only — anything in the JSONB tail has to merge per row and
+ * belongs on updateItems. Throws rather than silently skipping, so a caller
+ * cannot think it wrote `location` here.
+ */
+export async function setColumns(
+  ids: number[],
+  patch: Record<string, any>,
+): Promise<number> {
+  const unique = Array.from(new Set(ids.map(Number).filter(Number.isFinite)));
+  const keys = Object.keys(patch).filter((k) => k !== 'id');
+  if (!unique.length || !keys.length) return 0;
+
+  const bad = keys.filter((k) => !ITEM_TO_COLUMN[k]);
+  if (bad.length) {
+    throw new Error(`setColumns: ${bad.join(', ')} are not typed columns — use updateItems`);
+  }
+
+  if (dataSource().mode === 'supabase') {
+    const sb = getSupabase()!;
+    const row = itemToRow(validateItem({ id: 0, ...patch }));
+    const update: Row = { updated_at: new Date().toISOString() };
+    for (const k of keys) update[ITEM_TO_COLUMN[k]] = row[ITEM_TO_COLUMN[k]];
+
+    let changed = 0;
+    for (let i = 0; i < unique.length; i += 200) {
+      const chunk = unique.slice(i, i + 200);
+      const { data, error } = await sb.from('items').update(update).in('id', chunk).select('id');
+      if (error) throw new Error(`Supabase setColumns: ${error.message}`);
+      changed += (data || []).length;
+    }
+    return changed;
+  }
+
+  const items = await readLocalItems();
+  const target = new Set(unique);
+  let changed = 0;
+  const next = items.map((i) => {
+    if (!target.has(i.id)) return i;
+    changed++;
+    return validateItem({ ...i, ...patch });
+  });
+  if (changed) await writeLocalItems(next);
+  return changed;
+}
+
+/**
  * Delete the named rows. Returns the ids that were actually removed, which is
  * how a caller distinguishes "deleted 340" from "asked for 340, 338 existed".
  *

@@ -1,30 +1,31 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { getItems, writeLocalItems } from '@/lib/data';
+import { getItems, setColumns } from '@/lib/data';
 import { getVocab } from '@/lib/vocab';
 
 // POST /api/items/bulk-section  { ids: number[], section?: string, shelf?: string }
 //
-// Sets section and/or shelf on many items in a single write. (Path kept for
-// compatibility; it handles shelf too.)
+// Sets section and/or shelf on many items. (Path kept for compatibility; it
+// handles shelf too.)
 //
 // FIELD SEMANTICS — the distinction matters:
 //   absent/undefined  leave this field alone
 //   ""                clear this field
 //   "Art"             set it
 //
-// SHELVES ARE SECTION-SCOPED (vocab.shelvesBySection), so this route enforces two
-// rules the previous version did not, and which are the reason bulk assignment
-// could leave records that ingest_batch.py's validate() would reject:
+// SHELVES ARE SECTION-SCOPED (vocab.shelvesBySection), so two rules apply:
 //
-//   1. Changing an item's section invalidates a shelf that isn't listed under the
-//      new section. Such a shelf is CLEARED, matching what the per-row editor in
-//      ManageTable already does.
-//   2. An explicit shelf is only applied to items whose (new or existing) section
-//      actually lists it. Items where it doesn't fit are skipped and counted
-//      rather than silently given an illegal pair.
+//   1. Changing an item's section invalidates a shelf that isn't listed under
+//      the new section. Such a shelf is CLEARED, matching the per-row editor.
+//   2. An explicit shelf is only applied to items whose (new or existing)
+//      section actually lists it. Items where it doesn't fit are skipped and
+//      counted rather than given an illegal pair.
+//
+// Those rules mean different selected items can need different writes, so the
+// work is grouped by outcome and each group goes out as one UPDATE ... WHERE id
+// IN (...). Assigning a section to a thousand books is one or two statements,
+// where the previous version read the whole catalogue and upserted every row.
 export async function POST(req: Request) {
-  // Persisted via writeLocalItems: Supabase when configured, else local JSON (both modes).
   let body: { ids?: number[]; section?: string; shelf?: string };
   try {
     body = await req.json();
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   }
 
-  const ids = new Set((body.ids || []).map(Number));
+  const ids = new Set((body.ids || []).map(Number).filter((n) => Number.isFinite(n)));
   if (!ids.size) return NextResponse.json({ error: 'No ids given' }, { status: 400 });
 
   const setSection = body.section !== undefined;
@@ -51,40 +52,53 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Unknown section ${section}` }, { status: 400 });
   }
 
+  // The current rows are needed to apply the section-scoped shelf rules, which
+  // depend on each item's existing section. One read, then targeted writes.
   const items = await getItems();
-  let updated = 0;
-  let shelvesCleared = 0;
+
+  // outcome key -> ids getting exactly that patch
+  const groups = new Map<string, { patch: Record<string, string>; ids: number[] }>();
   let skipped = 0;
+  let shelvesCleared = 0;
 
   for (const item of items) {
     if (!ids.has(item.id)) continue;
 
     const nextSection = setSection ? section : item.section || '';
+    const patch: Record<string, string> = {};
+    if (setSection) patch.section = section;
 
-    if (setSection) item.section = section;
-
+    let nextShelf = item.shelf || '';
     if (setShelf) {
       if (!shelf) {
-        item.shelf = '';
+        nextShelf = '';
       } else if ((sbs[nextSection] || []).includes(shelf)) {
-        item.shelf = shelf;
+        nextShelf = shelf;
       } else {
-        // shelf isn't legal under this item's section — leave the item's shelf as
-        // it was and report it, rather than writing a pair the vocabulary rejects
         skipped++;
       }
     }
 
-    // Rule 1: a surviving shelf must still be valid under the (possibly new) section.
-    if (item.shelf && !(sbs[nextSection] || []).includes(item.shelf)) {
-      item.shelf = '';
+    // Rule 1: a surviving shelf must still be valid under the new section.
+    if (nextShelf && !(sbs[nextSection] || []).includes(nextShelf)) {
+      nextShelf = '';
       shelvesCleared++;
     }
 
-    updated++;
+    if (nextShelf !== (item.shelf || '')) patch.shelf = nextShelf;
+    if (!Object.keys(patch).length) continue;
+
+    const key = JSON.stringify(patch);
+    const g = groups.get(key);
+    if (g) g.ids.push(item.id);
+    else groups.set(key, { patch, ids: [item.id] });
   }
 
-  await writeLocalItems(items);
+  let updated = 0;
+  for (const { patch, ids: group } of groups.values()) {
+    updated += await setColumns(group, patch);
+  }
+
   revalidatePath('/');
   revalidatePath('/browse');
   revalidatePath('/manage');

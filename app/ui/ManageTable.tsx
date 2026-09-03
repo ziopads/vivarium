@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 
 type Row = {
@@ -129,13 +129,36 @@ export default function ManageTable({
     }
   }
 
-  function toggle(id: number) {
-    setSelected((s) => {
-      const n = new Set(s);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
+  // Shift-click ranges run over `filtered` — the rows actually on screen, in
+  // the order they are shown — so a range follows the current filter rather
+  // than id order. The anchor is the last row clicked. Kept in a ref: it is
+  // read during a click, never rendered, and putting it in state would rerender
+  // the whole table on every tick.
+  const anchorRef = useRef<number | null>(null);
+
+  function toggle(id: number, shift = false) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const turningOn = !prev.has(id);
+      const anchor = anchorRef.current;
+      if (shift && anchor !== null) {
+        const a = filtered.findIndex((r) => r.id === anchor);
+        const b = filtered.findIndex((r) => r.id === id);
+        if (a !== -1 && b !== -1) {
+          const [lo, hi] = a < b ? [a, b] : [b, a];
+          for (let i = lo; i <= hi; i++) {
+            if (turningOn) next.add(filtered[i].id);
+            else next.delete(filtered[i].id);
+          }
+          anchorRef.current = id;
+          return next;
+        }
+      }
+      if (turningOn) next.add(id);
+      else next.delete(id);
+      return next;
     });
+    anchorRef.current = id;
   }
   function toggleAll() {
     setSelected((s) => {
@@ -144,6 +167,7 @@ export default function ManageTable({
       filtered.forEach((r) => (all ? n.delete(r.id) : n.add(r.id)));
       return n;
     });
+    anchorRef.current = null;
   }
 
   const bulkWouldChange = bulkSection !== NO_CHANGE || bulkShelf !== NO_CHANGE;
@@ -243,6 +267,9 @@ export default function ManageTable({
         <span className="text-sm text-muted">
           {filtered.length} shown · {unsorted} unsorted · {unshelved} unshelved
         </span>
+        <span className="text-xs text-muted">
+          Tick a row, then shift-click another to take everything between them.
+        </span>
       </div>
 
       {selected.size > 0 && (
@@ -339,7 +366,7 @@ export default function ManageTable({
                 selected={selected.has(r.id)}
                 saving={saving.has(r.id)}
                 expanded={expanded === r.id}
-                onToggle={() => toggle(r.id)}
+                onToggle={(shift) => toggle(r.id, shift)}
                 onExpand={() => setExpanded((e) => (e === r.id ? null : r.id))}
                 onSave={saveField}
                 genreSuggest={genreSuggest}
@@ -364,7 +391,7 @@ function ManageRow({
   selected: boolean;
   saving: boolean;
   expanded: boolean;
-  onToggle: () => void;
+  onToggle: (shift: boolean) => void;
   onExpand: () => void;
   onSave: (id: number, patch: Partial<Row>) => void;
   genreSuggest: string[];
@@ -374,7 +401,12 @@ function ManageRow({
     <>
       <tr className={`border-t border-line ${selected ? 'bg-rust/5' : ''}`}>
         <td className="px-2 py-2 align-top">
-          <input type="checkbox" checked={selected} onChange={onToggle} />
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => {}}
+            onClick={(e) => onToggle(e.shiftKey)}
+          />
         </td>
         <td className="px-2 py-2 align-top">
           <Link href={`/items/${r.id}`} className="text-rust hover:underline">{r.title}</Link>
