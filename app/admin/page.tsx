@@ -15,6 +15,11 @@ const links: { href?: string; title: string; desc: string; soon?: boolean }[] = 
     desc: 'Add, rename or remove the section / genre / shelf values that fill the dropdowns.',
   },
   {
+    href: '/admin/duplicates',
+    title: 'Merge duplicates',
+    desc: 'Pairs where one record has the photographs and another has the write-up. Merging keeps the photographed record and absorbs the other.',
+  },
+  {
     href: '/browse',
     title: 'Browse catalogue',
     desc: 'The reader-facing catalogue, including the wide inline-edit list view.',

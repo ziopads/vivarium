@@ -55,6 +55,8 @@ export type Item = {
   // Lives in the JSONB attributes tail (no migration needed).
   source?: string;
   pricePaid?: string;
+  /** Ids of records absorbed into this one by /admin/duplicates. */
+  mergedFrom?: number[];
   // Type-specific fields (e.g. picture frames); stored in the JSONB attributes tail.
   frameOuterW?: string;
   frameOuterH?: string;
