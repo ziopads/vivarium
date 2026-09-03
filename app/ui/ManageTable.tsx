@@ -273,7 +273,7 @@ export default function ManageTable({
       </div>
 
       {selected.size > 0 && (
-        <div className="sticky top-0 z-20 mb-2 flex flex-wrap items-center gap-3 rounded-md border border-rust/40 bg-rust/5 px-3 py-2 text-sm">
+        <div className="sticky top-0 z-20 mb-2 flex flex-wrap items-center gap-3 rounded-md border border-rust/40 bg-card px-3 py-2 text-sm shadow-sm">
           <span className="font-medium">{selected.size} selected</span>
           <label>
             Section{' '}
