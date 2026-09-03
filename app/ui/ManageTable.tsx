@@ -59,6 +59,7 @@ export default function ManageTable({
   const [busyBulk, setBusyBulk] = useState(false);
 
   const unsorted = rows.filter((r) => !r.section).length;
+  const sorted = rows.length - unsorted;
   // Items that have a section but no shelf — the actionable shelving backlog. An
   // item with no section can't meaningfully have one, so those aren't counted here.
   const unshelved = rows.filter((r) => r.section && !r.shelf).length;
@@ -66,9 +67,10 @@ export default function ManageTable({
   const flatShelves = useMemo(() => allShelfNames(shelvesBySection), [shelvesBySection]);
 
   // With a section chosen, offer only its shelves; otherwise the flat union.
+  // 'Sorted' and 'Unsorted' aren't sections, so they get the union too.
   const filterShelfChoices = useMemo(
     () =>
-      filterSection !== 'All' && filterSection !== 'Unsorted'
+      filterSection !== 'All' && filterSection !== 'Unsorted' && filterSection !== 'Sorted'
         ? shelfOptions(shelvesBySection, filterSection, '')
         : flatShelves,
     [filterSection, shelvesBySection, flatShelves],
@@ -77,10 +79,22 @@ export default function ManageTable({
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
-      if (filterSection === 'Unsorted' ? !!r.section : filterSection !== 'All' && r.section !== filterSection)
+      if (filterSection === 'Unsorted') {
+        if (r.section) return false;
+      } else if (filterSection === 'Sorted') {
+        if (!r.section) return false;
+      } else if (filterSection !== 'All' && r.section !== filterSection) {
         return false;
-      if (filterShelf === 'Unshelved' ? !!r.shelf : filterShelf !== 'All' && r.shelf !== filterShelf)
+      }
+
+      if (filterShelf === 'Unshelved') {
+        if (r.shelf) return false;
+      } else if (filterShelf === 'Shelved') {
+        if (!r.shelf) return false;
+      } else if (filterShelf !== 'All' && r.shelf !== filterShelf) {
         return false;
+      }
+
       if (needle && !r.title.toLowerCase().includes(needle)) return false;
       return true;
     });
@@ -238,9 +252,11 @@ export default function ManageTable({
               setFilterSection(ns);
               // a shelf filter that isn't offered under the new section would silently
               // show nothing, so drop back to All rather than leave a dead filter set
-              if (filterShelf !== 'All' && filterShelf !== 'Unshelved') {
+              if (filterShelf !== 'All' && filterShelf !== 'Unshelved' && filterShelf !== 'Shelved') {
                 const allowed =
-                  ns !== 'All' && ns !== 'Unsorted' ? shelvesBySection[ns] || [] : flatShelves;
+                  ns !== 'All' && ns !== 'Unsorted' && ns !== 'Sorted'
+                    ? shelvesBySection[ns] || []
+                    : flatShelves;
                 if (!allowed.includes(filterShelf)) setFilterShelf('All');
               }
             }}
@@ -248,6 +264,7 @@ export default function ManageTable({
           >
             <option>All</option>
             <option>Unsorted</option>
+            <option>Sorted</option>
             {sections.map((s) => (
               <option key={s}>{s}</option>
             ))}
@@ -262,13 +279,14 @@ export default function ManageTable({
           >
             <option>All</option>
             <option>Unshelved</option>
+            <option>Shelved</option>
             {filterShelfChoices.map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>
         </label>
         <span className="text-sm text-muted">
-          {filtered.length} shown · {unsorted} unsorted · {unshelved} unshelved
+          {filtered.length} shown · {sorted} sorted · {unsorted} unsorted · {unshelved} unshelved
         </span>
         <span className="text-xs text-muted">
           Tick a row, then shift-click another to take everything between them.
