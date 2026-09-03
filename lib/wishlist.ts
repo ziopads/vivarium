@@ -13,6 +13,16 @@ export type Wish = {
   section: string;
   note?: string;
   image?: string; // R2 key, e.g. "wishlist/42.webp"
+  /**
+   * Every photograph on a wishlist-native upload, as R2 keys under
+   * wishlist/<id>/. A book worth documenting is worth documenting properly:
+   * the copyright page is often the only thing that identifies an edition.
+   *
+   * `image` stays the cover, so list views and every wish added before this
+   * field existed keep working untouched. Read through wishPhotos() rather
+   * than either field directly.
+   */
+  images?: string[];
   addedBy: string; // email of the person who added it
   createdAt: string;
 
@@ -43,6 +53,7 @@ function normalizeLocal(raw: any[]): Wish[] {
     section: w.section || '',
     note: w.note || undefined,
     image: w.image || undefined,
+    images: Array.isArray(w.images) && w.images.length ? w.images : undefined,
     addedBy: w.addedBy || '',
     createdAt: w.createdAt || '',
     description: w.description || undefined,
@@ -80,6 +91,18 @@ async function writeLocal(items: Wish[]) {
 export async function nextWishId(): Promise<number> {
   const all = await getWishlist();
   return all.reduce((m, w) => Math.max(m, w.id), 0) + 1;
+}
+
+/**
+ * Every photograph on a wish, as R2 keys, in display order.
+ *
+ * One branch, in one place. Wishes added before `images` existed carry a single
+ * `image`; the reader handles both rather than migrating the table, because a
+ * migration that rewrites R2 keys can only go wrong and this cannot.
+ */
+export function wishPhotos(w: Wish): string[] {
+  if (w.images && w.images.length) return w.images;
+  return w.image ? [w.image] : [];
 }
 
 export async function addWish(w: Wish): Promise<void> {
@@ -144,7 +167,18 @@ export function wishFromItem(item: Item, id: number, addedBy: string): Wish {
  * as the trail.
  */
 export function itemFromWish(w: Wish, id: number): Item {
-  const gallery = w.gallery || [];
+  // Two sources, and they resolve differently. `gallery` holds ItemImages from
+  // a catalogue record, already under the default 'items' prefix. A native
+  // upload holds bare R2 keys under wishlist/<id>/, so those become ItemImages
+  // with an explicit base — imageUrl() rebuilds `<base>/<src>.webp`, which is
+  // why the prefix and the .webp suffix both come off here.
+  const native = wishPhotos(w).map((key) => ({
+    src: key.replace(/^wishlist\//, '').replace(/\.webp$/, ''),
+    base: 'wishlist',
+  }));
+  const gallery = w.gallery && w.gallery.length ? w.gallery : native;
+  const fromCatalogue = Boolean(w.gallery && w.gallery.length);
+
   return {
     id,
     itemType: 'Book',
@@ -171,7 +205,10 @@ export function itemFromWish(w: Wish, id: number): Item {
     location: '',
     owner: '',
     notes: w.note || '',
-    image: gallery[0]?.src ?? null,
+    // The flat `image` string is resolved against 'items' by imgUrl, so it can
+    // only carry a catalogue src. For wishlist-hosted photographs it stays null
+    // and coverImage() falls through to images[0], which knows its own base.
+    image: fromCatalogue ? gallery[0]?.src ?? null : null,
     section: w.section || '',
     visibility: 'public',
   };

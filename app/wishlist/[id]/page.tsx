@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getViewer } from '@/lib/auth';
-import { getWishlist } from '@/lib/wishlist';
+import { getWishlist, wishPhotos } from '@/lib/wishlist';
 import { getVocab } from '@/lib/vocab';
 import { r2Url, imageUrl } from '@/lib/img';
 import Discussion from '@/app/ui/Discussion';
@@ -21,31 +21,48 @@ export default async function WishDetail({ params }: { params: { id: string } })
   const vocab = await getVocab();
   const who = w.addedBy ? w.addedBy.split('@')[0] : '—';
   const when = w.createdAt ? new Date(w.createdAt).toLocaleDateString() : '';
-  // A wish made from a catalogue record carries that record's gallery; one
-  // added from a phone carries a single wishlist/<id>.webp key.
-  const carried = w.gallery && w.gallery.length ? w.gallery[0] : null;
+  // Two sources of photographs. A wish added from a phone carries its own R2
+  // keys; one made from a catalogue record carries that record's gallery. Show
+  // whichever it has, all of them.
+  const photos = wishPhotos(w);
+  const carried = w.gallery && w.gallery.length ? w.gallery : [];
 
   return (
     <article className="max-w-2xl">
       <Link href="/wishlist" className="text-sm text-rust hover:underline">← wishlist</Link>
 
       <div className="mt-4 flex flex-col gap-6 sm:flex-row">
-        {w.image ? (
-          <a href={r2Url(w.image)} target="_blank" rel="noreferrer" className="shrink-0" title="Open full size">
-            <img
-              src={r2Url(w.image)}
-              alt={w.title || 'wishlist photo'}
-              className="max-h-[28rem] w-auto max-w-full rounded border border-line shadow-sm"
-            />
-          </a>
-        ) : (
-          carried && (
-            <img
-              src={imageUrl(carried, 'web')}
-              alt={w.title || 'wishlist photo'}
-              className="max-h-[28rem] w-auto max-w-full shrink-0 rounded border border-line shadow-sm"
-            />
-          )
+        {(photos.length > 0 || carried.length > 0) && (
+          <div className="flex shrink-0 flex-col gap-3">
+            {photos.map((key, i) => (
+              <a
+                key={key}
+                href={r2Url(key)}
+                target="_blank"
+                rel="noreferrer"
+                title="Open full size"
+              >
+                <img
+                  src={r2Url(key)}
+                  alt={
+                    i === 0
+                      ? w.title || 'wishlist photo'
+                      : `${w.title || 'wishlist photo'} — photo ${i + 1}`
+                  }
+                  className="max-h-[28rem] w-auto max-w-full rounded border border-line shadow-sm"
+                />
+              </a>
+            ))}
+            {photos.length === 0 &&
+              carried.map((im) => (
+                <img
+                  key={im.src}
+                  src={imageUrl(im, 'web')}
+                  alt={w.title || 'wishlist photo'}
+                  className="max-h-[28rem] w-auto max-w-full rounded border border-line shadow-sm"
+                />
+              ))}
+          </div>
         )}
         <div className="min-w-0">
           <h1 className="font-serif text-2xl leading-tight sm:text-3xl">{w.title || '(untitled)'}</h1>
