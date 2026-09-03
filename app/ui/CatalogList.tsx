@@ -105,6 +105,74 @@ function shelfOpts(sbs: Record<string, string[]>, section: string, current: stri
 type CellClasses = { tdId: string; tdTitle: string; cell: string; sel: string };
 
 /**
+ * A cell that shows its value as text and becomes a control when you reach for
+ * it.
+ *
+ * The list renders three dropdowns and six text inputs per row. At 1,700 rows
+ * that is fifteen thousand form controls — the most expensive elements a
+ * browser creates, hydrates and reconciles, and the reason the list view felt
+ * so much heavier than the card view under the same filters.
+ *
+ * The swap happens on pointer enter, not on click, so the control is already
+ * there by the time you press: editing still costs one click. Keyboard reaches
+ * it too, since the resting span is focusable.
+ *
+ * SECOND BENEFIT, and not a small one: browser find-in-page cannot see text
+ * inside an input. Genres, subjects, notes, location and condition notes were
+ * invisible to Command-F. As text at rest, they are searchable for the first
+ * time.
+ */
+function HoverEdit({
+  display,
+  children,
+}: {
+  display: string;
+  children: React.ReactNode;
+}) {
+  const [live, setLive] = useState(false);
+  const over = useRef(false);
+  const focused = useRef(false);
+
+  const settle = () => {
+    if (!over.current && !focused.current) setLive(false);
+  };
+
+  return (
+    <div
+      onPointerEnter={() => {
+        over.current = true;
+        setLive(true);
+      }}
+      onPointerLeave={() => {
+        over.current = false;
+        settle();
+      }}
+      onFocus={() => {
+        focused.current = true;
+        setLive(true);
+      }}
+      onBlur={() => {
+        // The control's own onBlur has already fired and saved by the time this
+        // bubbles, so dropping back to text cannot lose an edit.
+        focused.current = false;
+        settle();
+      }}
+    >
+      {live ? (
+        children
+      ) : (
+        <span
+          tabIndex={0}
+          className="block truncate rounded border border-transparent px-1 py-0.5 outline-none"
+        >
+          {display || <span className="text-muted">—</span>}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
  * One row, memoized.
  *
  * setRows replaces only the edited record's object and leaves the other 1,600
@@ -180,15 +248,17 @@ const TableRow = memo(function TableRow({
       {/* Section — controlled dropdown */}
       <td className="px-2 py-1.5">
         {editable ? (
-          <LazySelect
-            value={r.section || ''}
-            options={sections}
-            className={`w-full ${sel}`}
-            onChange={(ns) => {
-              const keep = (shelvesBySection[ns] || []).includes(r.shelf);
-              save(r.id, keep ? { section: ns } : { section: ns, shelf: '' });
-            }}
-          />
+          <HoverEdit display={r.section || ''}>
+            <LazySelect
+              value={r.section || ''}
+              options={sections}
+              className={`w-full ${sel}`}
+              onChange={(ns) => {
+                const keep = (shelvesBySection[ns] || []).includes(r.shelf);
+                save(r.id, keep ? { section: ns } : { section: ns, shelf: '' });
+              }}
+            />
+          </HoverEdit>
         ) : (
           <span className="px-1">{r.section}</span>
         )}
@@ -197,92 +267,106 @@ const TableRow = memo(function TableRow({
       {/* Shelf — section-aware dropdown */}
       <td className="px-2 py-1.5">
         {editable ? (
-          <LazySelect
-            value={r.shelf || ''}
-            disabled={!r.section}
-            options={() => shelfOpts(shelvesBySection, r.section || '', r.shelf)}
-            className={`w-full ${sel} disabled:opacity-40`}
-            onChange={(v) => save(r.id, { shelf: v })}
-          />
+          <HoverEdit display={r.shelf || ''}>
+            <LazySelect
+              value={r.shelf || ''}
+              disabled={!r.section}
+              options={() => shelfOpts(shelvesBySection, r.section || '', r.shelf)}
+              className={`w-full ${sel} disabled:opacity-40`}
+              onChange={(v) => save(r.id, { shelf: v })}
+            />
+          </HoverEdit>
         ) : (
           <span className="px-1">{r.shelf}</span>
         )}
       </td>
 
       <td className="px-2 py-1.5">
-        <input
-          list="genreopts"
-          readOnly={ro}
-          defaultValue={r.genres.join(', ')}
-          onBlur={(e) => {
-            if (!editable) return;
-            const v = toList(e.target.value);
-            if (v.join('|') !== r.genres.join('|')) save(r.id, { genres: v });
-          }}
-          className={`w-full ${cell}`}
-        />
+        <HoverEdit display={r.genres.join(', ')}>
+          <input
+            list="genreopts"
+            readOnly={ro}
+            defaultValue={r.genres.join(', ')}
+            onBlur={(e) => {
+              if (!editable) return;
+              const v = toList(e.target.value);
+              if (v.join('|') !== r.genres.join('|')) save(r.id, { genres: v });
+            }}
+            className={`w-full ${cell}`}
+          />
+        </HoverEdit>
       </td>
       <td className="px-2 py-1.5">
-        <input
-          readOnly={ro}
-          defaultValue={r.subjects.join(', ')}
-          onBlur={(e) => {
-            if (!editable) return;
-            const v = toList(e.target.value);
-            if (v.join('|') !== r.subjects.join('|')) save(r.id, { subjects: v });
-          }}
-          className={`w-full ${cell}`}
-        />
+        <HoverEdit display={r.subjects.join(', ')}>
+          <input
+            readOnly={ro}
+            defaultValue={r.subjects.join(', ')}
+            onBlur={(e) => {
+              if (!editable) return;
+              const v = toList(e.target.value);
+              if (v.join('|') !== r.subjects.join('|')) save(r.id, { subjects: v });
+            }}
+            className={`w-full ${cell}`}
+          />
+        </HoverEdit>
       </td>
       <td className="px-2 py-1.5">
-        <input
-          list="locopts"
-          readOnly={ro}
-          defaultValue={r.location || ''}
-          onBlur={(e) =>
-            editable &&
-            e.target.value !== (r.location || '') &&
-            save(r.id, { location: e.target.value.trim() })
-          }
-          className={`w-full ${cell}`}
-        />
+        <HoverEdit display={r.location || ''}>
+          <input
+            list="locopts"
+            readOnly={ro}
+            defaultValue={r.location || ''}
+            onBlur={(e) =>
+              editable &&
+              e.target.value !== (r.location || '') &&
+              save(r.id, { location: e.target.value.trim() })
+            }
+            className={`w-full ${cell}`}
+          />
+        </HoverEdit>
       </td>
       <td className="px-2 py-1.5">
-        <input
-          readOnly={ro}
-          defaultValue={r.notes || ''}
-          onBlur={(e) =>
-            editable && e.target.value !== (r.notes || '') && save(r.id, { notes: e.target.value })
-          }
-          className={`w-full ${cell}`}
-        />
+        <HoverEdit display={r.notes || ''}>
+          <input
+            readOnly={ro}
+            defaultValue={r.notes || ''}
+            onBlur={(e) =>
+              editable && e.target.value !== (r.notes || '') && save(r.id, { notes: e.target.value })
+            }
+            className={`w-full ${cell}`}
+          />
+        </HoverEdit>
       </td>
 
       {/* Condition — controlled dropdown */}
       <td className="px-2 py-1.5">
         {editable ? (
-          <LazySelect
-            value={r.condition || ''}
-            options={CONDITIONS as unknown as string[]}
-            className={`w-full ${sel}`}
-            onChange={(v) => save(r.id, { condition: v })}
-          />
+          <HoverEdit display={r.condition || ''}>
+            <LazySelect
+              value={r.condition || ''}
+              options={CONDITIONS as unknown as string[]}
+              className={`w-full ${sel}`}
+              onChange={(v) => save(r.id, { condition: v })}
+            />
+          </HoverEdit>
         ) : (
           <span className="px-1">{r.condition}</span>
         )}
       </td>
 
       <td className="px-2 py-1.5">
-        <input
-          readOnly={ro}
-          defaultValue={r.conditionNotes || ''}
-          onBlur={(e) =>
-            editable &&
-            e.target.value !== (r.conditionNotes || '') &&
-            save(r.id, { conditionNotes: e.target.value })
-          }
-          className={`w-full ${cell}`}
-        />
+        <HoverEdit display={r.conditionNotes || ''}>
+          <input
+            readOnly={ro}
+            defaultValue={r.conditionNotes || ''}
+            onBlur={(e) =>
+              editable &&
+              e.target.value !== (r.conditionNotes || '') &&
+              save(r.id, { conditionNotes: e.target.value })
+            }
+            className={`w-full ${cell}`}
+          />
+        </HoverEdit>
       </td>
     </tr>
   );
