@@ -172,11 +172,16 @@ export function itemFromWish(w: Wish, id: number): Item {
   // upload holds bare R2 keys under wishlist/<id>/, so those become ItemImages
   // with an explicit base — imageUrl() rebuilds `<base>/<src>.webp`, which is
   // why the prefix and the .webp suffix both come off here.
-  const native = wishPhotos(w).map((key) => ({
+  //
+  // `label` is required on Item['images'] even though it is optional on
+  // ItemImage in lib/img.ts. First frame is the cover, by the same convention
+  // the pipeline uses.
+  const native: Item['images'] = wishPhotos(w).map((key, i) => ({
     src: key.replace(/^wishlist\//, '').replace(/\.webp$/, ''),
+    label: i === 0 ? 'cover' : `photo ${i + 1}`,
     base: 'wishlist',
   }));
-  const gallery = w.gallery && w.gallery.length ? w.gallery : native;
+  const gallery: Item['images'] = w.gallery && w.gallery.length ? w.gallery : native;
   const fromCatalogue = Boolean(w.gallery && w.gallery.length);
 
   return {
