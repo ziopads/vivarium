@@ -11,7 +11,7 @@ export default function ItemActions({
   visibility?: string;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState<'' | 'vis' | 'del'>('');
+  const [busy, setBusy] = useState<'' | 'vis' | 'del' | 'wish'>('');
   const isPrivate = visibility === 'restricted';
 
   async function toggleVisibility() {
@@ -36,6 +36,29 @@ export default function ItemActions({
     }
   }
 
+  async function toWishlist() {
+    if (
+      !window.confirm(
+        'Move this book to the wishlist? The record leaves the catalogue but keeps its ' +
+          'write-up and photographs, and can be moved back if you get another copy.',
+      )
+    )
+      return;
+    setBusy('wish');
+    try {
+      const res = await fetch('/api/wishlist/from-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId }),
+      });
+      const out = await res.json().catch(() => null);
+      if (res.ok && out?.wishId) router.push(`/wishlist/${out.wishId}`);
+      else setBusy('');
+    } catch {
+      setBusy('');
+    }
+  }
+
   return (
     <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-line pt-4 text-sm">
       <span className="text-muted">Manage:</span>
@@ -47,6 +70,14 @@ export default function ItemActions({
         }`}
       >
         {busy === 'vis' ? '…' : isPrivate ? '🔒 Private — make public' : 'Make private'}
+      </button>
+      <button
+        onClick={toWishlist}
+        disabled={busy !== ''}
+        className="rounded-md border border-line px-3 py-1.5 transition hover:border-rust disabled:opacity-50"
+        title="No longer own it — keep the write-up and look for another copy"
+      >
+        {busy === 'wish' ? 'Moving…' : 'Move to wishlist'}
       </button>
       <button
         onClick={del}

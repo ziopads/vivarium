@@ -382,6 +382,48 @@ export async function updateItems(
 }
 
 /**
+ * The next free id, without reading the catalogue. `POST /api/items/new` does
+ * this by pulling every record and taking the max, which is another
+ * O(catalogue) read for one number.
+ *
+ * Ids are never reused: a deleted record's id stays retired, so a wish coming
+ * back from the wishlist gets a fresh one rather than reclaiming the id it had
+ * before it left.
+ */
+export async function nextItemId(): Promise<number> {
+  if (dataSource().mode === 'supabase') {
+    const sb = getSupabase()!;
+    const { data, error } = await sb
+      .from('items')
+      .select('id')
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(`Supabase nextItemId: ${error.message}`);
+    return (data?.id ?? 0) + 1;
+  }
+  const items = await readLocalItems();
+  return items.reduce((m, i) => Math.max(m, i.id), 0) + 1;
+}
+
+/** Insert one record. Fails if the id is taken rather than overwriting it. */
+export async function createItem(item: Item): Promise<Item> {
+  const clean = validateItem(item);
+  if (dataSource().mode === 'supabase') {
+    const sb = getSupabase()!;
+    const { error } = await sb.from('items').insert(itemToRow(clean));
+    if (error) throw new Error(`Supabase createItem: ${error.message}`);
+    return clean;
+  }
+  const items = await readLocalItems();
+  if (items.some((i) => i.id === clean.id)) {
+    throw new Error(`createItem: id ${clean.id} already exists`);
+  }
+  await writeLocalItems([...items, clean]);
+  return clean;
+}
+
+/**
  * Delete the named rows. Returns the ids that were actually removed, which is
  * how a caller distinguishes "deleted 340" from "asked for 340, 338 existed".
  *

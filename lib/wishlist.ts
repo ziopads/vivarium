@@ -4,6 +4,7 @@ import path from 'node:path';
 // production the wishlist lives in the Supabase `wishlist` table.
 import bundled from '@/data/wishlist.example.json';
 import { getSupabase } from './supabase';
+import type { Item } from './types';
 
 export type Wish = {
   id: number;
@@ -14,6 +15,21 @@ export type Wish = {
   image?: string; // R2 key, e.g. "wishlist/42.webp"
   addedBy: string; // email of the person who added it
   createdAt: string;
+
+  // ---- carried over when a catalogue record is moved here ----------------
+  // A book lost or given away keeps its write-up: the research is about the
+  // title, not the copy, and someone browsing the wishlist for a gift needs to
+  // see why it is wanted. These are all optional, so wishes added from a phone
+  // photo are unaffected.
+  description?: string;
+  discussion?: string;
+  publisher?: string;
+  year?: string;
+  isbn?: string;
+  /** The gallery from the record it came from. R2 objects outlive the record. */
+  gallery?: Item['images'];
+  /** Id of the catalogue record this was made from, for the trail. */
+  fromItem?: number;
 };
 
 const FILE = path.join(process.cwd(), 'data', 'wishlist.json');
@@ -29,6 +45,13 @@ function normalizeLocal(raw: any[]): Wish[] {
     image: w.image || undefined,
     addedBy: w.addedBy || '',
     createdAt: w.createdAt || '',
+    description: w.description || undefined,
+    discussion: w.discussion || undefined,
+    publisher: w.publisher || undefined,
+    year: w.year || undefined,
+    isbn: w.isbn || undefined,
+    gallery: Array.isArray(w.gallery) ? w.gallery : undefined,
+    fromItem: typeof w.fromItem === 'number' ? w.fromItem : undefined,
   }));
 }
 
@@ -79,4 +102,77 @@ export async function deleteWish(id: number): Promise<void> {
   }
   const all = await getWishlist();
   await writeLocal(all.filter((x) => x.id !== id));
+}
+
+// ---------------------------------------------------------------------------
+// Moving between the catalogue and the wishlist
+//
+// A book can leave the library (lost, given away, sold) and come back as a
+// gift, and neither direction should mean retyping a record. The write-up
+// travels with it in both directions.
+// ---------------------------------------------------------------------------
+
+export function wishFromItem(item: Item, id: number, addedBy: string): Wish {
+  const cover = item.images?.find((im) => im.src === item.cover) || item.images?.[0];
+  return {
+    id,
+    title: item.title || '',
+    author: item.author || '',
+    section: item.section || '',
+    note: item.notes || undefined,
+    // The photographs stay in R2 when the record goes, so the gallery is still
+    // renderable. `image` is left alone: it means a wishlist-native upload at
+    // wishlist/<id>.webp, and pointing it at an items/ key would confuse r2Url.
+    gallery: cover ? [cover, ...(item.images || []).filter((im) => im !== cover)] : undefined,
+    addedBy,
+    createdAt: new Date().toISOString(),
+    description: item.description || undefined,
+    discussion: item.discussion || undefined,
+    publisher: item.publisher || undefined,
+    year: item.year || undefined,
+    isbn: item.isbn || undefined,
+    fromItem: item.id,
+  };
+}
+
+/**
+ * The return trip. Everything the wish carries goes back onto a catalogue
+ * record; anything it never had stays blank for the normal editing path.
+ *
+ * The new record gets a NEW id rather than reclaiming `fromItem` — that id may
+ * have been reused, and reclaiming it would collide. `fromItem` stays in notes
+ * as the trail.
+ */
+export function itemFromWish(w: Wish, id: number): Item {
+  const gallery = w.gallery || [];
+  return {
+    id,
+    itemType: 'Book',
+    title: w.title || 'Untitled',
+    author: w.author || '',
+    publisher: w.publisher || '',
+    placeOfPublication: '',
+    year: w.year || '',
+    edition: '',
+    printing: '',
+    isbn: w.isbn || '',
+    format: '',
+    description: w.description || '',
+    blurb: '',
+    discussion: w.discussion || undefined,
+    signed: false,
+    inscription: '',
+    genres: [],
+    shelf: '',
+    images: gallery,
+    subjects: [],
+    places: [],
+    condition: '',
+    location: '',
+    owner: '',
+    notes: w.note || '',
+    image: gallery[0]?.src ?? null,
+    section: w.section || '',
+    visibility: 'public',
+  };
 }
