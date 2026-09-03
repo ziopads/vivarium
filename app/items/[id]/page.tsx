@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getItem, getItems } from '@/lib/data';
+import { getItem } from '@/lib/data';
 import Gallery from '@/app/ui/Gallery';
 import MetaEditor from '@/app/ui/MetaEditor';
 import Discussion from '@/app/ui/Discussion';
@@ -14,7 +14,7 @@ import TitleEditor from '@/app/ui/TitleEditor';
 import DetailsEditor from '@/app/ui/DetailsEditor';
 import EditMode from '@/app/ui/EditMode';
 import { typeFields } from '@/lib/itemTypes';
-import { getVocab } from '@/lib/vocab';
+import { getVocab, flatShelves } from '@/lib/vocab';
 import { publicView } from '@/lib/fieldVisibility';
 
 // Render on-demand so a cover change (writing items.json) shows up on refresh.
@@ -27,17 +27,21 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
   const viewer = await getViewer();
   if (item.visibility === 'restricted' && !viewer.isAdmin) notFound();
 
+  const vocab = await getVocab();
+
   // Non-admins see only the fields currently on the public allowlist. Enforced
   // here as well as in /api/items, because this page renders type-field values
   // (which include price, provenance, sale history) directly into the table.
-  const visible = viewer.isAdmin ? item : publicView(item, (await getVocab()).publicFields ?? []);
+  const visible = viewer.isAdmin ? item : publicView(item, vocab.publicFields ?? []);
   const canSee = (key: string) =>
     viewer.isAdmin || Object.prototype.hasOwnProperty.call(visible, key);
 
-  const all = await getItems();
-  const allShelves = Array.from(new Set(all.map((i) => i.shelf).filter(Boolean))).sort();
-  const allGenres = Array.from(new Set(all.flatMap((i) => i.genres))).sort();
-
+  // The shelf and genre datalists come from the vocabulary — a single row —
+  // rather than from every item in the catalogue. Reading all 1,600 records
+  // (with their images JSONB, uncached) to derive two lists of strings is what
+  // made opening one book take seconds.
+  const allShelves = flatShelves(vocab);
+  const allGenres = vocab.genres;
   const rows: [string, string][] = (
     [
       ['Type', item.itemType],

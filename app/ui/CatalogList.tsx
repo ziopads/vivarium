@@ -415,6 +415,43 @@ export default function CatalogList({
     }
   }, []);
 
+  // The table body scrolls, not the window, so the parent's window.scrollY
+  // save/restore has always been recording a number that never changes — which
+  // is why coming back from an item page lands you at the top. This keeps the
+  // container's own scrollTop in sessionStorage instead.
+  const scrollBox = useRef<HTMLDivElement | null>(null);
+  const SCROLL_KEY = 'vivarium.list.scroll';
+
+  useEffect(() => {
+    const box = scrollBox.current;
+    if (!box) return;
+    const saved = Number(sessionStorage.getItem(SCROLL_KEY) || 0);
+    // Two frames: the first lays the rows out, the second has a scrollHeight
+    // big enough to accept the position. Restoring on mount alone lands at 0.
+    if (saved > 0) {
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (scrollBox.current) scrollBox.current.scrollTop = saved;
+        }),
+      );
+    }
+    let t: number | undefined;
+    const onScroll = () => {
+      if (t) return;
+      t = window.setTimeout(() => {
+        t = undefined;
+        if (scrollBox.current) {
+          sessionStorage.setItem(SCROLL_KEY, String(scrollBox.current.scrollTop));
+        }
+      }, 150);
+    };
+    box.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      box.removeEventListener('scroll', onScroll);
+      if (t) window.clearTimeout(t);
+    };
+  }, []);
+
   const cell = editable
     ? 'rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-line focus:border-rust focus:bg-parchment'
     : 'bg-transparent px-1 py-0.5 text-ink';
@@ -440,61 +477,77 @@ export default function CatalogList({
 
   return (
     <div>
-      {editable && selected.size > 0 && (
-        <div className="mb-2 flex flex-wrap items-center gap-3 rounded-md border border-rust/40 bg-rust/5 px-3 py-2 text-sm">
-          <span className="font-medium">{selected.size} selected</span>
-          {!confirming ? (
-            <>
-              <button
-                onClick={() => setConfirming(true)}
-                className="rounded-md border border-rust px-3 py-1 text-rust hover:bg-rust hover:text-white"
-              >
-                Delete…
-              </button>
-              <button
-                onClick={() => {
-                setSelected(new Set());
-                  anchorRef.current = null;
-                }}
-                className="text-muted hover:text-rust"
-              >
-                Clear
-              </button>
-            </>
-          ) : (
-            <>
-              {/* The counts are the guard. A shift-click range is one gesture and
-                  can overshoot, and the whole point of this pass is deleting
-                  records that have neither images nor a write-up — so anything
-                  in the selection that HAS one gets said out loud first. */}
-              <span>
-                Delete {selected.size} record{selected.size === 1 ? '' : 's'} permanently?
-                {withImages > 0 && (
-                  <strong className="text-rust"> {withImages} of them have images.</strong>
-                )}
-                {withWriteup > 0 && (
-                  <strong className="text-rust"> {withWriteup} have a write-up.</strong>
-                )}
-                {withImages === 0 && withWriteup === 0 && ' None have images or a write-up.'}
-              </span>
-              <button
-                onClick={runDelete}
-                disabled={busy}
-                className="rounded-md bg-rust px-3 py-1 text-white disabled:opacity-50"
-              >
-                {busy ? 'Deleting…' : 'Yes, delete'}
-              </button>
-              <button onClick={() => setConfirming(false)} className="text-muted hover:text-rust">
-                Cancel
-              </button>
-            </>
+      {/* The bar's height is reserved whenever the table is editable, so ticking
+          the first checkbox doesn't insert an element above the table and shove
+          every row down by about a row. That jump happened once per selection
+          and never again, which is exactly the shape of a conditionally
+          rendered element appearing. */}
+      {editable && (
+        <div className="mb-2 min-h-[2.5rem]">
+          {selected.size > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-rust/40 bg-rust/5 px-3 py-2 text-sm">
+              <span className="font-medium">{selected.size} selected</span>
+              {!confirming ? (
+                <>
+                  <button
+                    onClick={() => setConfirming(true)}
+                    className="rounded-md border border-rust px-3 py-1 text-rust hover:bg-rust hover:text-white"
+                  >
+                    Delete…
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelected(new Set());
+                      anchorRef.current = null;
+                    }}
+                    className="text-muted hover:text-rust"
+                  >
+                    Clear
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* The counts are the guard. A shift-click range is one gesture
+                      and can overshoot, and the whole point of this pass is
+                      deleting records that have neither images nor a write-up —
+                      so anything in the selection that HAS one gets said out
+                      loud first. */}
+                  <span>
+                    Delete {selected.size} record{selected.size === 1 ? '' : 's'} permanently?
+                    {withImages > 0 && (
+                      <strong className="text-rust"> {withImages} of them have images.</strong>
+                    )}
+                    {withWriteup > 0 && (
+                      <strong className="text-rust"> {withWriteup} have a write-up.</strong>
+                    )}
+                    {withImages === 0 && withWriteup === 0 && ' None have images or a write-up.'}
+                  </span>
+                  <button
+                    onClick={runDelete}
+                    disabled={busy}
+                    className="rounded-md bg-rust px-3 py-1 text-white disabled:opacity-50"
+                  >
+                    {busy ? 'Deleting…' : 'Yes, delete'}
+                  </button>
+                  <button
+                    onClick={() => setConfirming(false)}
+                    className="text-muted hover:text-rust"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </div>
       )}
 
       {note && <p className="mb-2 text-xs text-moss">{note}</p>}
 
-      <div className="max-h-[calc(100vh-8rem)] overflow-auto rounded-lg border border-line">
+      <div
+        ref={scrollBox}
+        className="max-h-[calc(100vh-8rem)] overflow-auto rounded-lg border border-line"
+      >
         <table className="w-full min-w-[1800px] table-fixed border-collapse text-sm">
           {/* Fixed layout with explicit widths. The three columns left without a
               width — Subjects, Notes, Cond. notes — absorb whatever the monitor
