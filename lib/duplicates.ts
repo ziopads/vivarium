@@ -159,10 +159,10 @@ export function findDuplicates(items: Item[]): Candidate[] {
   // pair found by ISBN is never proposed again on a weaker basis.
   const bases: { basis: MatchBasis; key: (i: Item) => string | null }[] = [
     { basis: 'isbn', key: (i) => isbnKey(i.isbn) },
-    { basis: 'title+author', key: withAuthor(titleKey) },
-    { basis: 'short title+author', key: withAuthor(shortTitleKey) },
+    { basis: 'title+author', key: withAuthor((i) => titleKey(i.title)) },
+    { basis: 'short title+author', key: withAuthor((i) => shortTitleKey(i.title)) },
     // Author is dropped from here down. The same book gets credited to
-    // different people — "Andrew Yeth: The Helga Pictures" is filed under Wyeth
+    // different people — "Andrew Wyeth: The Helga Pictures" is filed under Wyeth
     // on one record and under Wilmerding, who wrote it, on the other.
     { basis: 'title', key: (i) => titleKey(i.title) || null },
     { basis: 'short title', key: (i) => shortTitleKey(i.title) || null },
