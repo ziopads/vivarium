@@ -5,6 +5,7 @@ import { getWishlist, wishPhotos } from '@/lib/wishlist';
 import { getVocab } from '@/lib/vocab';
 import { r2Url, imageUrl } from '@/lib/img';
 import Discussion from '@/app/ui/Discussion';
+import WishGallery, { type WishShot } from '@/app/ui/WishGallery';
 import WishEditor from '@/app/ui/WishEditor';
 import WishToItem from '@/app/ui/WishToItem';
 
@@ -21,49 +22,29 @@ export default async function WishDetail({ params }: { params: { id: string } })
   const vocab = await getVocab();
   const who = w.addedBy ? w.addedBy.split('@')[0] : '—';
   const when = w.createdAt ? new Date(w.createdAt).toLocaleDateString() : '';
-  // Two sources of photographs. A wish added from a phone carries its own R2
-  // keys; one made from a catalogue record carries that record's gallery. Show
-  // whichever it has, all of them.
-  const photos = wishPhotos(w);
-  const carried = w.gallery && w.gallery.length ? w.gallery : [];
+  // Two sources of photographs, resolved to URLs here so the gallery component
+  // needs to know about neither. A wish added from a phone carries its own R2
+  // keys; one made from a catalogue record carries that record's tiered
+  // gallery. Own photos win when a wish somehow has both.
+  const keyed = wishPhotos(w);
+  const photos: WishShot[] = keyed.length
+    ? keyed.map((key, i) => ({
+        full: r2Url(key),
+        thumb: r2Url(key),
+        label: `Photo ${i + 1}`,
+      }))
+    : (w.gallery || []).map((im, i) => ({
+        full: imageUrl(im, 'web'),
+        thumb: imageUrl(im, 'thumb'),
+        label: `Photo ${i + 1}`,
+      }));
 
   return (
     <article className="max-w-2xl">
       <Link href="/wishlist" className="text-sm text-rust hover:underline">← wishlist</Link>
 
       <div className="mt-4 flex flex-col gap-6 sm:flex-row">
-        {(photos.length > 0 || carried.length > 0) && (
-          <div className="flex shrink-0 flex-col gap-3">
-            {photos.map((key, i) => (
-              <a
-                key={key}
-                href={r2Url(key)}
-                target="_blank"
-                rel="noreferrer"
-                title="Open full size"
-              >
-                <img
-                  src={r2Url(key)}
-                  alt={
-                    i === 0
-                      ? w.title || 'wishlist photo'
-                      : `${w.title || 'wishlist photo'} — photo ${i + 1}`
-                  }
-                  className="max-h-[28rem] w-auto max-w-full rounded border border-line shadow-sm"
-                />
-              </a>
-            ))}
-            {photos.length === 0 &&
-              carried.map((im) => (
-                <img
-                  key={im.src}
-                  src={imageUrl(im, 'web')}
-                  alt={w.title || 'wishlist photo'}
-                  className="max-h-[28rem] w-auto max-w-full rounded border border-line shadow-sm"
-                />
-              ))}
-          </div>
-        )}
+        <WishGallery photos={photos} title={w.title || 'wishlist photo'} />
         <div className="min-w-0">
           <h1 className="font-serif text-2xl leading-tight sm:text-3xl">{w.title || '(untitled)'}</h1>
           {w.author && <p className="mt-1 text-lg text-muted">{w.author}</p>}
