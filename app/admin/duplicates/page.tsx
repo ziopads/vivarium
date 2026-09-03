@@ -22,6 +22,7 @@ export default async function Duplicates() {
         basis: c.basis,
         key: c.key,
         ambiguous: c.ambiguous,
+        yearsDiffer: c.yearsDiffer,
         filled,
         survivor: {
           id: survivor.id,
@@ -52,10 +53,11 @@ export default async function Duplicates() {
       </Link>
       <h1 className="mt-3 font-serif text-2xl">Duplicates</h1>
       <p className="mt-1 max-w-prose text-sm text-muted">
-        Pairs where one record has the photographs and no write-up, and another has the write-up and
-        no images. Merging fills the photographed record’s blank fields from the older one — the
-        description and discussion above all — records the join, and deletes the older record. Two
-        copies of the same book both came through the camera, so they are never proposed here.
+        Pairs where one record has photographs and another, apparently of the same book, has none.
+        Merging fills the photographed record’s blank fields from the other — the write-up if there
+        is one, and any shelving or notes it was given by hand — records the join, and deletes the
+        other record. Two copies of the same book both came through the camera, so they are never
+        proposed here.
       </p>
       <div className="mt-5">
         <DuplicateReview pairs={pairs} />

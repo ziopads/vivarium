@@ -15,9 +15,16 @@ type Side = {
 };
 
 export type PairView = {
-  basis: 'isbn' | 'title+author' | 'title';
+  basis:
+    | 'isbn'
+    | 'title+author'
+    | 'short title+author'
+    | 'title'
+    | 'short title'
+    | 'volumeless title';
   key: string;
   ambiguous: boolean;
+  yearsDiffer: boolean;
   filled: string[];
   survivor: Side;
   loser: Side;
@@ -28,7 +35,10 @@ type State = 'idle' | 'busy' | 'done' | 'error';
 const BASIS_LABEL: Record<PairView['basis'], string> = {
   isbn: 'Same ISBN',
   'title+author': 'Same title and author',
-  title: 'Same title only',
+  'short title+author': 'Same main title and author',
+  title: 'Same title',
+  'short title': 'Same main title',
+  'volumeless title': 'Same title ignoring volume numbers',
 };
 
 export default function DuplicateReview({ pairs }: { pairs: PairView[] }) {
@@ -125,6 +135,11 @@ export default function DuplicateReview({ pairs }: { pairs: PairView[] }) {
                 {p.ambiguous && (
                   <span className="rounded-full bg-rust/10 px-2 py-0.5 text-rust">
                     More than one record matched — check before merging
+                  </span>
+                )}
+                {p.yearsDiffer && (
+                  <span className="rounded-full bg-card px-2 py-0.5 text-muted">
+                    Different years — two printings, or two books
                   </span>
                 )}
                 <span className="font-mono text-muted">{p.key}</span>
