@@ -194,9 +194,9 @@ export async function getItems(): Promise<Item[]> {
 }
 
 // Display helper: every record the viewer's tier reaches. `public` is everyone
-// through the site gate, `link` adds signed-in viewers, `restricted` is admins
-// only. See lib/visibility.ts. Write paths use getItems — all records, whatever
-// their tier — because an admin editing the catalogue must see all of it.
+// through the site gate, `signed_in` adds viewers with a session, `admin` is
+// admins only. See lib/visibility.ts. Write paths use getItems — all records,
+// whatever their tier — because an admin editing the catalogue must see all of it.
 export async function getVisibleItems(): Promise<Item[]> {
   const items = await getItems();
   const viewer = await getViewer();

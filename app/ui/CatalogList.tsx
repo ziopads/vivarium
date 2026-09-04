@@ -8,6 +8,7 @@ import { coverImage, imageUrl } from '@/lib/img';
 import { needsWriteup } from '@/lib/writeup';
 import {
   VISIBILITY,
+  VISIBILITY_HINT,
   VISIBILITY_LABEL,
   VISIBILITY_MARK,
   normalizeVisibility,
@@ -137,7 +138,7 @@ function VisSelect({
       onChange={(e) => onChange(e.target.value as Visibility)}
     >
       {VISIBILITY.map((v) => (
-        <option key={v} value={v}>
+        <option key={v} value={v} title={VISIBILITY_HINT[v]}>
           {VISIBILITY_LABEL[v]}
         </option>
       ))}
@@ -473,6 +474,11 @@ export default function CatalogList({
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  // The tier the bar will apply. Held in state and applied on a button rather
+  // than written on change like the row control: firing on change is right for
+  // one record and wrong for four hundred, where a stray arrow key on an open
+  // select would be a real write across the whole selection.
+  const [bulkVis, setBulkVis] = useState<Visibility>('public');
 
   // Clearing the selection whenever the displayed set changes is deliberate.
   // Filters and sort live in the parent, so a selection made under one filter
@@ -693,16 +699,19 @@ export default function CatalogList({
                 <>
                   <span className="flex flex-wrap items-center gap-1.5">
                     <span className="text-muted">Visibility:</span>
-                    {VISIBILITY.map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => runVisibility(v)}
-                        disabled={busy}
-                        className="rounded-md border border-line bg-card px-2 py-1 hover:border-rust disabled:opacity-50"
-                      >
-                        {VISIBILITY_MARK[v]} {VISIBILITY_LABEL[v]}
-                      </button>
-                    ))}
+                    <VisSelect
+                      value={bulkVis}
+                      onChange={setBulkVis}
+                      className="rounded border border-line bg-card px-1 py-1"
+                    />
+                    <button
+                      onClick={() => runVisibility(bulkVis)}
+                      disabled={busy}
+                      title={VISIBILITY_HINT[bulkVis]}
+                      className="rounded-md border border-line bg-card px-2 py-1 hover:border-rust disabled:opacity-50"
+                    >
+                      Apply to {selected.size}
+                    </button>
                   </span>
                   <button
                     onClick={() => setConfirming(true)}
@@ -839,8 +848,8 @@ export default function CatalogList({
         <p className="px-2 py-2 text-xs text-muted">
           Edit inline — changes save on change. Section, shelf, and condition are dropdowns from the
           managed vocabulary (shelf follows the section); genres and subjects are comma-separated.
-          Visibility is Public (anyone through the gate), Link (signed-in viewers) or Private
-          (admins only); select rows and use the buttons above to set a run at once.
+          Visibility is Public (anyone through the site gate), Restricted (signed-in viewers) or
+          Private (admins only); select rows and use the picker above to set a run at once.
         </p>
       )}
     </div>

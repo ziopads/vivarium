@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { setColumns } from '@/lib/data';
 import { isVisibility } from '@/lib/visibility';
 
-// POST /api/items/bulk-visibility  { ids: number[], visibility: 'public' | 'link' | 'restricted' }
+// POST /api/items/bulk-visibility  { ids: number[], visibility: 'public' | 'signed_in' | 'admin' }
 //
 // One tier across many records.
 //

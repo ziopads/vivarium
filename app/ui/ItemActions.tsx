@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   VISIBILITY,
+  VISIBILITY_HINT,
   VISIBILITY_LABEL,
   VISIBILITY_MARK,
   normalizeVisibility,
@@ -86,13 +87,7 @@ export default function ItemActions({
             onClick={() => setVisibility(v)}
             disabled={busy !== ''}
             aria-pressed={v === current}
-            title={
-              v === 'public'
-                ? 'Anyone through the site gate'
-                : v === 'link'
-                  ? 'Signed-in viewers'
-                  : 'Admins only'
-            }
+            title={VISIBILITY_HINT[v]}
             className={`rounded-md border px-3 py-1.5 transition disabled:opacity-50 ${
               v === current
                 ? 'border-moss bg-moss/10 text-moss'
