@@ -1,6 +1,12 @@
 -- Vivarium schema — Supabase / Postgres.
 -- Hybrid model: typed columns for the shared spine, JSONB `attributes` for the
 -- type-specific + bibliographic tail. Run once in the Supabase SQL editor.
+--
+-- THIS FILE IS THE FRESH-INSTALL SCHEMA. It always describes the current shape,
+-- so a new instance runs it and is done. Changes to an instance that ALREADY
+-- EXISTS live in supabase/migrations/ — apply those in date order, starting after
+-- whatever the database was created from. Every schema change belongs in both
+-- places: edit here, and add a migration for the databases already out there.
 
 create table if not exists items (
   id          bigint primary key,
@@ -27,7 +33,12 @@ create table if not exists items (
                                                          -- condition, location, frame
                                                          -- dimensions, music fields, …
   updated_at  timestamptz not null default now(),
-  constraint items_visibility_chk check (visibility in ('public', 'restricted'))
+  -- Three tiers, ordered: public → anyone through the site gate; signed_in → a
+  -- viewer with a session (labelled "Restricted" in the UI); admin → admins only
+  -- (labelled "Private"). The STORED values name who reaches a record and are
+  -- deliberately not the screen labels — see lib/visibility.ts for why, and note
+  -- that a pre-2026-09-03 database holds 'restricted' meaning ADMIN ONLY.
+  constraint items_visibility_chk check (visibility in ('public', 'signed_in', 'admin'))
 );
 
 create index if not exists items_item_type_idx  on items (item_type);
@@ -43,7 +54,9 @@ create table if not exists vocab (
 -- the Next.js route. Enable RLS so the public ANON key cannot read/write directly
 -- if it ever leaks. Deny-by-default: no anon/authenticated policies are granted;
 -- the service-role key bypasses RLS. (To let the browser read the catalogue
--- directly later, add a read policy excluding visibility = 'restricted'.)
+-- directly later, add a read policy restricted to visibility = 'public'. State it
+-- that way round — as an allowlist of the open tier rather than a denylist of the
+-- closed one — so adding a fourth tier later cannot silently expose it.)
 alter table items enable row level security;
 alter table vocab enable row level security;
 
