@@ -69,28 +69,28 @@ export default function VocabEditor({
     <div className="mt-6">
       {msg && <p className="mb-3 text-sm text-moss">{msg}</p>}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Panel title="Classification">
-            <TreeEditor
-              tree={vocab.tree}
-              counts={counts.byPath}
+      <div className="space-y-6">
+        <Panel title="Classification">
+          <TreeEditor
+            tree={vocab.tree}
+            counts={counts.byPath}
+            busy={busy}
+            call={(body) => post({ kind: 'path', ...body })}
+          />
+        </Panel>
+
+        <div className="max-w-md">
+          <Panel title="Genres" count={vocab.genres.length}>
+            <List
+              values={vocab.genres}
+              counts={counts.genres}
               busy={busy}
-              call={(body) => post({ kind: 'path', ...body })}
+              onRename={(v, nv) => call('genres', 'rename', v, nv)}
+              onDelete={(v) => call('genres', 'delete', v)}
             />
+            <Adder busy={busy} placeholder="add genre…" onAdd={(v) => call('genres', 'add', v)} />
           </Panel>
         </div>
-
-        <Panel title="Genres" count={vocab.genres.length}>
-          <List
-            values={vocab.genres}
-            counts={counts.genres}
-            busy={busy}
-            onRename={(v, nv) => call('genres', 'rename', v, nv)}
-            onDelete={(v) => call('genres', 'delete', v)}
-          />
-          <Adder busy={busy} placeholder="add genre…" onAdd={(v) => call('genres', 'add', v)} />
-        </Panel>
       </div>
 
       <div className="mt-6 rounded-lg border border-dashed border-line bg-card/50 p-4">

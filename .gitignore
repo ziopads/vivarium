@@ -12,15 +12,23 @@ next-env.d.ts
 # Item images live on disk locally and in Supabase Storage (Phase 4) — keep them out of git
 public/items/
 
-# local data backups (imgbak, mergebak, syncbak, mrgbak, syncdownbak, …)
+# ── Everything in data/ is this machine's records ─────────────────────────────
+# Deny the directory and name the exceptions, rather than listing files to
+# exclude. The previous form ignored `data/items.json` exactly, so every variant
+# of it stayed visible to git: `items.json.CLOBBERED-2026-09-02` showed up as
+# untracked, and `vocab.json` and `vocab.tamplin.json` were never covered at all
+# — the second being Valerie's vocabulary, which the section below says must
+# never enter git.
+#
+# The two example files are what lib/data.ts falls back to on first run and are
+# the only things here that belong in the repository.
+data/*
+!data/items.example.json
+!data/wishlist.example.json
+
+# local data backups outside data/ (imgbak, mergebak, syncbak, syncdownbak, …)
 *.bak*
 *bak
-
-# The catalogue itself. data/items.example.json is committed in its place and is
-# what lib/data.ts falls back to on first run; the real file is this machine's
-# records and never belongs in git.
-data/items.json
-data/wishlist.json
 
 # python cache from the image/ingest scripts
 __pycache__/
@@ -29,9 +37,10 @@ __pycache__/
 # ── Valerie Tamplin CR working data ───────────────────────────────────────────
 # Local staging only. The canonical record lives in Supabase (data) and R2
 # (images); full-resolution masters and the source workbook must never enter git.
+# Her files under data/ are covered by the deny-all above; these are the paths
+# outside it.
 /cr-working/
 /data/tamplin/
-data/items.tamplin.json
 
 # source spreadsheets and Excel lock files
 *.xlsx

@@ -1,20 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import type { TaxonNode } from '@/lib/taxonomy';
+import { useMemo, useState } from 'react';
+import { childrenAt, findNode, type TaxonNode } from '@/lib/taxonomy';
 
 /**
- * The classification tree editor.
+ * The classification editor, as Finder-style columns.
  *
- * Reordering is by explicit up/down rather than drag. Dragging inside a nested
- * tree needs either a library or a large amount of pointer bookkeeping, and the
- * thing being expressed here is a considered sequence rather than a rough
- * arrangement — the order in which regions or periods should stand. Two buttons
- * say that precisely, work from the keyboard, and cannot half-drop a node into
- * the wrong parent.
+ * The first version rendered the whole tree as one indented list with every
+ * control on every row. At a hundred-odd nodes that is a wall of text, and
+ * choosing a destination for a move meant picking among a hundred identical
+ * buttons. Columns fix both: each column shows one level, selecting a row opens
+ * its children to the right, and the controls act on the single selected node
+ * rather than repeating per row.
  *
- * Moving is a two-step: choose the node, then choose where it goes. A select per
- * row would mean building a menu of every path in the tree for every row.
+ * Moving works the way it does in a file manager. Pick the node, navigate the
+ * columns to where it belongs, press the one button. The destination is wherever
+ * you have navigated to, so there is nothing to hunt for.
  */
 
 export type PathCall = (body: Record<string, unknown>) => Promise<void>;
@@ -31,297 +32,268 @@ export default function TreeEditor({
   busy: boolean;
   call: PathCall;
 }) {
+  const [selected, setSelected] = useState<string[]>([]);
   const [moving, setMoving] = useState<string[] | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [draft, setDraft] = useState('');
 
-  const isSelfOrBelow = (path: string[]) =>
+  // The tree changes under us after every edit — a deleted node, or a renamed
+  // one, leaves the stored selection pointing at nothing. Trimmed to the deepest
+  // part that still resolves rather than reset, so deleting a shelf leaves you
+  // standing in its section instead of back at the top.
+  const path = useMemo(() => {
+    const out: string[] = [];
+    for (const seg of selected) {
+      if (!findNode(tree, [...out, seg])) break;
+      out.push(seg);
+    }
+    return out;
+  }, [tree, selected]);
+
+  // One column per level: the root, then the children of each selected node.
+  const columns = useMemo(() => {
+    const cols: TaxonNode[][] = [tree];
+    for (let i = 0; i < path.length; i++) {
+      const kids = childrenAt(tree, path.slice(0, i + 1));
+      if (!kids.length) break;
+      cols.push(kids);
+    }
+    return cols;
+  }, [tree, path]);
+
+  const node = path.length ? findNode(tree, path) : null;
+  const siblings = path.length ? childrenAt(tree, path.slice(0, -1)) : [];
+  const index = siblings.findIndex((n) => n.name === path[path.length - 1]);
+
+  const movingIntoItself =
     !!moving && moving.every((s, i) => path[i] === s) && path.length >= moving.length;
+
+  async function act(body: Record<string, unknown>) {
+    await call(body);
+  }
+
+  async function nudge(by: number) {
+    const to = index + by;
+    if (index < 0 || to < 0 || to >= siblings.length) return;
+    const order = siblings.map((n) => n.name);
+    [order[index], order[to]] = [order[to], order[index]];
+    await act({ action: 'reorder', parent: path.slice(0, -1), order });
+  }
+
+  async function saveRename() {
+    const v = draft.trim();
+    setRenaming(false);
+    if (v && node && v !== node.name) {
+      await act({ action: 'rename', path, newValue: v });
+      setSelected([...path.slice(0, -1), v]);
+    }
+  }
+
+  async function remove() {
+    if (!node) return;
+    const kids = node.children?.length ? ` and its ${node.children.length} entries below` : '';
+    const n = counts[path.join('/')];
+    const items = n ? ` It will be cleared from ${n} item${n === 1 ? '' : 's'}.` : '';
+    if (!window.confirm(`Delete “${node.name}”${kids}?${items}`)) return;
+    await act({ action: 'delete', path });
+    setSelected(path.slice(0, -1));
+  }
+
+  const tool =
+    'rounded-md border border-line bg-card px-2 py-1 text-xs hover:border-rust disabled:opacity-40';
 
   return (
     <div>
-      {moving && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-rust bg-rust/5 px-3 py-2 text-sm">
-          <span>
-            Moving <strong>{moving[moving.length - 1]}</strong> — choose where it goes.
+      {/* Breadcrumb — where you are, and the way back up. */}
+      <div className="mb-2 flex flex-wrap items-center gap-1 text-sm">
+        <button
+          onClick={() => setSelected([])}
+          className={path.length ? 'text-rust hover:underline' : 'text-muted'}
+        >
+          All
+        </button>
+        {path.map((seg, i) => (
+          <span key={i} className="flex items-center gap-1">
+            <span className="text-muted">›</span>
+            <button
+              onClick={() => setSelected(path.slice(0, i + 1))}
+              className={i === path.length - 1 ? 'font-medium' : 'text-rust hover:underline'}
+            >
+              {seg}
+            </button>
           </span>
-          <button
-            onClick={async () => {
-              await call({ action: 'move', path: moving, parent: [] });
-              setMoving(null);
+        ))}
+      </div>
+
+      {/* Columns */}
+      <div className="flex h-[26rem] gap-px overflow-x-auto rounded-lg border border-line bg-line">
+        {columns.map((nodes, depth) => (
+          <Column
+            key={depth}
+            nodes={nodes}
+            parent={path.slice(0, depth)}
+            selectedName={path[depth]}
+            counts={counts}
+            busy={busy}
+            onSelect={(name) => {
+              setRenaming(false);
+              setSelected([...path.slice(0, depth), name]);
             }}
-            disabled={busy}
-            className="rounded border border-line bg-card px-2 py-0.5 hover:border-rust disabled:opacity-50"
-          >
-            top level
-          </button>
-          <button onClick={() => setMoving(null)} className="text-muted hover:text-rust">
-            cancel
-          </button>
-        </div>
-      )}
+            onAdd={(value) => act({ action: 'add', parent: path.slice(0, depth), value })}
+          />
+        ))}
+      </div>
 
-      <Level
-        nodes={tree}
-        parent={[]}
-        depth={0}
-        counts={counts}
-        busy={busy}
-        call={call}
-        moving={moving}
-        setMoving={setMoving}
-        isSelfOrBelow={isSelfOrBelow}
-      />
-
-      <Adder
-        busy={busy}
-        placeholder="add at the top level…"
-        onAdd={(v) => call({ action: 'add', parent: [], value: v })}
-      />
-
-      <p className="mt-4 max-w-prose text-xs text-muted">
-        Order is kept exactly as you set it, at every level — nothing here is sorted
-        alphabetically. Counts appear on the first two levels only: an item records its place in
-        section and shelf, so nothing can yet be filed deeper than that. Renaming, reordering and
-        adding work at any depth; a move that would push filed books to a third level is refused
-        until items carry a full path.
-      </p>
-    </div>
-  );
-}
-
-function Level({
-  nodes,
-  parent,
-  depth,
-  counts,
-  busy,
-  call,
-  moving,
-  setMoving,
-  isSelfOrBelow,
-}: {
-  nodes: TaxonNode[];
-  parent: string[];
-  depth: number;
-  counts: Record<string, number>;
-  busy: boolean;
-  call: PathCall;
-  moving: string[] | null;
-  setMoving: (p: string[] | null) => void;
-  isSelfOrBelow: (p: string[]) => boolean;
-}) {
-  const order = nodes.map((n) => n.name);
-
-  async function nudge(index: number, by: number) {
-    const next = [...order];
-    const to = index + by;
-    if (to < 0 || to >= next.length) return;
-    [next[index], next[to]] = [next[to], next[index]];
-    await call({ action: 'reorder', parent, order: next });
-  }
-
-  return (
-    <ul className={depth ? 'ml-4 border-l border-line pl-3' : ''}>
-      {nodes.map((node, i) => (
-        <NodeRow
-          key={node.name}
-          node={node}
-          path={[...parent, node.name]}
-          index={i}
-          last={i === nodes.length - 1}
-          depth={depth}
-          counts={counts}
-          busy={busy}
-          call={call}
-          moving={moving}
-          setMoving={setMoving}
-          isSelfOrBelow={isSelfOrBelow}
-          nudge={nudge}
-        />
-      ))}
-    </ul>
-  );
-}
-
-function NodeRow({
-  node,
-  path,
-  index,
-  last,
-  depth,
-  counts,
-  busy,
-  call,
-  moving,
-  setMoving,
-  isSelfOrBelow,
-  nudge,
-}: {
-  node: TaxonNode;
-  path: string[];
-  index: number;
-  last: boolean;
-  depth: number;
-  counts: Record<string, number>;
-  busy: boolean;
-  call: PathCall;
-  moving: string[] | null;
-  setMoving: (p: string[] | null) => void;
-  isSelfOrBelow: (p: string[]) => boolean;
-  nudge: (index: number, by: number) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(node.name);
-  const [adding, setAdding] = useState(false);
-
-  const key = path.join('/');
-  const count = counts[key];
-  const children = node.children || [];
-
-  function saveRename() {
-    const v = draft.trim();
-    setEditing(false);
-    if (v && v !== node.name) call({ action: 'rename', path, newValue: v });
-    else setDraft(node.name);
-  }
-
-  function del() {
-    const deep = children.length
-      ? ` and everything under it (${children.length} below)`
-      : '';
-    const items = count ? ` It will be cleared from ${count} item${count === 1 ? '' : 's'}.` : '';
-    if (window.confirm(`Delete “${node.name}”${deep}?${items}`)) call({ action: 'delete', path });
-  }
-
-  const btn = 'text-xs text-muted hover:text-rust disabled:opacity-40';
-
-  return (
-    <li className="py-0.5">
-      <div className="group flex items-center gap-1.5 text-sm">
-        {editing ? (
+      {/* Controls, acting on the selection */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {renaming ? (
           <input
             autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') saveRename();
-              if (e.key === 'Escape') {
-                setEditing(false);
-                setDraft(node.name);
-              }
+              if (e.key === 'Escape') setRenaming(false);
             }}
             onBlur={saveRename}
-            className="flex-1 rounded border border-rust bg-parchment px-1.5 py-0.5"
+            className="rounded border border-rust bg-parchment px-2 py-1 text-sm"
           />
-        ) : (
+        ) : moving ? (
           <>
-            <span className={`flex-1 truncate ${depth === 0 ? 'font-medium' : ''}`}>{node.name}</span>
-            {count !== undefined && <span className="text-xs text-muted">{count}</span>}
-
-            {moving && !isSelfOrBelow(path) && (
-              <button
-                onClick={async () => {
-                  await call({ action: 'move', path: moving, parent: path });
-                  setMoving(null);
-                }}
-                disabled={busy}
-                className="rounded border border-rust px-1.5 text-xs text-rust hover:bg-rust hover:text-white disabled:opacity-40"
-              >
-                here
-              </button>
-            )}
-
-            {!moving && (
-              <span className="flex items-center gap-1.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
-                <button onClick={() => nudge(index, -1)} disabled={busy || index === 0} className={btn} aria-label={`move ${node.name} up`}>
-                  ↑
-                </button>
-                <button onClick={() => nudge(index, 1)} disabled={busy || last} className={btn} aria-label={`move ${node.name} down`}>
-                  ↓
-                </button>
-                <button onClick={() => setAdding((a) => !a)} disabled={busy} className={btn}>
-                  add under
-                </button>
-                <button onClick={() => setMoving(path)} disabled={busy} className={btn}>
-                  move
-                </button>
-                <button onClick={() => setEditing(true)} disabled={busy} className={btn}>
-                  rename
-                </button>
-                <button onClick={del} disabled={busy} className={btn} aria-label={`delete ${node.name}`}>
-                  ✕
-                </button>
-              </span>
+            <span className="text-sm">
+              Moving <strong>{moving[moving.length - 1]}</strong> to{' '}
+              <strong>{path.length ? path.join(' › ') : 'the top level'}</strong>
+            </span>
+            <button
+              onClick={async () => {
+                await act({ action: 'move', path: moving, parent: path });
+                setSelected([...path, moving[moving.length - 1]]);
+                setMoving(null);
+              }}
+              disabled={busy || movingIntoItself}
+              className="rounded-md border border-rust bg-rust px-2 py-1 text-xs text-white disabled:opacity-40"
+            >
+              move here
+            </button>
+            <button onClick={() => setMoving(null)} className="text-xs text-muted hover:text-rust">
+              cancel
+            </button>
+            {movingIntoItself && (
+              <span className="text-xs text-muted">Navigate somewhere outside it.</span>
             )}
           </>
+        ) : node ? (
+          <>
+            <span className="text-sm font-medium">{node.name}</span>
+            <button onClick={() => nudge(-1)} disabled={busy || index <= 0} className={tool}>
+              ↑
+            </button>
+            <button
+              onClick={() => nudge(1)}
+              disabled={busy || index < 0 || index >= siblings.length - 1}
+              className={tool}
+            >
+              ↓
+            </button>
+            <button
+              onClick={() => {
+                setDraft(node.name);
+                setRenaming(true);
+              }}
+              disabled={busy}
+              className={tool}
+            >
+              rename
+            </button>
+            <button onClick={() => setMoving(path)} disabled={busy} className={tool}>
+              move
+            </button>
+            <button onClick={remove} disabled={busy} className={`${tool} hover:border-rust`}>
+              delete
+            </button>
+          </>
+        ) : (
+          <span className="text-sm text-muted">Select an entry to rename, move or reorder it.</span>
         )}
       </div>
 
-      {adding && (
-        <div className="ml-4 border-l border-line pl-3">
-          <Adder
-            busy={busy}
-            placeholder={`add under ${node.name}…`}
-            autoFocus
-            onAdd={async (v) => {
-              await call({ action: 'add', parent: path, value: v });
-              setAdding(false);
-            }}
-          />
-        </div>
-      )}
-
-      {children.length > 0 && (
-        <Level
-          nodes={children}
-          parent={path}
-          depth={depth + 1}
-          counts={counts}
-          busy={busy}
-          call={call}
-          moving={moving}
-          setMoving={setMoving}
-          isSelfOrBelow={isSelfOrBelow}
-        />
-      )}
-    </li>
+      <p className="mt-3 max-w-prose text-xs text-muted">
+        Order is kept exactly as you set it, at every level — nothing here is sorted alphabetically.
+        Counts appear on the first two levels only: an item records its place in section and shelf,
+        so nothing can yet be filed deeper. A move that would push filed books to a third level is
+        refused until items carry a full path.
+      </p>
+    </div>
   );
 }
 
-function Adder({
+function Column({
+  nodes,
+  parent,
+  selectedName,
+  counts,
   busy,
-  placeholder,
-  autoFocus,
+  onSelect,
   onAdd,
 }: {
+  nodes: TaxonNode[];
+  parent: string[];
+  selectedName?: string;
+  counts: Record<string, number>;
   busy: boolean;
-  placeholder: string;
-  autoFocus?: boolean;
-  onAdd: (v: string) => void;
+  onSelect: (name: string) => void;
+  onAdd: (value: string) => void;
 }) {
   const [draft, setDraft] = useState('');
+
   function add() {
     const v = draft.trim();
     if (v) onAdd(v);
     setDraft('');
   }
+
   return (
-    <div className="mt-2 flex gap-1">
-      <input
-        autoFocus={autoFocus}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            add();
-          }
-        }}
-        placeholder={placeholder}
-        className="flex-1 rounded border border-line bg-parchment px-2 py-1 text-sm outline-none focus:border-rust"
-      />
-      <button onClick={add} disabled={busy} className="rounded bg-rust px-3 py-1 text-sm text-white disabled:opacity-50">
-        add
-      </button>
+    <div className="flex w-56 shrink-0 flex-col bg-card">
+      <ul className="flex-1 overflow-y-auto py-1">
+        {nodes.map((n) => {
+          const count = counts[[...parent, n.name].join('/')];
+          const active = n.name === selectedName;
+          return (
+            <li key={n.name}>
+              <button
+                onClick={() => onSelect(n.name)}
+                className={`flex w-full items-center gap-1.5 px-2 py-1 text-left text-sm ${
+                  active ? 'bg-rust text-white' : 'hover:bg-parchment'
+                }`}
+              >
+                <span className="flex-1 truncate">{n.name}</span>
+                {count !== undefined && (
+                  <span className={`text-xs ${active ? 'text-white/70' : 'text-muted'}`}>{count}</span>
+                )}
+                <span className={`text-xs ${active ? 'text-white/70' : 'text-muted'}`}>
+                  {n.children?.length ? '›' : ''}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+        {!nodes.length && <li className="px-2 py-1 text-xs text-muted">Nothing here yet.</li>}
+      </ul>
+      <div className="border-t border-line p-1">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              add();
+            }
+          }}
+          disabled={busy}
+          placeholder="add…"
+          className="w-full rounded border border-line bg-parchment px-1.5 py-1 text-xs outline-none focus:border-rust"
+        />
+      </div>
     </div>
   );
 }
