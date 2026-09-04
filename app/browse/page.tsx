@@ -95,6 +95,16 @@ export default async function Browse({
 
       <div className="mt-3">
         <Catalog
+          // Remount when the URL parameters change.
+          //
+          // Catalog reads initialSection/initialQ/initialShelf in a mount-only
+          // effect. Clicking a shelf chip is a client-side navigation to the same
+          // route, so React keeps the component mounted, the new props arrive and
+          // nothing reads them — the chip highlighted, the count stayed at the
+          // section total, and the cards never filtered. Keying on the params
+          // forces a fresh mount, and view/sort survive because those are read
+          // from sessionStorage on mount rather than from props.
+          key={`${section ?? ''}|${shelf ?? ''}|${searchParams.q ?? ''}`}
           items={items.map(forBrowsing)}
           initialSection={section}
           initialQ={searchParams.q}

@@ -1,12 +1,16 @@
 import Link from 'next/link';
 import { getVisibleItems } from '@/lib/data';
+import { getVocab } from '@/lib/vocab';
 import { orderedSections, isMaine } from '@/lib/sections';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const items = await getVisibleItems();
-  const sections = orderedSections(items);
+  const vocab = await getVocab();
+  // Ordered by the vocabulary rather than alphabetically, so the sequence here
+  // is the one you set in /admin/vocab.
+  const sections = orderedSections(items, vocab.sections);
   const maineCount = items.filter(isMaine).length;
 
   return (
