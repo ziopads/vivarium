@@ -1,18 +1,29 @@
 import fs from 'fs';
 import path from 'path';
-import { SECTIONS } from './sections';
 import { getSupabase } from './supabase';
 import { dataSource } from './data';
 import { PUBLICABLE_FIELDS, NEVER_PUBLIC_FIELDS, DEFAULT_PUBLIC_FIELDS } from './fieldVisibility';
+import {
+  sanitizeTree,
+  treeFromLegacy,
+  sectionsFromTree,
+  shelvesBySectionFromTree,
+  type TaxonNode,
+} from './taxonomy';
 
-// Server-only. Shelves are now scoped to their section (shelvesBySection), so
-// e.g. "Maine" under Art and "Maine" under Regions/Cultures are distinct, and
-// "Martial Arts" lives only under Physical Culture & Sports. Genres/subjects
-// stay flat (they're cross-cutting).
+// Server-only. `tree` is the classification: one ordered, arbitrarily deep tree
+// of names (see lib/taxonomy.ts). `sections` and `shelvesBySection` are DERIVED
+// from its first two levels and are not independently editable — they exist so
+// the surfaces still written against section/shelf keep working while they are
+// moved over. Genres stay flat, being cross-cutting.
 export type VocabKind = 'sections' | 'genres' | 'shelves';
 export type Vocab = {
+  /** The classification tree. The stored source of truth for section and shelf. */
+  tree: TaxonNode[];
+  /** Derived: top-level node names, in tree order. Do not edit directly. */
   sections: string[];
   genres: string[];
+  /** Derived: each top-level node's children, in tree order. Do not edit directly. */
   shelvesBySection: Record<string, string[]>;
   /** Attribute keys currently exposed to the public tier. A subset of
    *  PUBLICABLE_FIELDS; edited in /admin/vocab; read by publicView at request
@@ -48,7 +59,8 @@ function vocabFile(): string {
 }
 
 const DEFAULTS: Vocab = {
-  sections: [...SECTIONS],
+  tree: [],
+  sections: [],
   genres: [],
   shelvesBySection: {},
   publicFields: [...DEFAULT_PUBLIC_FIELDS],
@@ -72,37 +84,49 @@ function cleanPublicFields(raw: any): string[] {
 const byName = (a: string, b: string) => a.localeCompare(b);
 
 /**
- * Alphabetise sections, genres, and every shelf list (plus the shelvesBySection
- * keys themselves, so the admin editor's section picker matches the sections panel).
+ * Genres are alphabetised; the tree is left exactly as stored.
  *
- * Storage order is insertion order — /api/vocab appends with push — which put newly
- * added sections at the bottom of every dropdown in the app. Rather than sort at each
- * of the many render sites, sorting happens here, on the way in and on the way out:
- * normalize() covers every read (Supabase and file alike), writeVocab covers every
- * write so the persisted JSON stays tidy too.
+ * This function used to sort sections and every shelf list as well, on the way
+ * in and on the way out. That made curated order impossible — whatever order the
+ * vocabulary was saved in, every read handed back an alphabetical one, so the
+ * ordering the landing page believed it was applying had nothing to apply. The
+ * tree exists to hold an order chosen deliberately, so nothing here may reorder
+ * it, and the derived section and shelf lists inherit that order.
  *
- * publicFields is deliberately left alone — it is an allowlist, not a menu, and its
- * order is never shown to anyone.
+ * publicFields is left alone too: an allowlist, not a menu, and its order is
+ * never shown to anyone.
  */
-export function sortVocab(v: Vocab): Vocab {
-  const shelvesBySection: Record<string, string[]> = {};
-  for (const key of Object.keys(v.shelvesBySection).sort(byName)) {
-    shelvesBySection[key] = [...(v.shelvesBySection[key] || [])].sort(byName);
-  }
+export function tidyVocab(v: Vocab): Vocab {
+  const tree = sanitizeTree(v.tree);
   return {
     ...v,
-    sections: [...v.sections].sort(byName),
+    tree,
+    sections: sectionsFromTree(tree),
+    shelvesBySection: shelvesBySectionFromTree(tree),
     genres: [...v.genres].sort(byName),
-    shelvesBySection,
   };
 }
 
+/**
+ * A vocabulary saved before the tree existed carries sections and
+ * shelvesBySection and no tree. The first read builds one from them, in the
+ * order they were stored, and from then on the tree is what is read and written.
+ * Nothing is invented: the tree starts exactly two levels deep, matching what
+ * was there.
+ */
 function normalize(raw: any): Vocab {
-  return sortVocab({
-    sections: Array.isArray(raw?.sections) ? raw.sections : [...SECTIONS],
+  const stored = sanitizeTree(raw?.tree);
+  const tree = stored.length
+    ? stored
+    : treeFromLegacy(
+        Array.isArray(raw?.sections) ? raw.sections : [],
+        raw?.shelvesBySection && typeof raw.shelvesBySection === 'object' ? raw.shelvesBySection : {},
+      );
+  return tidyVocab({
+    tree,
+    sections: [],
     genres: Array.isArray(raw?.genres) ? raw.genres : [],
-    shelvesBySection:
-      raw?.shelvesBySection && typeof raw.shelvesBySection === 'object' ? raw.shelvesBySection : {},
+    shelvesBySection: {},
     publicFields: cleanPublicFields(raw?.publicFields),
   });
 }
@@ -133,12 +157,15 @@ export async function getVocab(): Promise<Vocab> {
 }
 
 export async function writeVocab(v: Vocab): Promise<void> {
-  const sorted = sortVocab(v);
+  // The derived mirrors are persisted alongside the tree, not because anything
+  // reads them back — normalize rebuilds them — but so a rollback to a build that
+  // predates the tree still finds the sections and shelves where it expects them.
+  const tidy = tidyVocab(v);
   if (dataSource().mode === 'supabase') {
     const sb = getSupabase()!;
-    const { error } = await sb.from('vocab').upsert({ id: 1, data: sorted }, { onConflict: 'id' });
+    const { error } = await sb.from('vocab').upsert({ id: 1, data: tidy }, { onConflict: 'id' });
     if (error) throw new Error(`Supabase writeVocab: ${error.message}`);
     return;
   }
-  fs.writeFileSync(vocabFile(), JSON.stringify(sorted, null, 2));
+  fs.writeFileSync(vocabFile(), JSON.stringify(tidy, null, 2));
 }

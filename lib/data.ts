@@ -66,8 +66,8 @@ export function dataSource(): DataSource {
 // else lives in the JSONB `attributes` bag.
 // ---------------------------------------------------------------------------
 const COLUMN_KEYS = new Set([
-  'id', 'itemType', 'title', 'author', 'year', 'section', 'shelf', 'genres',
-  'subjects', 'places', 'visibility', 'owner', 'signed', 'maine', 'cover',
+  'id', 'itemType', 'title', 'author', 'year', 'classification', 'section', 'shelf',
+  'genres', 'subjects', 'places', 'visibility', 'owner', 'signed', 'maine', 'cover',
   'copyright', 'image', 'images', 'description', 'discussion',
 ]);
 
@@ -84,6 +84,9 @@ function itemToRow(it: Item): Row {
     title: it.title || '',
     author: it.author || '',
     year: it.year || '',
+    // Written from the validated item, where section and shelf have already been
+    // reconciled against the path, so the three can never disagree in a row.
+    classification: it.classification || null,
     section: it.section || null,
     shelf: it.shelf || null,
     genres: it.genres || [],
@@ -116,6 +119,7 @@ function rowToItem(row: Row): Item {
     title: row.title || '',
     author: row.author || '',
     year: row.year || '',
+    classification: row.classification || '',
     section: row.section || '',
     shelf: row.shelf || '',
     genres: row.genres || [],
@@ -281,11 +285,20 @@ export async function writeLocalItems(items: Item[]): Promise<void> {
 // the two must agree.
 const ITEM_TO_COLUMN: Record<string, string> = {
   itemType: 'item_type', title: 'title', author: 'author', year: 'year',
-  section: 'section', shelf: 'shelf', genres: 'genres', subjects: 'subjects',
+  classification: 'classification', section: 'section', shelf: 'shelf',
+  genres: 'genres', subjects: 'subjects',
   places: 'places', visibility: 'visibility', owner: 'owner', signed: 'signed',
   maine: 'maine', cover: 'cover', copyright: 'copyright', image: 'image',
   images: 'images', description: 'description', discussion: 'discussion',
 };
+
+/**
+ * The three columns that record where an item is filed. They are written as a
+ * set or not at all: `classification` is the path, `section` and `shelf` are its
+ * first two segments, and validateItem reconciles them. Writing one without the
+ * others is what would let them drift.
+ */
+const FILING_COLUMNS = ['classification', 'section', 'shelf'];
 
 /**
  * Apply a partial patch to one item. Returns the updated item, or null when no
@@ -307,22 +320,27 @@ export async function updateItem(id: number, patch: Record<string, any>): Promis
 
   const touchesAttributes = keys.some((k) => !ITEM_TO_COLUMN[k]);
 
+  // A patch naming section or shelf without a path cannot be resolved from the
+  // patch alone: `{ shelf: 'Poetry' }` says nothing about which section it sits
+  // under, and the fast path never reads the record. Reading it is the only way
+  // to rebuild the full path, so such a patch takes the slow path. A patch that
+  // carries `classification` is self-contained and stays on the fast one.
+  const partialFiling =
+    !keys.includes('classification') && (keys.includes('section') || keys.includes('shelf'));
+
+  // Whatever the patch named, all three filing columns are written together.
+  const columnsFor = (named: string[]) =>
+    named.some((k) => FILING_COLUMNS.includes(k))
+      ? Array.from(new Set([...named, ...FILING_COLUMNS]))
+      : named;
+
   if (dataSource().mode === 'supabase') {
     const sb = getSupabase()!;
 
-    // Fast path: the patch names only typed columns, so nothing in the JSONB
-    // tail is being rewritten and the current record is not needed. One UPDATE,
-    // no read. This covers section, shelf, genres, subjects, places, owner,
-    // title and author — which is the whole shelving loop.
-    //
-    // validateItem still does the normalizing, fed a stub rather than the real
-    // record: it fills defaults for every field the patch didn't name, and we
-    // read back only the ones it did. That keeps one set of rules rather than a
-    // second copy here that could drift from it.
-    if (!touchesAttributes) {
+    if (!touchesAttributes && !partialFiling) {
       const row = itemToRow(validateItem({ id, ...patch }));
       const update: Row = { updated_at: row.updated_at };
-      for (const k of keys) update[ITEM_TO_COLUMN[k]] = row[ITEM_TO_COLUMN[k]];
+      for (const k of columnsFor(keys)) update[ITEM_TO_COLUMN[k]] = row[ITEM_TO_COLUMN[k]];
 
       const { data, error } = await sb
         .from('items')
@@ -338,11 +356,19 @@ export async function updateItem(id: number, patch: Record<string, any>): Promis
     if (error) throw new Error(`Supabase updateItem read: ${error.message}`);
     if (!data) return null;
 
-    const merged = validateItem({ ...rowToItem(data), ...patch, id });
+    const current = rowToItem(data);
+    // The path is rebuilt from the merged section and shelf rather than carried
+    // over from the record, which would otherwise win in validateItem and revert
+    // the very field the patch was setting.
+    const merged = validateItem(
+      partialFiling
+        ? { ...current, ...patch, id, classification: '' }
+        : { ...current, ...patch, id },
+    );
     const row = itemToRow(merged);
 
     const update: Row = { updated_at: row.updated_at, attributes: row.attributes };
-    for (const k of keys) {
+    for (const k of columnsFor(keys)) {
       const col = ITEM_TO_COLUMN[k];
       if (col) update[col] = row[col];
     }
@@ -355,7 +381,11 @@ export async function updateItem(id: number, patch: Record<string, any>): Promis
   const items = await readLocalItems();
   const idx = items.findIndex((i) => i.id === id);
   if (idx === -1) return null;
-  const merged = validateItem({ ...items[idx], ...patch, id });
+  const merged = validateItem(
+    partialFiling
+      ? { ...items[idx], ...patch, id, classification: '' }
+      : { ...items[idx], ...patch, id },
+  );
   items[idx] = merged;
   // Local mode has no row granularity — the file is the row. Still one write.
   await writeLocalItems(items);
@@ -451,11 +481,24 @@ export async function setColumns(
     throw new Error(`setColumns: ${bad.join(', ')} are not typed columns — use updateItems`);
   }
 
+  // Every selected row gets the same value here, so a filing change has to be a
+  // complete path. `{ section: 'X' }` across a selection would mean rebuilding a
+  // path per row from each row's own shelf, which is what updateItems is for.
+  if ((keys.includes('section') || keys.includes('shelf')) && !keys.includes('classification')) {
+    throw new Error(
+      'setColumns: filing a selection needs `classification`, the full path — ' +
+        'section and shelf are derived from it',
+    );
+  }
+
   if (dataSource().mode === 'supabase') {
     const sb = getSupabase()!;
     const row = itemToRow(validateItem({ id: 0, ...patch }));
     const update: Row = { updated_at: new Date().toISOString() };
-    for (const k of keys) update[ITEM_TO_COLUMN[k]] = row[ITEM_TO_COLUMN[k]];
+    const write = keys.some((k) => FILING_COLUMNS.includes(k))
+      ? Array.from(new Set([...keys, ...FILING_COLUMNS]))
+      : keys;
+    for (const k of write) update[ITEM_TO_COLUMN[k]] = row[ITEM_TO_COLUMN[k]];
 
     let changed = 0;
     for (let i = 0; i < unique.length; i += 200) {

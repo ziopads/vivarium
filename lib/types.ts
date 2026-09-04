@@ -16,6 +16,7 @@ export type Item = {
   signed: boolean;
   inscription: string;
   genres: string[];
+  /** Derived from `classification` — its second segment. Do not write independently. */
   shelf: string;
   images: {
     /** Identity/key. Legacy books: "000042/01-cover", resolved as
@@ -48,6 +49,17 @@ export type Item = {
   image: string | null;
   cover?: string;
   copyright?: string;
+  /**
+   * Where the record is filed: the full path into the classification tree,
+   * separator-joined — `History & Place/Americas/Maine & New England`.
+   *
+   * THIS IS THE AUTHORITATIVE FIELD. `section` and `shelf` below are its first
+   * two segments, kept as columns so the surfaces written against them keep
+   * working, and rewritten from the path on every save. When a write supplies
+   * both and they disagree, the path wins. A record with no path is unfiled.
+   */
+  classification?: string;
+  /** Derived from `classification`. Do not write independently. */
   section?: string;
   visibility?: string;
   maine?: boolean;

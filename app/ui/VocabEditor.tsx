@@ -1,13 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+import TreeEditor from './TreeEditor';
+import type { TaxonNode } from '@/lib/taxonomy';
 
-type Vocab = { sections: string[]; genres: string[]; shelvesBySection: Record<string, string[]> };
-type Kind = 'sections' | 'genres' | 'shelves';
+type Vocab = {
+  tree: TaxonNode[];
+  sections: string[];
+  genres: string[];
+  shelvesBySection: Record<string, string[]>;
+};
+type Kind = 'sections' | 'genres' | 'shelves' | 'path';
 type Counts = {
   sections: Record<string, number>;
   genres: Record<string, number>;
   shelvesBySection: Record<string, Record<string, number>>;
+  /** Item counts keyed by joined path — populated for the first two levels. */
+  byPath: Record<string, number>;
 };
 
 export default function VocabEditor({
@@ -22,16 +31,15 @@ export default function VocabEditor({
   const [vocab, setVocab] = useState<Vocab>(initial);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
-  const [activeSection, setActiveSection] = useState(initial.sections[0] || '');
 
-  async function call(kind: Kind, action: 'add' | 'rename' | 'delete', value: string, newValue?: string, section?: string) {
+  async function post(body: Record<string, unknown>) {
     setBusy(true);
     setMsg('');
     try {
       const res = await fetch('/api/vocab', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind, action, value, newValue, section }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -40,57 +48,38 @@ export default function VocabEditor({
       }
       setVocab(data.vocab);
       if (data.affected) {
-        setMsg(
-          `${action === 'rename' ? 'Renamed' : 'Cleared'} — ${data.affected} item${data.affected === 1 ? '' : 's'} updated.`,
-        );
+        setMsg(`${data.affected} item${data.affected === 1 ? '' : 's'} updated.`);
       }
     } finally {
       setBusy(false);
     }
   }
 
-  const shelves = (vocab.shelvesBySection[activeSection] || []).slice().sort((a, b) => a.localeCompare(b));
-  const shelfCounts = counts.shelvesBySection[activeSection] || {};
+  async function call(
+    kind: Kind,
+    action: 'add' | 'rename' | 'delete',
+    value: string,
+    newValue?: string,
+    section?: string,
+  ) {
+    await post({ kind, action, value, newValue, section });
+  }
 
   return (
     <div className="mt-6">
       {msg && <p className="mb-3 text-sm text-moss">{msg}</p>}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Panel title="Sections" count={vocab.sections.length}>
-          <List
-            values={vocab.sections}
-            counts={counts.sections}
-            busy={busy}
-            onRename={(v, nv) => call('sections', 'rename', v, nv)}
-            onDelete={(v) => call('sections', 'delete', v)}
-          />
-          <Adder busy={busy} placeholder="add section…" onAdd={(v) => call('sections', 'add', v)} />
-        </Panel>
-
-        <Panel title="Shelves">
-          <label className="mb-3 block text-sm">
-            <span className="mb-1 block text-muted">within section</span>
-            <select
-              value={activeSection}
-              onChange={(e) => setActiveSection(e.target.value)}
-              className="w-full rounded border border-line bg-parchment px-2 py-1 text-sm"
-            >
-              {vocab.sections.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </label>
-          <List
-            values={shelves}
-            counts={shelfCounts}
-            busy={busy}
-            empty="No shelves in this section yet."
-            onRename={(v, nv) => call('shelves', 'rename', v, nv, activeSection)}
-            onDelete={(v) => call('shelves', 'delete', v, undefined, activeSection)}
-          />
-          <Adder busy={busy} placeholder="add shelf…" onAdd={(v) => call('shelves', 'add', v, undefined, activeSection)} />
-        </Panel>
+        <div className="lg:col-span-2">
+          <Panel title="Classification">
+            <TreeEditor
+              tree={vocab.tree}
+              counts={counts.byPath}
+              busy={busy}
+              call={(body) => post({ kind: 'path', ...body })}
+            />
+          </Panel>
+        </div>
 
         <Panel title="Genres" count={vocab.genres.length}>
           <List

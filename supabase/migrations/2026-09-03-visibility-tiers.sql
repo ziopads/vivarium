@@ -1,8 +1,10 @@
 -- 2026-09-03 — visibility becomes three tiers
 --
--- Applied to: library (ziopads) 2026-09-03. NOT YET APPLIED to the Tamplin
--- catalogue raisonné, which runs the same codebase against its own Supabase
--- project under a separate login.
+-- Applied to: library (ziopads) 2026-09-03 — 30 records moved from 'restricted'
+-- to 'admin'. NOT YET APPLIED to the Tamplin catalogue raisonné
+-- (valerietamplin.com), which runs the same codebase against its own Supabase
+-- project under a separate login. See supabase/migrations/README.md for the
+-- instance table. Run this one BEFORE 2026-09-04-item-classification.sql.
 --
 -- WHAT CHANGES
 --

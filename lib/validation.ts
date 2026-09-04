@@ -1,5 +1,6 @@
 import type { Item } from './types';
 import { normalizeVisibility } from './visibility';
+import { formatPath, parsePath } from './taxonomy';
 
 // Write-boundary normalization. Coerces an item to the canonical shape so the
 // flexible JSONB tail can't drift: consistent types, trimmed strings, clamped
@@ -64,6 +65,25 @@ export function validateItem(raw: any): Item {
         })
     : [];
   if (raw.section != null) it.section = s(raw.section);
+
+  // Filing. `classification` is the record's path into the tree and is the
+  // authoritative field; `section` and `shelf` are its first two segments.
+  //
+  // Both directions are handled here so there is one rule rather than one per
+  // caller. A record that has a path gets its section and shelf rewritten from
+  // it, which is what makes the path win when a write supplies both and they
+  // disagree. A record with no path — every record that predates the column, and
+  // anything still saving section and shelf directly — gets one built from them,
+  // so the column fills in as records are touched rather than needing every
+  // write site converted at once.
+  const declared = parsePath(raw.classification);
+  if (declared.length) {
+    it.classification = formatPath(declared);
+    it.section = declared[0];
+    it.shelf = declared[1] || '';
+  } else {
+    it.classification = formatPath([s(it.section), s(it.shelf)]);
+  }
   if (raw.discussion != null) it.discussion = s(raw.discussion);
   if (raw.cover != null) it.cover = s(raw.cover);
   if (raw.copyright != null) it.copyright = s(raw.copyright);

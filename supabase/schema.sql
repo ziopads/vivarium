@@ -14,6 +14,7 @@ create table if not exists items (
   title       text        not null,
   author      text        not null default '',   -- author / artist / maker
   year        text        not null default '',
+  classification text,                           -- full path; section/shelf derive from it
   section     text,
   shelf       text,
   genres      text[]      not null default '{}',
@@ -33,6 +34,12 @@ create table if not exists items (
                                                          -- condition, location, frame
                                                          -- dimensions, music fields, …
   updated_at  timestamptz not null default now(),
+  -- Filing. `classification` is the record's path into the classification tree
+  -- (supabase vocab.data->'tree'), separator-joined:
+  -- 'History & Place/Americas/Maine & New England'. It is AUTHORITATIVE;
+  -- `section` and `shelf` hold its first two segments and are rewritten from it
+  -- on every save. They remain columns because much of the app still reads them,
+  -- and because a two-segment path is the common case worth indexing.
   -- Three tiers, ordered: public → anyone through the site gate; signed_in → a
   -- viewer with a session (labelled "Restricted" in the UI); admin → admins only
   -- (labelled "Private"). The STORED values name who reaches a record and are
@@ -44,6 +51,10 @@ create table if not exists items (
 create index if not exists items_item_type_idx  on items (item_type);
 create index if not exists items_section_idx     on items (section);
 create index if not exists items_visibility_idx  on items (visibility);
+-- text_pattern_ops so `classification LIKE 'History & Place/%'` — the query every
+-- telescoping column and every subtree count makes — uses the index. A plain
+-- btree here would only serve equality.
+create index if not exists items_classification_idx on items (classification text_pattern_ops);
 
 create table if not exists vocab (
   id   int  primary key default 1,
