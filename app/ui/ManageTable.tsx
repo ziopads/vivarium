@@ -6,11 +6,60 @@ import Link from 'next/link';
 type Row = {
   id: number;
   title: string;
+  /** Thumb-tier URL, resolved server-side. Empty when the record has no image. */
+  thumb: string;
   section: string;
   shelf: string;
   genres: string[];
   subjects: string[];
 };
+
+/**
+ * Row thumbnail.
+ *
+ * `loading="lazy"` is not decoration here. This table renders every record in
+ * the catalogue at once with no virtualization, so without it the page would
+ * open seventeen hundred image requests on load. Lazy loading holds that to
+ * what is actually scrolled past.
+ *
+ * The box keeps its dimensions whether or not an image loads, so rows do not
+ * change height as thumbnails arrive and the list does not jump under the
+ * cursor while you are working down it.
+ *
+ * Hover enlarges via a sibling absolutely-positioned copy rather than by
+ * scaling the cell, which would reflow the row.
+ */
+function Thumb({ src, title }: { src: string; title: string }) {
+  if (!src) {
+    return (
+      <div
+        className="flex h-16 w-12 items-center justify-center rounded border border-dashed border-line text-[10px] text-muted"
+        title="No photograph"
+      >
+        —
+      </div>
+    );
+  }
+  return (
+    <div className="group/th relative h-16 w-12">
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="h-16 w-12 rounded border border-line bg-parchment object-cover"
+      />
+      <img
+        src={src}
+        alt={title}
+        loading="lazy"
+        decoding="async"
+        className="pointer-events-none absolute left-0 top-0 z-30 hidden max-w-none rounded border border-line bg-parchment object-contain shadow-lg group-hover/th:block"
+        style={{ width: '13rem', height: 'auto' }}
+      />
+    </div>
+  );
+}
 
 // Shelves available for a section, always including the row's current shelf.
 function shelfOptions(sbs: Record<string, string[]>, section: string, current: string): string[] {
@@ -371,6 +420,7 @@ export default function ManageTable({
               <th className="w-8 px-2 py-2">
                 <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} aria-label="select all" />
               </th>
+              <th className="w-16 px-2 py-2">Cover</th>
               <th className="px-2 py-2">Title</th>
               <th className="px-2 py-2">Section</th>
               <th className="px-2 py-2">Shelf</th>
@@ -430,6 +480,11 @@ function ManageRow({
           />
         </td>
         <td className="px-2 py-2 align-top">
+          <Link href={`/items/${r.id}`}>
+            <Thumb src={r.thumb} title={r.title} />
+          </Link>
+        </td>
+        <td className="px-2 py-2 align-top">
           <Link href={`/items/${r.id}`} className="text-rust hover:underline">{r.title}</Link>
           <span className="ml-2 font-mono text-[10px] text-muted">#{String(r.id).padStart(6, '0')}</span>
         </td>
@@ -468,7 +523,7 @@ function ManageRow({
       {expanded && (
         <tr className="border-t border-line bg-parchment">
           <td />
-          <td colSpan={4} className="px-2 py-3">
+          <td colSpan={5} className="px-2 py-3">
             <div className="grid gap-4 sm:grid-cols-2">
               <Chips
                 label="Genres"
