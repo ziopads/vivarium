@@ -7,6 +7,21 @@ import CatalogList from './CatalogList';
 import { sectionOf, isMaine } from '@/lib/sections';
 import { coverImage, imageUrl } from '@/lib/img';
 import { needsWriteup } from '@/lib/writeup';
+import { normalizeVisibility, VISIBILITY_LABEL, VISIBILITY_MARK } from '@/lib/visibility';
+
+/** Nothing for a public record — the badge marks the exception, not the rule. */
+function VisBadge({ v }: { v?: string }) {
+  const vis = normalizeVisibility(v);
+  if (vis === 'public') return null;
+  return (
+    <span
+      className="rounded-full bg-moss/10 px-2 py-0.5 text-xs text-moss"
+      title={VISIBILITY_LABEL[vis]}
+    >
+      {VISIBILITY_MARK[vis]}
+    </span>
+  );
+}
 
 function spineColor(seed: string) {
   let h = 0;
@@ -312,16 +327,12 @@ export default function Catalog({
                 <p className="font-mono text-[10px] text-muted">#{String(i.id).padStart(6, '0')}</p>
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-serif text-lg leading-snug">{i.title}</h3>
-                  {(i.signed || i.visibility === 'restricted') && (
-                    <span className="flex shrink-0 gap-1">
-                      {i.signed && (
-                        <span className="rounded-full bg-rust/10 px-2 py-0.5 text-xs text-rust">signed</span>
-                      )}
-                      {i.visibility === 'restricted' && (
-                        <span className="rounded-full bg-moss/10 px-2 py-0.5 text-xs text-moss" title="Private">🔒</span>
-                      )}
-                    </span>
-                  )}
+                  <span className="flex shrink-0 gap-1">
+                    {i.signed && (
+                      <span className="rounded-full bg-rust/10 px-2 py-0.5 text-xs text-rust">signed</span>
+                    )}
+                    <VisBadge v={i.visibility} />
+                  </span>
                 </div>
                 {i.author && <p className="mt-1 text-sm text-muted">{i.author}</p>}
                 <p className="mt-1 text-xs text-muted">{[i.publisher, i.year].filter(Boolean).join(' · ')}</p>

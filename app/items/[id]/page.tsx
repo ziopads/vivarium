@@ -16,6 +16,7 @@ import EditMode from '@/app/ui/EditMode';
 import { typeFields } from '@/lib/itemTypes';
 import { getVocab, flatShelves } from '@/lib/vocab';
 import { publicView } from '@/lib/fieldVisibility';
+import { canView, normalizeVisibility, VISIBILITY_LABEL, VISIBILITY_MARK } from '@/lib/visibility';
 
 // Render on-demand so a cover change (writing items.json) shows up on refresh.
 export const dynamic = 'force-dynamic';
@@ -25,7 +26,10 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
   if (!item) notFound();
 
   const viewer = await getViewer();
-  if (item.visibility === 'restricted' && !viewer.isAdmin) notFound();
+  // A record above the viewer's tier is 404, not 403: telling someone a book
+  // exists but is closed to them is itself a disclosure.
+  if (!canView(item, viewer)) notFound();
+  const vis = normalizeVisibility(item.visibility);
 
   const vocab = await getVocab();
 
@@ -96,9 +100,9 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
           Signed / inscribed
         </p>
       )}
-      {item.visibility === 'restricted' && (
+      {vis !== 'public' && (
         <p className="mt-3 ml-2 inline-block rounded-full bg-moss/10 px-3 py-1 text-sm text-moss">
-          🔒 Private
+          {VISIBILITY_MARK[vis]} {VISIBILITY_LABEL[vis]}
         </p>
       )}
 

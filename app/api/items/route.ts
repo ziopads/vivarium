@@ -3,14 +3,18 @@ import { getItems } from '@/lib/data';
 import { getVocab } from '@/lib/vocab';
 import { getViewer } from '@/lib/auth';
 import { publicView } from '@/lib/fieldVisibility';
+import { canView } from '@/lib/visibility';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/items?q=&type=&subject=&place=  (read-only)
 //
-// Field visibility is enforced HERE, on the server, before serialization.
-// Admins get full records; everyone else gets publicView-stripped ones, so the
-// wire never carries prices to the public tier no matter what the client does.
+// TWO separate filters, and they were not both here. Field visibility — admins
+// get full records, everyone else gets publicView-stripped ones — was enforced,
+// so prices never crossed the wire. But the RECORD SET was not: this route calls
+// getItems() rather than getVisibleItems(), so a restricted book's id, title and
+// author were served to anyone, stripped but present. The tier check below is
+// the fix, and it is why /browse and this endpoint now agree about what exists.
 export async function GET(req: Request) {
   const [items, viewer] = await Promise.all([getItems(), getViewer()]);
   const { searchParams } = new URL(req.url);
@@ -20,6 +24,7 @@ export async function GET(req: Request) {
   const place = searchParams.get('place');
 
   const result = items.filter((i) => {
+    if (!canView(i, viewer)) return false;
     if (q) {
       const hay =
         `${i.title} ${i.author} ${i.publisher} ${i.subjects.join(' ')} ${i.places.join(' ')}`.toLowerCase();

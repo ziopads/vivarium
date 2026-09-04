@@ -1,4 +1,5 @@
 import type { Item } from './types';
+import { normalizeVisibility } from './visibility';
 
 // Write-boundary normalization. Coerces an item to the canonical shape so the
 // flexible JSONB tail can't drift: consistent types, trimmed strings, clamped
@@ -32,7 +33,7 @@ export function validateItem(raw: any): Item {
   it.genres = sArr(raw.genres);
   it.subjects = sArr(raw.subjects);
   it.places = sArr(raw.places);
-  it.visibility = raw.visibility === 'restricted' ? 'restricted' : 'public';
+  it.visibility = normalizeVisibility(raw.visibility);
   it.owner = s(raw.owner);
   it.signed = !!raw.signed;
   it.maine = !!raw.maine;

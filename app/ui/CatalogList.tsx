@@ -6,6 +6,13 @@ import type { Item } from '@/lib/types';
 import { CONDITIONS } from '@/lib/sections';
 import { coverImage, imageUrl } from '@/lib/img';
 import { needsWriteup } from '@/lib/writeup';
+import {
+  VISIBILITY,
+  VISIBILITY_LABEL,
+  VISIBILITY_MARK,
+  normalizeVisibility,
+  type Visibility,
+} from '@/lib/visibility';
 
 /**
  * Row thumbnail. Lives inside the sticky Title column deliberately: the Section
@@ -92,8 +99,51 @@ function LazySelect({
 
 type Row = Item;
 type Patch = Partial<
-  Pick<Item, 'section' | 'shelf' | 'genres' | 'subjects' | 'location' | 'notes' | 'condition' | 'conditionNotes'>
+  Pick<
+    Item,
+    | 'section'
+    | 'shelf'
+    | 'genres'
+    | 'subjects'
+    | 'location'
+    | 'notes'
+    | 'condition'
+    | 'conditionNotes'
+    | 'visibility'
+  >
 >;
+
+/**
+ * Visibility cell control.
+ *
+ * A plain <select> rather than the LazySelect used for section and shelf. That
+ * one always offers "— none —", and a record always has a tier, so an empty
+ * option here would be a way to write a value that means nothing. Three options
+ * is also well under the count that made deferred building worth it.
+ */
+function VisSelect({
+  value,
+  onChange,
+  className,
+}: {
+  value: Visibility;
+  onChange: (v: Visibility) => void;
+  className?: string;
+}) {
+  return (
+    <select
+      value={value}
+      className={className}
+      onChange={(e) => onChange(e.target.value as Visibility)}
+    >
+      {VISIBILITY.map((v) => (
+        <option key={v} value={v}>
+          {VISIBILITY_LABEL[v]}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 // Shelves for a section (alphabetized), always including the row's current shelf.
 function shelfOpts(sbs: Record<string, string[]>, section: string, current: string): string[] {
@@ -126,7 +176,11 @@ function HoverEdit({
   display,
   children,
 }: {
-  display: string;
+  // ReactNode rather than string so a cell can colour its own resting value —
+  // the visibility column sets the two closed tiers in the accent. An element is
+  // always truthy, so such a cell never falls through to the em-dash below,
+  // which is right for a field that always has a value.
+  display: React.ReactNode;
   children: React.ReactNode;
 }) {
   const [live, setLive] = useState(false);
@@ -204,6 +258,8 @@ const TableRow = memo(function TableRow({
 }) {
   const { tdId, tdTitle, cell, sel } = classes;
   const ro = !editable;
+  const vis = normalizeVisibility(r.visibility);
+  const visCls = vis === 'public' ? 'text-muted' : 'text-moss';
   const toList = (s: string) =>
     Array.from(new Set(s.split(',').map((x) => x.trim()).filter(Boolean)));
 
@@ -244,6 +300,32 @@ const TableRow = memo(function TableRow({
       </td>
       <td className="px-2 py-1.5 text-muted">{r.author}</td>
       <td className="px-2 py-1.5 text-muted">{r.year}</td>
+
+      {/* Visibility — the three tiers in lib/visibility.ts. Public is the
+          default and much the commonest value, so it rests in the muted colour
+          and the two closed tiers carry the accent: on a pass through the list
+          what you are looking for is the exceptions. */}
+      <td className="px-2 py-1.5">
+        {editable ? (
+          <HoverEdit
+            display={
+              <span className={visCls}>
+                {VISIBILITY_MARK[vis]} {VISIBILITY_LABEL[vis]}
+              </span>
+            }
+          >
+            <VisSelect
+              value={vis}
+              className={`w-full ${sel}`}
+              onChange={(v) => save(r.id, { visibility: v })}
+            />
+          </HoverEdit>
+        ) : (
+          <span className={`px-1 ${visCls}`}>
+            {VISIBILITY_MARK[vis]} {VISIBILITY_LABEL[vis]}
+          </span>
+        )}
+      </td>
 
       {/* Section — controlled dropdown */}
       <td className="px-2 py-1.5">
@@ -452,6 +534,42 @@ export default function CatalogList({
   const withImages = chosen.filter((r) => (r.images && r.images.length > 0) || r.image).length;
   const withWriteup = chosen.filter((r) => !needsWriteup(r)).length;
 
+  // Bulk visibility over the current selection — the same shift-click range the
+  // delete action uses. One request, and one UPDATE per 200 ids on the server.
+  //
+  // The selection is deliberately KEPT afterwards, unlike delete. The rows are
+  // still on screen and still yours to correct, and clearing after every set
+  // would mean re-picking the range to fix a misclick.
+  async function runVisibility(v: Visibility) {
+    setBusy(true);
+    setNote(null);
+    const ids = [...selected];
+    try {
+      const res = await fetch('/api/items/bulk-visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, visibility: v }),
+      });
+      const out = await res.json().catch(() => null);
+      if (!res.ok) {
+        setNote(out?.error ? `Not changed — ${out.error}` : 'Not changed — the request failed.');
+        return;
+      }
+      const touched = new Set(ids);
+      setRows((rs) => rs.map((r) => (touched.has(r.id) ? { ...r, visibility: v } : r)));
+      const updated = out?.updated ?? ids.length;
+      setNote(
+        `${updated} set to ${VISIBILITY_LABEL[v]}` +
+          (updated !== ids.length ? ` · ${ids.length - updated} no longer exist` : '') +
+          '.',
+      );
+    } catch {
+      setNote('Not changed — the request failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function runDelete() {
     setBusy(true);
     setNote(null);
@@ -573,6 +691,19 @@ export default function CatalogList({
               <span className="font-medium">{selected.size} selected</span>
               {!confirming ? (
                 <>
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-muted">Visibility:</span>
+                    {VISIBILITY.map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => runVisibility(v)}
+                        disabled={busy}
+                        className="rounded-md border border-line bg-card px-2 py-1 hover:border-rust disabled:opacity-50"
+                      >
+                        {VISIBILITY_MARK[v]} {VISIBILITY_LABEL[v]}
+                      </button>
+                    ))}
+                  </span>
                   <button
                     onClick={() => setConfirming(true)}
                     className="rounded-md border border-rust px-3 py-1 text-rust hover:bg-rust hover:text-white"
@@ -641,6 +772,7 @@ export default function CatalogList({
             <col className="w-[320px]" />
             <col className="w-[200px]" />
             <col className="w-[56px]" />
+            <col className="w-[110px]" />
             <col className="w-[150px]" />
             <col className="w-[140px]" />
             <col className="w-[220px]" />
@@ -667,6 +799,7 @@ export default function CatalogList({
               <th className={thTitle}>Title</th>
               <th className={th}>Author</th>
               <th className={th}>Yr</th>
+              <th className={th}>Visibility</th>
               <th className={th}>Section</th>
               <th className={th}>Shelf</th>
               <th className={th}>Genres</th>
@@ -706,6 +839,8 @@ export default function CatalogList({
         <p className="px-2 py-2 text-xs text-muted">
           Edit inline — changes save on change. Section, shelf, and condition are dropdowns from the
           managed vocabulary (shelf follows the section); genres and subjects are comma-separated.
+          Visibility is Public (anyone through the gate), Link (signed-in viewers) or Private
+          (admins only); select rows and use the buttons above to set a run at once.
         </p>
       )}
     </div>

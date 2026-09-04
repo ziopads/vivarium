@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { getItem, updateItem } from '@/lib/data';
 import { typeFields } from '@/lib/itemTypes';
+import { isVisibility } from '@/lib/visibility';
 
 // POST /api/items/:id/meta
-//   { section?, shelf?, genres?, subjects?, location?, notes?, condition?, conditionNotes? }
+//   { section?, shelf?, genres?, subjects?, location?, notes?, condition?,
+//     conditionNotes?, visibility? }
 //
 // Writes through updateItem, which touches one row. This route used to read the
 // whole catalogue, mutate one object in it and write every record back, so a
@@ -16,7 +18,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   let body: {
     section?: string; shelf?: string; genres?: string[]; subjects?: string[];
     location?: string; notes?: string; condition?: string; conditionNotes?: string;
-    itemType?: string; fields?: Record<string, string>;
+    visibility?: string; itemType?: string; fields?: Record<string, string>;
     title?: string; author?: string; source?: string; pricePaid?: string;
   };
   try {
@@ -49,6 +51,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (typeof body.condition === 'string') patch.condition = body.condition.trim();
   if (typeof body.conditionNotes === 'string') patch.conditionNotes = body.conditionNotes.trim();
   if (typeof body.itemType === 'string' && body.itemType.trim()) patch.itemType = body.itemType.trim();
+
+  // Visibility is a controlled value, so an unrecognised one is REJECTED rather
+  // than normalized. normalizeVisibility falls back to 'public', which is the
+  // right default for data that never had a value and the wrong response to a
+  // typo: it would publish a record the caller meant to close.
+  if (body.visibility !== undefined) {
+    if (!isVisibility(body.visibility)) {
+      return NextResponse.json(
+        { error: `Unknown visibility ${JSON.stringify(body.visibility)}` },
+        { status: 400 },
+      );
+    }
+    patch.visibility = body.visibility;
+  }
 
   if (body.fields && typeof body.fields === 'object') {
     // Only allow keys defined for this item's type — no arbitrary property

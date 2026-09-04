@@ -2,6 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  VISIBILITY,
+  VISIBILITY_LABEL,
+  VISIBILITY_MARK,
+  normalizeVisibility,
+  type Visibility,
+} from '@/lib/visibility';
 
 export default function ItemActions({
   itemId,
@@ -12,12 +19,21 @@ export default function ItemActions({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<'' | 'vis' | 'del' | 'wish'>('');
-  const isPrivate = visibility === 'restricted';
+  const current = normalizeVisibility(visibility);
 
-  async function toggleVisibility() {
+  // Goes through the meta route, which patches the one column. The old
+  // /api/items/:id/visibility endpoint read the whole catalogue and wrote every
+  // record back to change one field, and could only toggle between two values —
+  // it would have flattened the middle tier on every click.
+  async function setVisibility(v: Visibility) {
+    if (v === current) return;
     setBusy('vis');
     try {
-      await fetch(`/api/items/${itemId}/visibility`, { method: 'POST' });
+      await fetch(`/api/items/${itemId}/meta`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visibility: v }),
+      });
       router.refresh();
     } finally {
       setBusy('');
@@ -62,15 +78,31 @@ export default function ItemActions({
   return (
     <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-line pt-4 text-sm">
       <span className="text-muted">Manage:</span>
-      <button
-        onClick={toggleVisibility}
-        disabled={busy !== ''}
-        className={`rounded-md border px-3 py-1.5 transition disabled:opacity-50 ${
-          isPrivate ? 'border-moss bg-moss/10 text-moss' : 'border-line hover:border-rust'
-        }`}
-      >
-        {busy === 'vis' ? '…' : isPrivate ? '🔒 Private — make public' : 'Make private'}
-      </button>
+      <span className="flex flex-wrap items-center gap-1.5">
+        <span className="text-muted">Visibility:</span>
+        {VISIBILITY.map((v) => (
+          <button
+            key={v}
+            onClick={() => setVisibility(v)}
+            disabled={busy !== ''}
+            aria-pressed={v === current}
+            title={
+              v === 'public'
+                ? 'Anyone through the site gate'
+                : v === 'link'
+                  ? 'Signed-in viewers'
+                  : 'Admins only'
+            }
+            className={`rounded-md border px-3 py-1.5 transition disabled:opacity-50 ${
+              v === current
+                ? 'border-moss bg-moss/10 text-moss'
+                : 'border-line hover:border-rust'
+            }`}
+          >
+            {VISIBILITY_MARK[v]} {VISIBILITY_LABEL[v]}
+          </button>
+        ))}
+      </span>
       <button
         onClick={toWishlist}
         disabled={busy !== ''}

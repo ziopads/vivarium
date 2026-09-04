@@ -8,6 +8,7 @@ import path from 'node:path';
 import { getSupabase } from './supabase';
 import { validateItem } from './validation';
 import { getViewer } from './auth';
+import { canView, normalizeVisibility } from './visibility';
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'items.json');
 
@@ -88,7 +89,7 @@ function itemToRow(it: Item): Row {
     genres: it.genres || [],
     subjects: it.subjects || [],
     places: it.places || [],
-    visibility: it.visibility === 'restricted' ? 'restricted' : 'public',
+    visibility: normalizeVisibility(it.visibility),
     owner: it.owner || null,
     signed: !!it.signed,
     maine: !!it.maine,
@@ -120,7 +121,7 @@ function rowToItem(row: Row): Item {
     genres: row.genres || [],
     subjects: row.subjects || [],
     places: row.places || [],
-    visibility: row.visibility || 'public',
+    visibility: normalizeVisibility(row.visibility),
     owner: row.owner || '',
     signed: !!row.signed,
     maine: !!row.maine,
@@ -192,12 +193,14 @@ export async function getItems(): Promise<Item[]> {
   return readLocalItems();
 }
 
-// Display helper: `restricted` items are visible only to admins — hidden from
-// the public AND from signed-in non-admin family. Write paths use getItems (all).
+// Display helper: every record the viewer's tier reaches. `public` is everyone
+// through the site gate, `link` adds signed-in viewers, `restricted` is admins
+// only. See lib/visibility.ts. Write paths use getItems — all records, whatever
+// their tier — because an admin editing the catalogue must see all of it.
 export async function getVisibleItems(): Promise<Item[]> {
   const items = await getItems();
-  const { isAdmin } = await getViewer();
-  return isAdmin ? items : items.filter((i) => i.visibility !== 'restricted');
+  const viewer = await getViewer();
+  return items.filter((i) => canView(i, viewer));
 }
 
 export async function getItem(id: number): Promise<Item | null> {
