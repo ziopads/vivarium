@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { isUnderPath, type PathOption } from '@/lib/taxonomy';
+import { isUnderPath, pathServesType, type PathOption, type TaxonNode } from '@/lib/taxonomy';
 import PathSelect from './PathSelect';
 
 type Row = {
@@ -71,15 +71,26 @@ function Thumb({ src, title }: { src: string; title: string }) {
 const NO_CHANGE = '__nochange__';
 const CLEAR = '__clear__';
 
+/** No paths for a type nobody tagged. One identity, so a row does not rerender. */
+const NO_PATHS: PathOption[] = [];
+
 export default function ManageTable({
   rows: initial,
   paths,
+  pathsByType,
+  tree,
   genreSuggest,
   subjectSuggest,
   types,
 }: {
   rows: Row[];
+  /** Every path in the tree — for the filter and the bulk bar, which act over a
+   *  mixed selection and have no single item in hand. */
   paths: PathOption[];
+  /** Pickable paths keyed by item type — for the per-row picker. */
+  pathsByType: Record<string, PathOption[]>;
+  /** The classification tree, for recomputing the mis-filing flag after an edit. */
+  tree: TaxonNode[];
   genreSuggest: string[];
   subjectSuggest: string[];
   types: string[];
@@ -96,13 +107,37 @@ export default function ManageTable({
   // API refuses a path whose types the selection does not match; the selection
   // is cleared on success, so the retry has to carry its own ids rather than
   // reading them back off the table.
-  const [override, setOverride] = useState<{ ids: number[]; classification: string } | null>(null);
+  const [override, setOverride] = useState<
+    | { kind: 'file'; ids: number[]; classification: string }
+    | { kind: 'type'; ids: number[]; itemType: string }
+    | null
+  >(null);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [saving, setSaving] = useState<Set<number>>(new Set());
   const [busyBulk, setBusyBulk] = useState(false);
 
   const unfiled = rows.filter((r) => !r.classification).length;
   const filed = rows.length - unfiled;
+
+  /**
+   * Records filed somewhere their own type is not served by.
+   *
+   * Recomputed in the browser rather than sent from the server, because the two
+   * edits that CREATE this state — retyping a row and refiling it — both happen
+   * here without a reload. A flag computed on the server would be right until the
+   * moment it mattered.
+   *
+   * Nothing is unfiled and nothing is lost: the record keeps its path. What it
+   * loses is being offered that path again, since its own picker no longer lists
+   * it — so without a mark on the row there is nothing anywhere to say so.
+   */
+  const misfiled = useMemo(() => {
+    const out = new Set<number>();
+    for (const r of rows) {
+      if (r.classification && !pathServesType(tree, r.classification, r.itemType)) out.add(r.id);
+    }
+    return out;
+  }, [rows, tree]);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -111,6 +146,8 @@ export default function ManageTable({
         if (r.classification) return false;
       } else if (filterPath === 'Filed') {
         if (!r.classification) return false;
+      } else if (filterPath === 'Misfiled') {
+        if (!misfiled.has(r.id)) return false;
       } else if (filterPath !== 'All') {
         // A node matches everything beneath it, so choosing Literature shows the
         // whole section rather than only what sits directly on it.
@@ -122,7 +159,7 @@ export default function ManageTable({
       if (needle && !r.title.toLowerCase().includes(needle)) return false;
       return true;
     });
-  }, [rows, q, filterPath, filterType]);
+  }, [rows, q, filterPath, filterType, misfiled]);
 
   // Which shelves can legally be set on the current selection — gone with the
   // two-field scheme. A path is legal everywhere, so there is nothing to work out.
@@ -148,6 +185,29 @@ export default function ManageTable({
     } finally {
       mark(id, false);
     }
+  }
+
+  /**
+   * Change one row's type, asking first when the change would strand it.
+   *
+   * A retype does not move the record and does not unfile it. What it does is
+   * leave it filed somewhere its new type is not served by, where its own picker
+   * will no longer offer that place — so the change is worth stating before it
+   * happens rather than only marking afterwards.
+   */
+  function retype(r: Row, next: string) {
+    if (
+      r.classification &&
+      !pathServesType(tree, r.classification, next) &&
+      !window.confirm(
+        `${r.title || `#${r.id}`} is filed under ${r.classification}, which does not serve ` +
+          `${next}. Change the type anyway? It stays where it is and stops being offered ` +
+          `that place.`,
+      )
+    ) {
+      return;
+    }
+    saveField(r.id, { itemType: next });
   }
 
   // Shift-click ranges run over `filtered` — the rows actually on screen, in
@@ -209,31 +269,36 @@ export default function ManageTable({
       // Type first, then filing. A selection being retyped AND refiled in one
       // click has to change type before the destination checks what types it
       // holds, or the check runs against the types they are leaving.
+      //
+      // A refused retype STOPS the filing step as well. Filing after a type
+      // change that did not happen would check the destination against the types
+      // the records still are, and quietly file them somewhere the type they were
+      // being given is not served by — the exact state both guards exist to make
+      // visible.
+      let typeRefused = false;
       if (bulkType !== NO_CHANGE) {
-        const res = await fetch('/api/items/bulk-type', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids, itemType: bulkType }),
-        });
-        const out = await res.json().catch(() => null);
-        if (!res.ok) {
-          bits.push(out?.error ? `Type not changed — ${out.error}` : 'Type not changed.');
+        const out = await typeThem(ids, bulkType);
+        if (out.error) {
+          bits.push(`Type not changed — ${out.error}`);
+          if (out.status === 409) setOverride({ kind: 'type', ids, itemType: bulkType });
+          typeRefused = true;
         } else {
-          setRows((rs) => rs.map((r) => (selected.has(r.id) ? { ...r, itemType: bulkType } : r)));
-          bits.push(`${out?.updated ?? ids.length} set to ${bulkType}`);
+          bits.push(out.note);
         }
       }
 
-      if (bulkPath !== NO_CHANGE) {
+      if (bulkPath !== NO_CHANGE && !typeRefused) {
         const classification = bulkPath === CLEAR ? '' : bulkPath;
         const out = await fileThem(ids, classification);
         if (out.error) {
           bits.push(`Not filed — ${out.error}`);
           // 409 is the type refusal, and the only failure worth offering again.
-          if (out.status === 409) setOverride({ ids, classification });
+          if (out.status === 409) setOverride({ kind: 'file', ids, classification });
         } else {
           bits.push(out.note);
         }
+      } else if (bulkPath !== NO_CHANGE) {
+        bits.push('Filing skipped');
       }
 
       setBulkNote(bits.length ? bits.join(' · ') : null);
@@ -243,6 +308,26 @@ export default function ManageTable({
     } finally {
       setBusyBulk(false);
     }
+  }
+
+  /** One retype request, shared by the normal apply and the override. */
+  async function typeThem(
+    ids: number[],
+    itemType: string,
+    force = false,
+  ): Promise<{ note: string; error?: string; status?: number }> {
+    const res = await fetch('/api/items/bulk-type', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, itemType, force }),
+    });
+    const out = await res.json().catch(() => null);
+    if (!res.ok) {
+      return { note: '', error: out?.error || 'the request failed.', status: res.status };
+    }
+    const touched = new Set(ids);
+    setRows((rs) => rs.map((r) => (touched.has(r.id) ? { ...r, itemType } : r)));
+    return { note: `${out?.updated ?? ids.length} set to ${itemType}` };
   }
 
   /**
@@ -280,8 +365,11 @@ export default function ManageTable({
     if (!override) return;
     setBusyBulk(true);
     try {
-      const out = await fileThem(override.ids, override.classification, true);
-      setBulkNote(out.error ? `Not filed — ${out.error}` : `${out.note} anyway`);
+      const out =
+        override.kind === 'file'
+          ? await fileThem(override.ids, override.classification, true)
+          : await typeThem(override.ids, override.itemType, true);
+      setBulkNote(out.error ? `Not changed — ${out.error}` : `${out.note} anyway`);
       setOverride(null);
     } finally {
       setBusyBulk(false);
@@ -310,6 +398,7 @@ export default function ManageTable({
               { value: 'All', label: 'All' },
               { value: 'Unfiled', label: 'Unfiled' },
               { value: 'Filed', label: 'Filed' },
+              { value: 'Misfiled', label: 'Mis-filed' },
             ]}
           />
         </label>
@@ -328,6 +417,17 @@ export default function ManageTable({
         </label>
         <span className="text-sm text-muted">
           {filtered.length} shown · {filed} filed · {unfiled} unfiled
+          {misfiled.size > 0 && (
+            <>
+              {' · '}
+              <button
+                onClick={() => setFilterPath('Misfiled')}
+                className="text-rust hover:underline"
+              >
+                {misfiled.size} mis-filed
+              </button>
+            </>
+          )}
         </span>
         <span className="text-xs text-muted">
           Tick a row, then shift-click another to take everything between them.
@@ -389,18 +489,20 @@ export default function ManageTable({
         <p className="mb-2 flex flex-wrap items-center gap-3 text-xs text-moss">
           <span className={override ? 'text-rust' : undefined}>{bulkNote}</span>
           {override && (
-            <button
-              onClick={applyOverride}
-              disabled={busyBulk}
-              className="rounded border border-rust px-2 py-0.5 text-rust hover:bg-rust hover:text-white disabled:opacity-50"
-            >
-              File {override.ids.length} there anyway
-            </button>
-          )}
-          {override && (
-            <button onClick={() => setOverride(null)} className="text-muted hover:text-rust">
-              Leave them
-            </button>
+            <>
+              <button
+                onClick={applyOverride}
+                disabled={busyBulk}
+                className="rounded border border-rust px-2 py-0.5 text-rust hover:bg-rust hover:text-white disabled:opacity-50"
+              >
+                {override.kind === 'file'
+                  ? `File ${override.ids.length} there anyway`
+                  : `Set ${override.ids.length} to ${override.itemType} anyway`}
+              </button>
+              <button onClick={() => setOverride(null)} className="text-muted hover:text-rust">
+                Leave them
+              </button>
+            </>
           )}
         </p>
       )}
@@ -424,7 +526,8 @@ export default function ManageTable({
               <ManageRow
                 key={r.id}
                 r={r}
-                paths={paths}
+                paths={pathsByType[r.itemType] ?? NO_PATHS}
+                misfiled={misfiled.has(r.id)}
                 types={types}
                 selected={selected.has(r.id)}
                 saving={saving.has(r.id)}
@@ -432,6 +535,7 @@ export default function ManageTable({
                 onToggle={(shift) => toggle(r.id, shift)}
                 onExpand={() => setExpanded((e) => (e === r.id ? null : r.id))}
                 onSave={saveField}
+                onRetype={(next) => retype(r, next)}
                 genreSuggest={genreSuggest}
                 subjectSuggest={subjectSuggest}
               />
@@ -445,11 +549,14 @@ export default function ManageTable({
 }
 
 function ManageRow({
-  r, paths, types, selected, saving, expanded,
-  onToggle, onExpand, onSave, genreSuggest, subjectSuggest,
+  r, paths, misfiled, types, selected, saving, expanded,
+  onToggle, onExpand, onSave, onRetype, genreSuggest, subjectSuggest,
 }: {
   r: Row;
+  /** Scoped to this row's item type. */
   paths: PathOption[];
+  /** Filed somewhere this row's type is not served by. */
+  misfiled: boolean;
   types: string[];
   selected: boolean;
   saving: boolean;
@@ -457,6 +564,7 @@ function ManageRow({
   onToggle: (shift: boolean) => void;
   onExpand: () => void;
   onSave: (id: number, patch: Partial<Row>) => void;
+  onRetype: (next: string) => void;
   genreSuggest: string[];
   subjectSuggest: string[];
 }) {
@@ -483,7 +591,7 @@ function ManageRow({
         <td className="px-2 py-2 align-top">
           <select
             value={r.itemType}
-            onChange={(e) => onSave(r.id, { itemType: e.target.value })}
+            onChange={(e) => onRetype(e.target.value)}
             className="rounded border border-line bg-card px-1.5 py-1"
           >
             {types.map((t) => (<option key={t}>{t}</option>))}
@@ -494,10 +602,30 @@ function ManageRow({
             value={r.classification}
             paths={paths}
             onChange={(v) => onSave(r.id, { classification: v })}
+            unknownNote={
+              // Two reasons a stored path is missing from a scoped list, and the
+              // row knows which. Mis-filed means the path is real and this type
+              // is not served by it; otherwise it has been renamed or deleted out
+              // of the tree and is not a path at all any more.
+              misfiled ? '— not served by this type' : '(not in the classification)'
+            }
             className={`max-w-[18rem] rounded border px-1.5 py-1 ${
-              r.classification ? 'border-line bg-card' : 'border-amber-400 bg-amber-50'
+              misfiled
+                ? 'border-rust bg-rust/5'
+                : r.classification
+                  ? 'border-line bg-card'
+                  : 'border-amber-400 bg-amber-50'
             }`}
           />
+          {misfiled && (
+            <p
+              className="mt-1 max-w-[18rem] text-[11px] text-rust"
+              title={`${r.itemType} is not served by ${r.classification}`}
+            >
+              ⚠ Filed where {r.itemType} is not served. It stays here, and no picker will offer
+              this place again.
+            </p>
+          )}
         </td>
         <td className="px-2 py-2 align-top">
           <button onClick={onExpand} className="text-xs text-muted hover:text-rust">

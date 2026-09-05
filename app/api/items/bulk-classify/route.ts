@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { setColumns, itemTypesFor } from '@/lib/data';
+import { setColumns, filingFor } from '@/lib/data';
 import { getVocab } from '@/lib/vocab';
 import { parsePath, formatPath, pathExists, typesAt, servesType } from '@/lib/taxonomy';
 
@@ -62,12 +62,12 @@ export async function POST(req: Request) {
     // every branch until one is tagged. No query is made in that case.
     const served = typesAt(vocab.tree, segments);
     if (served && !body.force) {
-      const types = await itemTypesFor(ids);
+      const filing = await filingFor(ids);
       const counts = new Map<string, number>();
-      for (const t of types.values()) {
+      for (const { itemType } of filing.values()) {
         // Ids that no longer exist are absent from the map rather than counted;
         // setColumns skips them too, so a stale selection cannot fail the write.
-        if (!servesType(served, t)) counts.set(t, (counts.get(t) ?? 0) + 1);
+        if (!servesType(served, itemType)) counts.set(itemType, (counts.get(itemType) ?? 0) + 1);
       }
       if (counts.size) {
         const total = [...counts.values()].reduce((a, b) => a + b, 0);

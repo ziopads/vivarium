@@ -30,6 +30,7 @@ export default function PathSelect({
   disabled = false,
   lazy = false,
   unfiledLabel = '— unfiled —',
+  unknownNote = '(not in the classification)',
 }: {
   value: string;
   paths: PathOption[];
@@ -51,6 +52,13 @@ export default function PathSelect({
   lazy?: boolean;
   /** Label for the empty value. */
   unfiledLabel?: string;
+  /**
+   * What to say beside a value the options do not contain. Two different things
+   * put it there: a path that has been renamed or deleted out of the tree, and —
+   * once `paths` is scoped to an item type — a real path this record's type is
+   * not served by. The caller knows which; this does not.
+   */
+  unknownNote?: string;
 }) {
   const [open, setOpen] = useState(!lazy);
 
@@ -78,7 +86,11 @@ export default function PathSelect({
         </option>
       ))}
       <option value="">{unfiledLabel}</option>
-      {unknown && <option value={value}>{value} (not in the classification)</option>}
+      {unknown && (
+        <option value={value}>
+          {value} {unknownNote}
+        </option>
+      )}
       {list.map((p) => (
         <option key={p.path} value={p.path}>
           {'\u2007\u2007'.repeat(p.depth)}

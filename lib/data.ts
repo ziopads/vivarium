@@ -381,16 +381,22 @@ export async function itemTypeCountsUnder(prefix: string): Promise<Record<string
 }
 
 /**
- * The item type of each named record, as a map. Ids that do not exist are absent
- * rather than defaulted, so a caller can tell "is a Book" from "is not there".
+ * Where each named record sits and what it is, as a map. Ids that do not exist
+ * are absent rather than defaulted, so a caller can tell "is a Book" from "is
+ * not there".
  *
- * One narrow select per 200 ids, and no `attributes` — this exists so
- * bulk-classify can check a selection against a branch's types without reading
- * the catalogue, which is the property that route was built around.
+ * One narrow select per 200 ids, and no `attributes` — this exists so the bulk
+ * routes can check a selection against the classification without reading the
+ * catalogue, which is the property those routes were built around. Both facts
+ * come back together because both bulk routes need both: filing checks the
+ * destination against the types being filed there, and retyping checks each
+ * record's existing path against the type it is becoming.
  */
-export async function itemTypesFor(ids: number[]): Promise<Map<number, string>> {
+export async function filingFor(
+  ids: number[],
+): Promise<Map<number, { itemType: string; classification: string }>> {
   const unique = Array.from(new Set(ids.map(Number).filter(Number.isFinite)));
-  const out = new Map<number, string>();
+  const out = new Map<number, { itemType: string; classification: string }>();
   if (!unique.length) return out;
 
   if (dataSource().mode === 'supabase') {
@@ -398,17 +404,27 @@ export async function itemTypesFor(ids: number[]): Promise<Map<number, string>> 
     for (let i = 0; i < unique.length; i += 200) {
       const { data, error } = await sb
         .from('items')
-        .select('id, item_type')
+        .select('id, item_type, classification')
         .in('id', unique.slice(i, i + 200));
-      if (error) throw new Error(`Supabase itemTypesFor: ${error.message}`);
-      for (const r of (data || []) as Row[]) out.set(r.id, r.item_type || 'Book');
+      if (error) throw new Error(`Supabase filingFor: ${error.message}`);
+      for (const r of (data || []) as Row[]) {
+        out.set(r.id, {
+          itemType: r.item_type || 'Book',
+          classification: r.classification || '',
+        });
+      }
     }
     return out;
   }
 
   const target = new Set(unique);
   for (const it of await readLocalItems()) {
-    if (target.has(it.id)) out.set(it.id, it.itemType || 'Book');
+    if (target.has(it.id)) {
+      out.set(it.id, {
+        itemType: it.itemType || 'Book',
+        classification: it.classification || '',
+      });
+    }
   }
   return out;
 }
