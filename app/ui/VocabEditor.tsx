@@ -51,7 +51,10 @@ export default function VocabEditor({
       const data = await res.json();
       if (!res.ok) {
         setErr(data.error || 'That was refused, with no reason given.');
-        return;
+        // The outcome goes back to the caller as well as onto the screen. A
+        // tagging refused for stranding records can be repeated with `force`,
+        // and the editor needs to know a 409 happened to offer that.
+        return { ok: false, status: res.status, error: data.error as string | undefined };
       }
       setVocab(data.vocab);
       // Every success says so, including the ones that touch no record. A
@@ -62,10 +65,12 @@ export default function VocabEditor({
           ? `${data.affected} item${data.affected === 1 ? '' : 's'} updated.`
           : 'Saved.',
       );
+      return { ok: true, status: res.status };
     } catch {
       // A thrown fetch used to fall through the finally and clear busy with no
       // message, which is the same silence as a refusal.
       setErr('The request failed — nothing was changed.');
+      return { ok: false, status: 0, error: 'The request failed.' };
     } finally {
       setBusy(false);
     }
@@ -88,6 +93,7 @@ export default function VocabEditor({
           <Note msg={msg} err={err} />
           <TreeEditor
             tree={vocab.tree}
+            types={vocab.types}
             counts={counts.byPath}
             busy={busy}
             call={(body) => post({ kind: 'path', ...body })}

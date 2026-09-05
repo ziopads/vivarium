@@ -37,6 +37,10 @@ import {
 //                       index?: number, types?: string[]|null, sort?: string|null,
 //                       force?: boolean }
 //
+// `types` on an ADD tags the new node as it is created; on a SET it replaces the
+// node's tags. `index` on a MOVE is an index into the REAL sibling list, so a
+// caller showing a filtered view has to translate before sending.
+//
 // The first three are the original wire contract, kept so the existing editor
 // works unchanged. They are now thin wrappers: a section is a top-level node, a
 // shelf is that node's child. `path` is the general form and reaches any depth.
@@ -215,6 +219,18 @@ export async function POST(req: Request) {
       return bad(`${value} is already there`);
     }
     if (!addNode(vocab.tree, parent, value)) return bad('Could not add that');
+
+    // A root added from a type tab is tagged in the same request. addNode writes
+    // `{ name }` and nothing else, and an untagged node serves EVERY type — so
+    // without this, adding a shelf while looking at the Recordings tab produces a
+    // root that immediately appears in every other tab too, which reads as the
+    // tab being broken. Nothing can be stranded here, the node being new.
+    if (Array.isArray(body.types) && body.types.length) {
+      const wanted = segs(body.types);
+      const unknown = wanted.filter((t) => !vocab.types.includes(t));
+      if (unknown.length) return bad(`Not item types: ${unknown.join(', ')}`);
+      setNodeMeta(vocab.tree, [...parent, value], { types: wanted });
+    }
     return save();
   }
 
