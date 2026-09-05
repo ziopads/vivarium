@@ -8,7 +8,7 @@ import { sectionOf, isMaine } from '@/lib/sections';
 import { coverImage, imageUrl } from '@/lib/img';
 import { needsWriteup } from '@/lib/writeup';
 import { normalizeVisibility, VISIBILITY_LABEL, VISIBILITY_MARK } from '@/lib/visibility';
-import type { PathOption } from '@/lib/taxonomy';
+import type { PathOption, NodeSort } from '@/lib/taxonomy';
 
 /** Nothing for a public record — the badge marks the exception, not the rule. */
 function VisBadge({ v }: { v?: string }) {
@@ -58,6 +58,49 @@ function titleKey(t: string): string {
   return t.replace(/^\s*(the|a|an)\s+/i, '').toLowerCase();
 }
 
+/**
+ * A sortable year out of a field that holds whatever the copyright page said.
+ *
+ * `year` is text, and deliberately so: it records what is printed. Across this
+ * catalogue that means "c. 1890", "[1935]", bracketed guesses, ranges like
+ * "1936–1964" where a collection reprints over three decades, and "n.d." where
+ * the page carries no date at all. Comparing those as strings put every circa
+ * date under C and every bracketed one before every digit, so the Year sort was
+ * ordering the punctuation.
+ *
+ * The first four-digit run wins, which is the earliest date printed in a range
+ * and the year inside "c." or brackets. Anything with no such run sorts last
+ * rather than first — a book with no date is not a book from year zero, and
+ * burying the undated at the end is what a shelf browser expects.
+ *
+ * Roman numerals are not read. They looked like a gap, but the pipeline already
+ * converts them at ingest — the copyright page reading MOMXXIX went into the
+ * record as 1929 — so the field holds arabic digits even where the book does not.
+ */
+function yearKey(raw: string | undefined): number | null {
+  const found = (raw || '').match(/\d{4}/);
+  if (!found) return null;
+  const n = Number(found[0]);
+  // A four-digit run that is not a plausible year is something else that wandered
+  // into the field. Treated as no date rather than sorted as one.
+  return n >= 1000 && n <= 2100 ? n : null;
+}
+
+/**
+ * A node's declared sort, in the names this menu uses.
+ *
+ * `manual` maps to ID because the tree's curated order is an order of BRANCHES,
+ * and the items filed at one carry no hand-set sequence of their own. Accession
+ * order is the closest thing to "as they came", which is what manual means
+ * everywhere else in the vocabulary.
+ */
+const FROM_NODE: Record<NodeSort, Sort> = {
+  manual: 'ID',
+  title: 'Title',
+  author: 'Author (last name)',
+  year: 'Year',
+};
+
 /** One identity, so a missing prop does not re-render every memoized row. */
 const EMPTY_PATHS: Record<string, PathOption[]> = {};
 
@@ -68,6 +111,7 @@ export default function Catalog({
   initialShelf,
   vocab,
   pathsByType,
+  nodeSort,
   isAdmin = false,
 }: {
   items: Item[];
@@ -78,6 +122,12 @@ export default function Catalog({
   /** Pickable classification paths keyed by item type — threaded to the list
    *  view's filing picker. Pass-through; nothing here reads it. */
   pathsByType?: Record<string, PathOption[]>;
+  /**
+   * The order declared for the branch being browsed, when one is. Undefined
+   * means nothing along that path said, which is not the same as the default —
+   * see declaredSortAt.
+   */
+  nodeSort?: NodeSort;
   isAdmin?: boolean;
 }) {
   // When arriving from a section click or the home search, the URL params drive a
@@ -95,20 +145,30 @@ export default function Catalog({
   const [place, setPlace] = useState(DEFAULTS.place);
   const [section, setSection] = useState(DEFAULTS.section);
   const [view, setView] = useState<View>(DEFAULTS.view);
-  const [sort, setSort] = useState<Sort>(DEFAULTS.sort);
+  // Null means "follow the branch". The reader's own choice wins while they are
+  // standing in one place, and arriving somewhere new lets that place's declared
+  // order take over again — which is the point of declaring one. A branch that
+  // declares nothing falls through to whatever was last chosen.
+  const [sort, setSort] = useState<Sort | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
+  const effectiveSort: Sort = sort ?? (nodeSort ? FROM_NODE[nodeSort] : DEFAULTS.sort);
+
   useEffect(() => {
     const s = loadState();
+    // A stored sort is a choice the reader made somewhere else. It is restored
+    // only where the branch has no order of its own; where one is declared, sort
+    // stays null so the branch wins until they pick something here.
     if (fromUrl) {
       setQ(initialQ ?? '');
       setSection(initialSection ?? 'All');
       setType('All'); setGenre('All'); setShelf(initialShelf ?? 'All'); setSubject('All'); setPlace('All');
-      setView(s.view); setSort(s.sort);
+      setView(s.view); setSort(nodeSort ? null : s.sort);
     } else {
       setQ(s.q); setSection(s.section); setType(s.type); setGenre(s.genre);
-      setShelf(s.shelf); setSubject(s.subject); setPlace(s.place); setView(s.view); setSort(s.sort);
+      setShelf(s.shelf); setSubject(s.subject); setPlace(s.place); setView(s.view);
+      setSort(nodeSort ? null : s.sort);
     }
     setHydrated(true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -169,17 +229,27 @@ export default function Catalog({
       'Author within Genre': (a, b) =>
         (a.shelf || a.genres[0] || '').localeCompare(b.shelf || b.genres[0] || '') ||
         lastName(a.author).localeCompare(lastName(b.author)),
-      Year: (a, b) => (a.year || '').localeCompare(b.year || ''),
+      Year: (a, b) => {
+        const ya = yearKey(a.year);
+        const yb = yearKey(b.year);
+        if (ya === null && yb === null) return titleKey(a.title).localeCompare(titleKey(b.title));
+        if (ya === null) return 1;
+        if (yb === null) return -1;
+        return ya - yb || titleKey(a.title).localeCompare(titleKey(b.title));
+      },
     };
-    return [...out].sort(cmp[sort]);
-  }, [items, qApplied, haystacks, section, type, genre, shelf, subject, place, sort]);
+    return [...out].sort(cmp[effectiveSort]);
+  }, [items, qApplied, haystacks, section, type, genre, shelf, subject, place, effectiveSort]);
 
   useEffect(() => {
     if (!hydrated) return;
     const prev = loadState();
     sessionStorage.setItem(
       STORE_KEY,
-      JSON.stringify({ ...prev, q, type, genre, shelf, subject, place, section, view, sort }),
+      // `sort` is only written when the reader chose it. Persisting the branch's
+      // own order would turn one shelf's declaration into a preference that
+      // followed them to every other shelf in the catalogue.
+      JSON.stringify({ ...prev, q, type, genre, shelf, subject, place, section, view, sort: sort ?? prev.sort }),
     );
   }, [hydrated, q, type, genre, shelf, subject, place, section, view, sort]);
 
@@ -225,7 +295,9 @@ export default function Catalog({
 
   function reset() {
     setQ(''); setType('All'); setGenre('All'); setShelf('All');
-    setSubject('All'); setPlace('All'); setSection('All'); setSort('ID');
+    // Back to null rather than to ID: reset means "as this shelf wants it", and
+    // forcing ID here would be a choice of its own.
+    setSubject('All'); setPlace('All'); setSection('All'); setSort(null);
   }
   const activeCount =
     (q ? 1 : 0) + [type, genre, shelf, subject, place, section].filter((v) => v !== 'All').length;
@@ -282,7 +354,17 @@ export default function Catalog({
               className="rounded-md border border-line bg-card px-3 py-2 outline-none focus:border-rust"
             />
             <Select label="Section" value={section} onChange={setSection} options={sections} />
-            <Select label="Sort by" value={sort} onChange={(v) => setSort(v as Sort)} options={[...SORTS]} />
+            <Select
+              label="Sort by"
+              value={effectiveSort}
+              onChange={(v) => setSort(v as Sort)}
+              options={[...SORTS]}
+              hint={
+                sort === null && nodeSort
+                  ? `${FROM_NODE[nodeSort]} — the order set for this part of the classification`
+                  : undefined
+              }
+            />
             <Select label="Genre" value={genre} onChange={setGenre} options={genres} />
             <Select label="Shelf" value={shelf} onChange={setShelf} options={shelves} />
             <Select label="Type" value={type} onChange={setType} options={types} />
@@ -376,8 +458,8 @@ export default function Catalog({
 }
 
 function Select({
-  label, value, onChange, options,
-}: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+  label, value, onChange, options, hint,
+}: { label: string; value: string; onChange: (v: string) => void; options: string[]; hint?: string }) {
   return (
     <label className="text-sm">
       <span className="mb-1 block text-muted">{label}</span>
@@ -390,6 +472,7 @@ function Select({
           <option key={o} value={o}>{o}</option>
         ))}
       </select>
+      {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
     </label>
   );
 }

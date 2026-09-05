@@ -238,9 +238,22 @@ export function typesAt(tree: TaxonNode[], segments: string[]): string[] | undef
   return inherited(tree, segments, (n) => (n.types?.length ? n.types : undefined));
 }
 
+/**
+ * The sort DECLARED on a path, or undefined when nothing along it sets one.
+ *
+ * Separate from sortAt because the difference matters to a caller deciding
+ * whether to override a choice the reader already made. sortAt answers "how
+ * should these be listed", which always has an answer; this answers "did anyone
+ * say", and a browse view that treated the default as a declaration would reset
+ * the reader's chosen order on arrival at every untagged shelf in the tree.
+ */
+export function declaredSortAt(tree: TaxonNode[], segments: string[]): NodeSort | undefined {
+  return inherited(tree, segments, (n) => n.sort);
+}
+
 /** How items filed at a path are listed, inherited. `title` when nothing sets one. */
 export function sortAt(tree: TaxonNode[], segments: string[]): NodeSort {
-  return inherited(tree, segments, (n) => n.sort) ?? 'title';
+  return declaredSortAt(tree, segments) ?? 'title';
 }
 
 /** Is this path one an item of `itemType` may be filed at? */

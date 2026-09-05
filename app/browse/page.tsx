@@ -4,7 +4,7 @@ import { getVocab, flatShelves } from '@/lib/vocab';
 import Catalog from '@/app/ui/Catalog';
 import { getViewer } from '@/lib/auth';
 import { sectionOf } from '@/lib/sections';
-import { childrenAt, parsePath, formatPath, isUnderPath, pathOptionsByType } from '@/lib/taxonomy';
+import { childrenAt, parsePath, formatPath, isUnderPath, pathOptionsByType, declaredSortAt } from '@/lib/taxonomy';
 import { needsWriteup } from '@/lib/writeup';
 import type { Item } from '@/lib/types';
 
@@ -104,6 +104,18 @@ export default async function Browse({
     ...items.map((i) => i.itemType || 'Book'),
   ]);
 
+  // The order this branch declares for the items filed under it, if it declares
+  // one. Both browse modes are covered: `?path=` names the node directly, and
+  // `?section=`/`?shelf=` name the first two levels of the same tree.
+  //
+  // declaredSortAt rather than sortAt, because the difference is the whole
+  // point. sortAt always answers, so passing it would tell Catalog that every
+  // shelf in the catalogue declares `title` and reset the reader's chosen order
+  // on arrival everywhere. `section=Maine` is a filter rather than a node, so it
+  // resolves to nothing and nothing is declared — which is correct.
+  const sortPath = crumbs.length ? crumbs : [section, shelf].filter(Boolean) as string[];
+  const nodeSort = sortPath.length ? declaredSortAt(vocab.tree, sortPath) : undefined;
+
   const chipCls = (active: boolean) =>
     `rounded-full border px-3 py-1 text-sm transition ${
       active ? 'border-rust bg-rust text-white' : 'border-line bg-card hover:border-rust'
@@ -186,6 +198,7 @@ export default async function Browse({
           initialShelf={crumbs.length ? undefined : shelf}
           vocab={{ sections: vocab.sections, genres: vocab.genres, shelves: flatShelves(vocab), shelvesBySection: vocab.shelvesBySection }}
           pathsByType={pathsByType}
+          nodeSort={nodeSort}
           isAdmin={viewer.isAdmin}
         />
       </div>
