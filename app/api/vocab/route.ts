@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { getItems, writeLocalItems } from '@/lib/data';
+import {
+  getItems,
+  writeLocalItems,
+  rewriteClassifications,
+  clearClassificationsUnder,
+} from '@/lib/data';
+import type { Item } from '@/lib/types';
 import { getVocab, writeVocab, tidyVocab, type VocabKind } from '@/lib/vocab';
 import {
   addNode,
@@ -11,7 +17,6 @@ import {
   childrenAt,
   findNode,
   isValidName,
-  itemUnderPath,
   formatPath,
 } from '@/lib/taxonomy';
 
@@ -30,10 +35,11 @@ import {
 // works unchanged. They are now thin wrappers: a section is a top-level node, a
 // shelf is that node's child. `path` is the general form and reaches any depth.
 //
-// Renames and deletes cascade to items through `section` and `shelf`, which is
-// all an item currently stores. A rename at depth three or below therefore
-// touches no records — nothing is filed that deep yet. That changes when items
-// gain a path of their own.
+// Renames, moves and deletes cascade to items through `classification`, the
+// record's full path. Rewriting the prefix carries every descendant with it, so
+// moving a node three levels down takes its books along; validateItem then
+// rebuilds each record's section and shelf from the new path, which is why
+// nothing here touches those two fields directly.
 export async function POST(req: Request) {
   let body: {
     kind?: VocabKind | 'path';
@@ -58,19 +64,30 @@ export async function POST(req: Request) {
   const section = (body.section || '').trim();
   const segs = (arr?: string[]) => (Array.isArray(arr) ? arr.map((s) => String(s).trim()).filter(Boolean) : []);
 
-  if (!kind || !['sections', 'genres', 'shelves', 'path'].includes(kind)) {
+  if (!kind || !['sections', 'genres', 'shelves', 'types', 'path'].includes(kind)) {
     return NextResponse.json({ error: 'Unknown vocabulary kind' }, { status: 400 });
   }
   if (!action) return NextResponse.json({ error: 'No action' }, { status: 400 });
 
   const vocab = await getVocab();
-  const items = await getItems();
   let affected = 0;
+
+  // The catalogue is loaded ONLY for the two vocabularies that live on the item
+  // rather than in the tree: genres are an array on each record and item types a
+  // column, so both need a scan. Tree operations use the targeted rewrites in
+  // lib/data.ts instead.
+  //
+  // This used to be an unconditional `await getItems()` followed, whenever
+  // anything changed, by `writeLocalItems(items)` — a full read and a full
+  // rewrite of every row in the library. Reordering two siblings, which touches
+  // no record at all, paid for both. That was the drag latency.
+  let loaded: Item[] | null = null;
+  const loadItems = async () => (loaded ??= await getItems());
 
   const bad = (msg: string, status = 400) => NextResponse.json({ error: msg }, { status });
 
   const save = async () => {
-    if (affected) await writeLocalItems(items);
+    if (loaded && affected) await writeLocalItems(loaded);
     await writeVocab(vocab);
     revalidatePath('/');
     revalidatePath('/browse');
@@ -88,6 +105,7 @@ export async function POST(req: Request) {
     }
     if (!value) return bad('Empty value');
     const idx = list.indexOf(value);
+    const items = await loadItems();
     if (action === 'rename') {
       if (!newValue) return bad('Need a new value');
       if (idx !== -1) {
@@ -109,6 +127,48 @@ export async function POST(req: Request) {
         }
       }
     }
+    return save();
+  }
+
+  // --- Item types (flat, and every record has exactly one) ---
+  if (kind === 'types') {
+    const list = vocab.types;
+    if (action === 'add') {
+      if (value && !list.includes(value)) list.push(value);
+      return save();
+    }
+    if (!value) return bad('Empty value');
+    const idx = list.indexOf(value);
+    const items = await loadItems();
+    const inUse = (name: string) => items.filter((it) => (it.itemType || 'Book') === name).length;
+
+    if (action === 'rename') {
+      if (!newValue) return bad('Need a new value');
+      if (idx !== -1) {
+        if (list.includes(newValue)) list.splice(idx, 1);
+        else list[idx] = newValue;
+      }
+      for (const it of items) {
+        if ((it.itemType || 'Book') === value) {
+          it.itemType = newValue;
+          affected++;
+        }
+      }
+      return save();
+    }
+
+    // Deleting a type does NOT clear it from its records, the way deleting a
+    // section does. A record with no section is unfiled, which is a real state;
+    // a record with no type is not, and would silently become a Book, taking
+    // its type-specific fields out of view. So the delete is refused instead.
+    const used = inUse(value);
+    if (used) {
+      return bad(
+        `${used} item${used === 1 ? '' : 's'} still ${used === 1 ? 'is' : 'are'} ${value}. ` +
+          `Retype them first — filter by type in /manage, select them, and set the new type.`,
+      );
+    }
+    if (idx !== -1) list.splice(idx, 1);
     return save();
   }
 
@@ -153,24 +213,9 @@ export async function POST(req: Request) {
   if (!findNode(vocab.tree, path)) return bad('No such entry', 404);
 
   const target = path[path.length - 1];
-  const depth = path.length;
 
   if (action === 'move') {
     const dest = segs(body.parent);
-    const newDepth = dest.length + 1;
-    const filed = items.filter((it) => itemUnderPath(it, path)).length;
-
-    // The refusal that matters. An item records where it sits in `section` and
-    // `shelf` and nowhere else, so there is no way to say that a book is at
-    // depth three. Allowing the move would leave those records pointing at a
-    // level that no longer describes them, and nothing on screen would show it.
-    if (newDepth > 2 && filed > 0) {
-      return bad(
-        `${target} holds ${filed} item${filed === 1 ? '' : 's'}, and ${formatPath([...dest, target])} ` +
-          `is three levels deep. Items can only record two levels until they carry a path of their own. ` +
-          `Move it once that lands, or empty it first.`,
-      );
-    }
 
     const result = moveNode(vocab.tree, path, dest, body.index);
     if (result === 'nowhere') return bad(`${target} is already there`);
@@ -178,27 +223,10 @@ export async function POST(req: Request) {
     if (result === 'duplicate') return bad(`${formatPath(dest) || 'The top level'} already has a ${target}`);
     if (result !== 'ok') return bad('No such entry', 404);
 
-    // Cascade, for the two depths an item can express.
-    if (newDepth === 1) {
-      // Promoted to a section. Records filed under it take its name as their
-      // section; whatever shelf they named went with the promotion.
-      for (const it of items) {
-        if (depth === 1 ? it.section === target : it.section === path[0] && it.shelf === target) {
-          it.section = target;
-          it.shelf = '';
-          affected++;
-        }
-      }
-    } else if (newDepth === 2) {
-      const owner = dest[0];
-      for (const it of items) {
-        if (depth === 1 ? it.section === target : it.section === path[0] && it.shelf === target) {
-          it.section = owner;
-          it.shelf = target;
-          affected++;
-        }
-      }
-    }
+    // Every record at or under the old path follows the node to its new one —
+    // read and written targeted, so the cost is the size of the branch rather
+    // than the size of the library.
+    affected = await rewriteClassifications(formatPath(path), formatPath([...dest, target]));
     return save();
   }
 
@@ -207,50 +235,19 @@ export async function POST(req: Request) {
     if (!renameNode(vocab.tree, path, newValue)) {
       return bad(`Could not rename — ${newValue} may already exist alongside it`);
     }
-    // Cascade. Depth 1 is a section, depth 2 a shelf within its parent section;
-    // deeper nodes have nothing filed under them yet.
-    if (depth === 1) {
-      for (const it of items) {
-        if (it.section === target) {
-          it.section = newValue;
-          affected++;
-        }
-      }
-    } else if (depth === 2) {
-      const owner = path[0];
-      for (const it of items) {
-        if (it.section === owner && it.shelf === target) {
-          it.shelf = newValue;
-          affected++;
-        }
-      }
-    }
+    affected = await rewriteClassifications(
+      formatPath(path),
+      formatPath([...path.slice(0, -1), newValue]),
+    );
     return save();
   }
 
   if (action === 'delete') {
     const removed = removeNode(vocab.tree, path);
     if (!removed) return bad('No such entry', 404);
-    // Deleting a node takes its children with it, so clearing the item fields has
-    // to match: removing a section clears both fields on its records, since the
-    // shelf they named went with it.
-    if (depth === 1) {
-      for (const it of items) {
-        if (it.section === target) {
-          it.section = '';
-          it.shelf = '';
-          affected++;
-        }
-      }
-    } else if (depth === 2) {
-      const owner = path[0];
-      for (const it of items) {
-        if (it.section === owner && it.shelf === target) {
-          it.shelf = '';
-          affected++;
-        }
-      }
-    }
+    // Deleting takes the subtree with it, so every record at or under the path
+    // is unfiled rather than left pointing at somewhere that no longer exists.
+    affected = await clearClassificationsUnder(formatPath(path));
     return save();
   }
 

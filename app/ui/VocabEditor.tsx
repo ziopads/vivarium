@@ -8,12 +8,14 @@ type Vocab = {
   tree: TaxonNode[];
   sections: string[];
   genres: string[];
+  types: string[];
   shelvesBySection: Record<string, string[]>;
 };
-type Kind = 'sections' | 'genres' | 'shelves' | 'path';
+type Kind = 'sections' | 'genres' | 'shelves' | 'types' | 'path';
 type Counts = {
   sections: Record<string, number>;
   genres: Record<string, number>;
+  types: Record<string, number>;
   shelvesBySection: Record<string, Record<string, number>>;
   /** Item counts keyed by joined path — populated for the first two levels. */
   byPath: Record<string, number>;
@@ -79,7 +81,7 @@ export default function VocabEditor({
           />
         </Panel>
 
-        <div className="max-w-md">
+        <div className="grid gap-6 md:grid-cols-2 lg:max-w-3xl">
           <Panel title="Genres" count={vocab.genres.length}>
             <List
               values={vocab.genres}
@@ -89,6 +91,22 @@ export default function VocabEditor({
               onDelete={(v) => call('genres', 'delete', v)}
             />
             <Adder busy={busy} placeholder="add genre…" onAdd={(v) => call('genres', 'add', v)} />
+          </Panel>
+
+          <Panel title="Types" count={vocab.types.length}>
+            <p className="mb-2 text-xs text-muted">
+              What an object is, in picker order. Renaming one retypes every item using it.
+              Deleting is refused while anything still is that type. Frame and the artwork types
+              carry extra fields, declared in the code; a type added here has none.
+            </p>
+            <List
+              values={vocab.types}
+              counts={counts.types}
+              busy={busy}
+              onRename={(v, nv) => call('types', 'rename', v, nv)}
+              onDelete={(v) => call('types', 'delete', v)}
+            />
+            <Adder busy={busy} placeholder="add type…" onAdd={(v) => call('types', 'add', v)} />
           </Panel>
         </div>
       </div>

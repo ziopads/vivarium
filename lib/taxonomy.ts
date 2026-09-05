@@ -121,6 +121,42 @@ export function leafPaths(tree: TaxonNode[]): string[][] {
   return out;
 }
 
+/**
+ * Every path in the tree as a pickable option, in stored order.
+ *
+ * Interior nodes are included, not just leaves. `Regions & Cultures/Asia` is a
+ * real place to file something even once South Asia exists under it — a general
+ * book about Asia belongs there and nowhere more specific, and forcing it down
+ * to a leaf would invent a precision the book does not have.
+ */
+export function pathOptions(tree: TaxonNode[]): { path: string; depth: number; name: string }[] {
+  const out: { path: string; depth: number; name: string }[] = [];
+  walk(tree, (node, path) => {
+    out.push({ path: formatPath(path), depth: path.length - 1, name: node.name });
+  });
+  return out;
+}
+
+/** Is `path` at `prefix`, or anywhere beneath it? */
+export function isUnderPath(path: string, prefix: string): boolean {
+  if (!prefix) return true;
+  return path === prefix || path.startsWith(prefix + SEP);
+}
+
+/**
+ * Rewrite a stored path when the node it names is renamed or moved.
+ *
+ * Returns null when the path is untouched. Matching is on whole segments —
+ * `startsWith(from)` alone would rewrite `Art & Music` when `Art` moved, and
+ * every record in the wrong section would follow it.
+ */
+export function rewritePrefix(path: string, from: string, to: string): string | null {
+  if (!path || !from) return null;
+  if (path === from) return to;
+  if (path.startsWith(from + SEP)) return to + path.slice(from.length);
+  return null;
+}
+
 // --- Mutation. Each operates in place and reports whether anything changed. ---
 
 export function addNode(tree: TaxonNode[], parent: string[], name: string): boolean {
@@ -190,6 +226,9 @@ export type MoveResult = 'ok' | 'missing' | 'cycle' | 'duplicate' | 'nowhere';
  * subtree from the tree and lose it. Refuses when the destination already holds
  * a node of that name, for the reason renameNode does: merging two subtrees is a
  * different operation.
+ *
+ * `index` inserts at a position among the destination's children; omitted, the
+ * node goes last.
  */
 export function moveNode(
   tree: TaxonNode[],
@@ -198,13 +237,30 @@ export function moveNode(
   index?: number,
 ): MoveResult {
   if (!path.length) return 'missing';
-  if (samePath(path.slice(0, -1), newParent)) return 'nowhere';
+
+  // Same parent with an index is a REPOSITION — what dragging a row up or down
+  // its own column means. Without an index it is genuinely a move to where the
+  // node already is, which is nothing.
+  const sameParent = samePath(path.slice(0, -1), newParent);
+  if (sameParent && typeof index !== 'number') return 'nowhere';
   if (samePath(path, newParent) || isAncestor(path, newParent)) return 'cycle';
 
   const node = findNode(tree, path);
   if (!node) return 'missing';
   if (newParent.length && !findNode(tree, newParent)) return 'missing';
-  if (childrenAt(tree, newParent).some((n) => n.name === node.name)) return 'duplicate';
+
+  const destBefore = childrenAt(tree, newParent);
+  const from = destBefore.findIndex((n) => n.name === node.name);
+  if (!sameParent && destBefore.some((n) => n.name === node.name)) return 'duplicate';
+
+  // The index names a gap in the list AS IT LOOKS NOW. Removing the node first
+  // shifts everything after it up one, so a downward reposition lands one place
+  // short unless the target is adjusted.
+  let at = index;
+  if (typeof at === 'number' && sameParent && from !== -1) {
+    if (at > from) at -= 1;
+    if (at === from) return 'nowhere';
+  }
 
   removeNode(tree, path);
 
@@ -218,7 +274,7 @@ export function moveNode(
     if (!destNode.children) destNode.children = [];
     dest = destNode.children;
   }
-  if (typeof index === 'number' && index >= 0 && index <= dest.length) dest.splice(index, 0, node);
+  if (typeof at === 'number' && at >= 0 && at <= dest.length) dest.splice(at, 0, node);
   else dest.push(node);
   return 'ok';
 }

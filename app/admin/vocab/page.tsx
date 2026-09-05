@@ -12,6 +12,7 @@ export default async function VocabPage() {
 
   const sections: Record<string, number> = {};
   const genres: Record<string, number> = {};
+  const types: Record<string, number> = {};
   const shelvesBySection: Record<string, Record<string, number>> = {};
   // Keyed by joined path. Only the first two levels can have counts: an item
   // records where it sits in `section` and `shelf` and nowhere else yet.
@@ -20,6 +21,8 @@ export default async function VocabPage() {
     const sec = (i.section || '').trim();
     if (sec) sections[sec] = (sections[sec] || 0) + 1;
     for (const g of i.genres || []) genres[g] = (genres[g] || 0) + 1;
+    const t = (i.itemType || 'Book').trim();
+    types[t] = (types[t] || 0) + 1;
     const sh = (i.shelf || '').trim();
     if (sec) byPath[sec] = (byPath[sec] || 0) + 1;
     if (sec && sh) {
@@ -29,7 +32,7 @@ export default async function VocabPage() {
       byPath[key] = (byPath[key] || 0) + 1;
     }
   }
-  const counts = { sections, genres, shelvesBySection, byPath };
+  const counts = { sections, genres, types, shelvesBySection, byPath };
 
   return (
     <div>

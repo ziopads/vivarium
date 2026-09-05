@@ -2,17 +2,22 @@
 
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { isUnderPath } from '@/lib/taxonomy';
 
 type Row = {
   id: number;
   title: string;
+  /** What the object IS. Drives the type-specific fields on the item page. */
+  itemType: string;
   /** Thumb-tier URL, resolved server-side. Empty when the record has no image. */
   thumb: string;
-  section: string;
-  shelf: string;
+  /** Full path into the classification tree. Empty means unfiled. */
+  classification: string;
   genres: string[];
   subjects: string[];
 };
+
+type PathOption = { path: string; depth: number; name: string };
 
 /**
  * Row thumbnail.
@@ -61,19 +66,54 @@ function Thumb({ src, title }: { src: string; title: string }) {
   );
 }
 
-// Shelves available for a section, always including the row's current shelf.
-function shelfOptions(sbs: Record<string, string[]>, section: string, current: string): string[] {
-  const list = sbs[section] || [];
-  const merged = current && !list.includes(current) ? [...list, current] : list;
-  return [...merged].sort((a, b) => a.localeCompare(b));
-}
-
-// Every shelf name across all sections, de-duped — for filtering when no section is
-// chosen. Shelves are section-scoped, so a name like "Maritime" can appear under more
-// than one section; matching by name here is deliberate, and is what makes "show me
-// everything on a Maine shelf" work.
-function allShelfNames(sbs: Record<string, string[]>): string[] {
-  return Array.from(new Set(Object.values(sbs).flat())).sort((a, b) => a.localeCompare(b));
+/**
+ * The filing picker.
+ *
+ * One control where there were two. Section and shelf were separate because they
+ * were separate fields, and keeping them in step took real work: the shelf list
+ * had to be recomputed from the chosen section, a shelf already set had to be
+ * checked against a new section and silently dropped when it no longer fitted,
+ * and a bulk change needed the shelves common to every selected item. A path is
+ * one value naming the whole position, so all of that goes.
+ *
+ * Depth is shown by indentation. Figure spaces rather than CSS because this is
+ * an <option>, which browsers will not let us style.
+ */
+function PathSelect({
+  value,
+  paths,
+  onChange,
+  className,
+  extra,
+}: {
+  value: string;
+  paths: PathOption[];
+  onChange: (v: string) => void;
+  className?: string;
+  /** Leading options the caller adds — sentinels for the bulk bar. */
+  extra?: { value: string; label: string }[];
+}) {
+  // A path stored on a record but missing from the tree still has to be
+  // selectable, or opening the row would silently reassign it to whatever the
+  // browser picks first.
+  const known = paths.some((p) => p.path === value);
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={className}>
+      {extra?.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+      <option value="">— unfiled —</option>
+      {!known && value && <option value={value}>{value} (not in the classification)</option>}
+      {paths.map((p) => (
+        <option key={p.path} value={p.path}>
+          {'\u2007\u2007'.repeat(p.depth)}
+          {p.name}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 // Sentinels for the bulk bar. Splitting "leave alone" from "clear" matters: the old
@@ -84,90 +124,54 @@ const CLEAR = '__clear__';
 
 export default function ManageTable({
   rows: initial,
-  sections,
-  shelvesBySection,
+  paths,
   genreSuggest,
   subjectSuggest,
+  types,
 }: {
   rows: Row[];
-  sections: string[];
-  shelvesBySection: Record<string, string[]>;
+  paths: PathOption[];
   genreSuggest: string[];
   subjectSuggest: string[];
+  types: string[];
 }) {
   const [rows, setRows] = useState<Row[]>(initial);
   const [q, setQ] = useState('');
-  const [filterSection, setFilterSection] = useState('All');
-  const [filterShelf, setFilterShelf] = useState('All');
+  const [filterPath, setFilterPath] = useState('All');
+  const [filterType, setFilterType] = useState('All');
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [bulkSection, setBulkSection] = useState(NO_CHANGE);
-  const [bulkShelf, setBulkShelf] = useState(NO_CHANGE);
+  const [bulkPath, setBulkPath] = useState(NO_CHANGE);
+  const [bulkType, setBulkType] = useState(NO_CHANGE);
   const [bulkNote, setBulkNote] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [saving, setSaving] = useState<Set<number>>(new Set());
   const [busyBulk, setBusyBulk] = useState(false);
 
-  const unsorted = rows.filter((r) => !r.section).length;
-  const sorted = rows.length - unsorted;
-  // Items that have a section but no shelf — the actionable shelving backlog. An
-  // item with no section can't meaningfully have one, so those aren't counted here.
-  const unshelved = rows.filter((r) => r.section && !r.shelf).length;
-
-  const flatShelves = useMemo(() => allShelfNames(shelvesBySection), [shelvesBySection]);
-
-  // With a section chosen, offer only its shelves; otherwise the flat union.
-  // 'Sorted' and 'Unsorted' aren't sections, so they get the union too.
-  const filterShelfChoices = useMemo(
-    () =>
-      filterSection !== 'All' && filterSection !== 'Unsorted' && filterSection !== 'Sorted'
-        ? shelfOptions(shelvesBySection, filterSection, '')
-        : flatShelves,
-    [filterSection, shelvesBySection, flatShelves],
-  );
+  const unfiled = rows.filter((r) => !r.classification).length;
+  const filed = rows.length - unfiled;
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
-      if (filterSection === 'Unsorted') {
-        if (r.section) return false;
-      } else if (filterSection === 'Sorted') {
-        if (!r.section) return false;
-      } else if (filterSection !== 'All' && r.section !== filterSection) {
-        return false;
+      if (filterPath === 'Unfiled') {
+        if (r.classification) return false;
+      } else if (filterPath === 'Filed') {
+        if (!r.classification) return false;
+      } else if (filterPath !== 'All') {
+        // A node matches everything beneath it, so choosing Literature shows the
+        // whole section rather than only what sits directly on it.
+        if (!r.classification || !isUnderPath(r.classification, filterPath)) return false;
       }
 
-      if (filterShelf === 'Unshelved') {
-        if (r.shelf) return false;
-      } else if (filterShelf === 'Shelved') {
-        if (!r.shelf) return false;
-      } else if (filterShelf !== 'All' && r.shelf !== filterShelf) {
-        return false;
-      }
+      if (filterType !== 'All' && r.itemType !== filterType) return false;
 
       if (needle && !r.title.toLowerCase().includes(needle)) return false;
       return true;
     });
-  }, [rows, q, filterSection, filterShelf]);
+  }, [rows, q, filterPath, filterType]);
 
-  // Which shelves can legally be set on the current selection. If a section is being
-  // set at the same time, that section's shelves are all valid. Otherwise only shelves
-  // common to every selected item's existing section are — anything else would be
-  // rejected per-item by the API.
-  const bulkShelfChoices = useMemo(() => {
-    if (bulkSection !== NO_CHANGE && bulkSection !== CLEAR) {
-      return shelfOptions(shelvesBySection, bulkSection, '');
-    }
-    const sections = new Set(
-      rows.filter((r) => selected.has(r.id)).map((r) => r.section).filter(Boolean),
-    );
-    if (!sections.size) return [];
-    let inter: string[] | null = null;
-    for (const s of sections) {
-      const list = shelvesBySection[s] || [];
-      inter = inter === null ? [...list] : inter.filter((x) => list.includes(x));
-    }
-    return (inter || []).sort((a, b) => a.localeCompare(b));
-  }, [bulkSection, rows, selected, shelvesBySection]);
+  // Which shelves can legally be set on the current selection — gone with the
+  // two-field scheme. A path is legal everywhere, so there is nothing to work out.
 
   function mark(id: number, on: boolean) {
     setSaving((s) => {
@@ -236,46 +240,58 @@ export default function ManageTable({
     anchorRef.current = null;
   }
 
-  const bulkWouldChange = bulkSection !== NO_CHANGE || bulkShelf !== NO_CHANGE;
+  const bulkWouldChange = bulkPath !== NO_CHANGE || bulkType !== NO_CHANGE;
 
   async function applyBulk() {
     const ids = [...selected];
     if (!ids.length || !bulkWouldChange) return;
 
-    const payload: { ids: number[]; section?: string; shelf?: string } = { ids };
-    if (bulkSection !== NO_CHANGE) payload.section = bulkSection === CLEAR ? '' : bulkSection;
-    if (bulkShelf !== NO_CHANGE) payload.shelf = bulkShelf === CLEAR ? '' : bulkShelf;
-
     setBusyBulk(true);
     setBulkNote(null);
+    const bits: string[] = [];
+
     try {
-      const res = await fetch('/api/items/bulk-section', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const out = await res.json().catch(() => null);
+      if (bulkType !== NO_CHANGE) {
+        const res = await fetch('/api/items/bulk-type', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids, itemType: bulkType }),
+        });
+        const out = await res.json().catch(() => null);
+        if (!res.ok) {
+          bits.push(out?.error ? `Type not changed — ${out.error}` : 'Type not changed.');
+        } else {
+          setRows((rs) => rs.map((r) => (selected.has(r.id) ? { ...r, itemType: bulkType } : r)));
+          bits.push(`${out?.updated ?? ids.length} set to ${bulkType}`);
+        }
+      }
 
-      setRows((rs) =>
-        rs.map((r) => {
-          if (!selected.has(r.id)) return r;
-          const section = payload.section !== undefined ? payload.section : r.section;
-          let shelf = payload.shelf !== undefined ? payload.shelf : r.shelf;
-          // mirror the server's rules so the table doesn't drift from what was written
-          if (shelf && !(shelvesBySection[section] || []).includes(shelf)) shelf = '';
-          return { ...r, section, shelf };
-        }),
-      );
+      if (bulkPath !== NO_CHANGE) {
+        const classification = bulkPath === CLEAR ? '' : bulkPath;
+        const res = await fetch('/api/items/bulk-classify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids, classification }),
+        });
+        const out = await res.json().catch(() => null);
+        if (!res.ok) {
+          bits.push(out?.error ? `Not filed — ${out.error}` : 'Not filed.');
+        } else {
+          // No reconciliation to mirror: every selected row gets the value that
+          // was sent, which is the whole benefit of filing by path.
+          setRows((rs) =>
+            rs.map((r) => (selected.has(r.id) ? { ...r, classification } : r)),
+          );
+          bits.push(
+            `${out?.updated ?? ids.length} ${classification ? `filed under ${classification}` : 'unfiled'}`,
+          );
+        }
+      }
 
-      const bits: string[] = [];
-      if (out?.updated) bits.push(`${out.updated} updated`);
-      if (out?.shelvesCleared) bits.push(`${out.shelvesCleared} shelf cleared as invalid for the new section`);
-      if (out?.skipped) bits.push(`${out.skipped} skipped — that shelf isn't under their section`);
       setBulkNote(bits.length ? bits.join(' · ') : null);
-
       setSelected(new Set());
-      setBulkSection(NO_CHANGE);
-      setBulkShelf(NO_CHANGE);
+      setBulkPath(NO_CHANGE);
+      setBulkType(NO_CHANGE);
     } finally {
       setBusyBulk(false);
     }
@@ -293,49 +309,34 @@ export default function ManageTable({
           className="rounded-md border border-line bg-card px-3 py-1.5 text-sm outline-none focus:border-rust"
         />
         <label className="text-sm text-muted">
-          Section:{' '}
-          <select
-            value={filterSection}
-            onChange={(e) => {
-              const ns = e.target.value;
-              setFilterSection(ns);
-              // a shelf filter that isn't offered under the new section would silently
-              // show nothing, so drop back to All rather than leave a dead filter set
-              if (filterShelf !== 'All' && filterShelf !== 'Unshelved' && filterShelf !== 'Shelved') {
-                const allowed =
-                  ns !== 'All' && ns !== 'Unsorted' && ns !== 'Sorted'
-                    ? shelvesBySection[ns] || []
-                    : flatShelves;
-                if (!allowed.includes(filterShelf)) setFilterShelf('All');
-              }
-            }}
+          Filed under:{' '}
+          <PathSelect
+            value={filterPath}
+            paths={paths}
+            onChange={setFilterPath}
             className="rounded-md border border-line bg-card px-2 py-1 text-sm"
-          >
-            <option>All</option>
-            <option>Unsorted</option>
-            <option>Sorted</option>
-            {sections.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
+            extra={[
+              { value: 'All', label: 'All' },
+              { value: 'Unfiled', label: 'Unfiled' },
+              { value: 'Filed', label: 'Filed' },
+            ]}
+          />
         </label>
         <label className="text-sm text-muted">
-          Shelf:{' '}
+          Type:{' '}
           <select
-            value={filterShelf}
-            onChange={(e) => setFilterShelf(e.target.value)}
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
             className="rounded-md border border-line bg-card px-2 py-1 text-sm"
           >
             <option>All</option>
-            <option>Unshelved</option>
-            <option>Shelved</option>
-            {filterShelfChoices.map((s) => (
-              <option key={s}>{s}</option>
+            {types.map((t) => (
+              <option key={t}>{t}</option>
             ))}
           </select>
         </label>
         <span className="text-sm text-muted">
-          {filtered.length} shown · {sorted} sorted · {unsorted} unsorted · {unshelved} unshelved
+          {filtered.length} shown · {filed} filed · {unfiled} unfiled
         </span>
         <span className="text-xs text-muted">
           Tick a row, then shift-click another to take everything between them.
@@ -346,41 +347,30 @@ export default function ManageTable({
         <div className="sticky top-0 z-20 mb-2 flex flex-wrap items-center gap-3 rounded-md border border-rust/40 bg-card px-3 py-2 text-sm shadow-sm">
           <span className="font-medium">{selected.size} selected</span>
           <label>
-            Section{' '}
-            <select
-              value={bulkSection}
-              onChange={(e) => {
-                const ns = e.target.value;
-                setBulkSection(ns);
-                // the shelf list is about to change under it; don't carry a stale pick
-                setBulkShelf(NO_CHANGE);
-              }}
+            Filed under{' '}
+            <PathSelect
+              value={bulkPath}
+              paths={paths}
+              onChange={setBulkPath}
               className="rounded-md border border-line bg-card px-2 py-1"
-            >
-              <option value={NO_CHANGE}>— no change —</option>
-              <option value={CLEAR}>— clear —</option>
-              {sections.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
+              extra={[
+                { value: NO_CHANGE, label: '— no change —' },
+                { value: CLEAR, label: '— unfile —' },
+              ]}
+            />
           </label>
           <label>
-            Shelf{' '}
+            Type{' '}
             <select
-              value={bulkShelf}
-              onChange={(e) => setBulkShelf(e.target.value)}
-              className="rounded-md border border-line bg-card px-2 py-1 disabled:opacity-40"
-              disabled={bulkShelfChoices.length === 0 && bulkShelf === NO_CHANGE}
-              title={
-                bulkShelfChoices.length === 0
-                  ? 'The selected items span sections with no shelf in common — set a section too.'
-                  : undefined
-              }
+              value={bulkType}
+              onChange={(e) => setBulkType(e.target.value)}
+              className="rounded-md border border-line bg-card px-2 py-1"
             >
+              {/* No — clear — here, unlike section and shelf: every record is
+                  something, and an empty type would just read as Book anyway. */}
               <option value={NO_CHANGE}>— no change —</option>
-              <option value={CLEAR}>— clear —</option>
-              {bulkShelfChoices.map((s) => (
-                <option key={s}>{s}</option>
+              {types.map((t) => (
+                <option key={t}>{t}</option>
               ))}
             </select>
           </label>
@@ -394,18 +384,13 @@ export default function ManageTable({
           <button
             onClick={() => {
               setSelected(new Set());
-              setBulkSection(NO_CHANGE);
-              setBulkShelf(NO_CHANGE);
+              setBulkPath(NO_CHANGE);
+              setBulkType(NO_CHANGE);
             }}
             className="text-muted hover:text-rust"
           >
             Clear
           </button>
-          {bulkShelfChoices.length === 0 && bulkSection === NO_CHANGE && (
-            <span className="text-xs text-muted">
-              No shelf is common to every selected item’s section — set a section to shelve them together.
-            </span>
-          )}
         </div>
       )}
 
@@ -422,8 +407,8 @@ export default function ManageTable({
               </th>
               <th className="w-16 px-2 py-2">Cover</th>
               <th className="px-2 py-2">Title</th>
-              <th className="px-2 py-2">Section</th>
-              <th className="px-2 py-2">Shelf</th>
+              <th className="px-2 py-2">Type</th>
+              <th className="px-2 py-2">Filed under</th>
               <th className="px-2 py-2">Tags</th>
             </tr>
           </thead>
@@ -432,8 +417,8 @@ export default function ManageTable({
               <ManageRow
                 key={r.id}
                 r={r}
-                sections={sections}
-                shelvesBySection={shelvesBySection}
+                paths={paths}
+                types={types}
                 selected={selected.has(r.id)}
                 saving={saving.has(r.id)}
                 expanded={expanded === r.id}
@@ -453,12 +438,12 @@ export default function ManageTable({
 }
 
 function ManageRow({
-  r, sections, shelvesBySection, selected, saving, expanded,
+  r, paths, types, selected, saving, expanded,
   onToggle, onExpand, onSave, genreSuggest, subjectSuggest,
 }: {
   r: Row;
-  sections: string[];
-  shelvesBySection: Record<string, string[]>;
+  paths: PathOption[];
+  types: string[];
   selected: boolean;
   saving: boolean;
   expanded: boolean;
@@ -490,28 +475,22 @@ function ManageRow({
         </td>
         <td className="px-2 py-2 align-top">
           <select
-            value={r.section}
-            onChange={(e) => {
-              const ns = e.target.value;
-              const keep = (shelvesBySection[ns] || []).includes(r.shelf);
-              onSave(r.id, keep ? { section: ns } : { section: ns, shelf: '' });
-            }}
-            className={`rounded border px-1.5 py-1 ${r.section ? 'border-line bg-card' : 'border-amber-400 bg-amber-50'}`}
+            value={r.itemType}
+            onChange={(e) => onSave(r.id, { itemType: e.target.value })}
+            className="rounded border border-line bg-card px-1.5 py-1"
           >
-            <option value="">— none —</option>
-            {sections.map((s) => (<option key={s}>{s}</option>))}
+            {types.map((t) => (<option key={t}>{t}</option>))}
           </select>
         </td>
         <td className="px-2 py-2 align-top">
-          <select
-            value={r.shelf}
-            disabled={!r.section}
-            onChange={(e) => onSave(r.id, { shelf: e.target.value })}
-            className="rounded border border-line bg-card px-1.5 py-1 disabled:opacity-40"
-          >
-            <option value="">— none —</option>
-            {shelfOptions(shelvesBySection, r.section, r.shelf).map((s) => (<option key={s}>{s}</option>))}
-          </select>
+          <PathSelect
+            value={r.classification}
+            paths={paths}
+            onChange={(v) => onSave(r.id, { classification: v })}
+            className={`max-w-[18rem] rounded border px-1.5 py-1 ${
+              r.classification ? 'border-line bg-card' : 'border-amber-400 bg-amber-50'
+            }`}
+          />
         </td>
         <td className="px-2 py-2 align-top">
           <button onClick={onExpand} className="text-xs text-muted hover:text-rust">

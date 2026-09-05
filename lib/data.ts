@@ -9,6 +9,7 @@ import { getSupabase } from './supabase';
 import { validateItem } from './validation';
 import { getViewer } from './auth';
 import { canView, normalizeVisibility } from './visibility';
+import { rewritePrefix } from './taxonomy';
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'items.json');
 
@@ -299,6 +300,113 @@ const ITEM_TO_COLUMN: Record<string, string> = {
  * others is what would let them drift.
  */
 const FILING_COLUMNS = ['classification', 'section', 'shelf'];
+
+/**
+ * Records filed at `prefix` or anywhere beneath it, as id and current path.
+ *
+ * Two queries rather than one `.or()`: PostgREST splits an or-filter on commas,
+ * so a node name containing one would silently become two conditions. Names can
+ * hold almost anything — "Art, Class and Cleavage" is a real title in this
+ * catalogue — so the split form is the safe one.
+ *
+ * LIKE metacharacters in the prefix are escaped for the same reason: a name with
+ * a percent sign in it would otherwise match far more than itself.
+ */
+async function itemsUnder(prefix: string): Promise<{ id: number; classification: string }[]> {
+  const sb = getSupabase()!;
+  const escaped = prefix.replace(/([\\%_])/g, '\\$1');
+
+  const [exact, below] = await Promise.all([
+    sb.from('items').select('id, classification').eq('classification', prefix),
+    sb.from('items').select('id, classification').like('classification', `${escaped}/%`),
+  ]);
+  if (exact.error) throw new Error(`Supabase itemsUnder: ${exact.error.message}`);
+  if (below.error) throw new Error(`Supabase itemsUnder: ${below.error.message}`);
+
+  return [...(exact.data || []), ...(below.data || [])] as { id: number; classification: string }[];
+}
+
+/**
+ * Move every record at or under `from` to the same position under `to`.
+ *
+ * The whole point is what it does NOT do. The vocabulary route used to read the
+ * entire catalogue, mutate the matching records in memory and write all 1,900
+ * rows back — for a rename that touched nine of them. This reads only the
+ * affected rows and writes only those, grouped by their new path, so the cost
+ * follows the size of the change rather than the size of the library.
+ *
+ * Local mode has no row granularity: the file is the row, so it keeps the
+ * read-modify-write it always had.
+ */
+export async function rewriteClassifications(from: string, to: string): Promise<number> {
+  if (!from || from === to) return 0;
+
+  if (dataSource().mode !== 'supabase') {
+    const items = await readLocalItems();
+    let n = 0;
+    for (const it of items) {
+      const next = rewritePrefix(it.classification || '', from, to);
+      if (next !== null) {
+        it.classification = next;
+        n++;
+      }
+    }
+    if (n) await writeLocalItems(items);
+    return n;
+  }
+
+  const affected = await itemsUnder(from);
+  if (!affected.length) return 0;
+
+  // One UPDATE per distinct destination. A subtree of any shape collapses to a
+  // handful of statements, since every record sharing an old path shares a new one.
+  const groups = new Map<string, number[]>();
+  for (const row of affected) {
+    const next = rewritePrefix(row.classification || '', from, to);
+    if (next === null) continue;
+    const g = groups.get(next);
+    if (g) g.push(row.id);
+    else groups.set(next, [row.id]);
+  }
+
+  let updated = 0;
+  for (const [classification, ids] of groups) {
+    updated += await setColumns(ids, { classification });
+  }
+  return updated;
+}
+
+/**
+ * Unfile every record at or under `prefix`.
+ *
+ * All three filing columns are cleared, not just the path: validateItem rebuilds
+ * an empty classification FROM section and shelf, so clearing the path alone
+ * would regenerate it from the stale pair and the records would stay filed under
+ * something that no longer exists.
+ */
+export async function clearClassificationsUnder(prefix: string): Promise<number> {
+  if (!prefix) return 0;
+
+  if (dataSource().mode !== 'supabase') {
+    const items = await readLocalItems();
+    let n = 0;
+    for (const it of items) {
+      const p = it.classification || '';
+      if (p && (p === prefix || p.startsWith(`${prefix}/`))) {
+        it.classification = '';
+        it.section = '';
+        it.shelf = '';
+        n++;
+      }
+    }
+    if (n) await writeLocalItems(items);
+    return n;
+  }
+
+  const affected = await itemsUnder(prefix);
+  if (!affected.length) return 0;
+  return setColumns(affected.map((r) => r.id), { classification: '' });
+}
 
 /**
  * Apply a partial patch to one item. Returns the updated item, or null when no

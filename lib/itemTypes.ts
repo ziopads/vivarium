@@ -59,9 +59,14 @@ export const ITEM_TYPES: Record<string, TypeDef> = {
 };
 
 // Suggestions for the type picker; free text is still allowed.
+// `Recording` covers the phonograph records, flexi-discs and cassettes the
+// batch pipeline keeps finding — it has no fields of its own yet, which is
+// fine: typeFields returns an empty list and the record keeps its bibliographic
+// tail. `Music` means printed music.
 export const TYPE_OPTIONS = [
   'Book',
   'Music',
+  'Recording',
   'Art',
   ...ARTWORK_TYPES,
   'Instrument',

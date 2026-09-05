@@ -4,6 +4,7 @@ import { getVocab, flatShelves } from '@/lib/vocab';
 import Catalog from '@/app/ui/Catalog';
 import { getViewer } from '@/lib/auth';
 import { sectionOf } from '@/lib/sections';
+import { childrenAt, parsePath, formatPath, isUnderPath } from '@/lib/taxonomy';
 import { needsWriteup } from '@/lib/writeup';
 import type { Item } from '@/lib/types';
 
@@ -42,7 +43,7 @@ function forBrowsing(i: Item): Item {
 export default async function Browse({
   searchParams,
 }: {
-  searchParams: { section?: string; q?: string; shelf?: string };
+  searchParams: { section?: string; q?: string; shelf?: string; path?: string };
 }) {
   const items = await getVisibleItems();
   const vocab = await getVocab();
@@ -50,6 +51,34 @@ export default async function Browse({
 
   const section = searchParams.section;
   const shelf = searchParams.shelf;
+
+  // PATH MODE. `?path=` browses the classification tree at any depth, where
+  // `?section=`/`?shelf=` reach only the first two levels. Both are live: the
+  // landing page and the old chips still link the two-level way, and a path link
+  // (from an item's breadcrumb) takes over when present.
+  //
+  // Scoping happens here rather than in Catalog because a prefix match is a
+  // server-side filter over one field — Catalog receives the subtree already
+  // narrowed and needs to know nothing about paths.
+  const crumbs = parsePath(searchParams.path);
+  const atPath = formatPath(crumbs);
+  const scoped = crumbs.length
+    ? items.filter((i) => isUnderPath(i.classification || '', atPath))
+    : items;
+
+  // Children of the current node, counted INCLUSIVELY — a chip shows everything
+  // beneath it, so the numbers add up to the total above them rather than
+  // omitting whatever sits directly on each child.
+  const childChips = crumbs.length
+    ? childrenAt(vocab.tree, crumbs).map((n) => {
+        const p = formatPath([...crumbs, n.name]);
+        return {
+          name: n.name,
+          path: p,
+          count: scoped.filter((i) => isUnderPath(i.classification || '', p)).length,
+        };
+      })
+    : [];
 
   // Two-level browse: within a section, offer its shelves as chips.
   let chips: { name: string; count: number }[] = [];
@@ -75,7 +104,42 @@ export default async function Browse({
         ← sections
       </Link>
 
-      {section && chips.length > 0 && (
+      {crumbs.length > 0 && (
+        <>
+          <nav className="mt-3 flex flex-wrap items-center gap-1.5 text-sm">
+            <Link href="/browse" className="text-rust hover:underline">
+              All
+            </Link>
+            {crumbs.map((seg, i) => (
+              <span key={seg + i} className="flex items-center gap-1.5">
+                <span className="text-muted">›</span>
+                {i === crumbs.length - 1 ? (
+                  <span className="font-medium">{seg}</span>
+                ) : (
+                  <Link
+                    href={`/browse?path=${encodeURIComponent(formatPath(crumbs.slice(0, i + 1)))}`}
+                    className="text-rust hover:underline"
+                  >
+                    {seg}
+                  </Link>
+                )}
+              </span>
+            ))}
+          </nav>
+
+          {childChips.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {childChips.map((c) => (
+                <Link key={c.path} href={`/browse?path=${encodeURIComponent(c.path)}`} className={chipCls(false)}>
+                  {c.name} <span className="text-muted">({c.count})</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {!crumbs.length && section && chips.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           <Link href={`/browse?section=${encodeURIComponent(section)}`} className={chipCls(!shelf)}>
             All {section}
@@ -104,11 +168,11 @@ export default async function Browse({
           // section total, and the cards never filtered. Keying on the params
           // forces a fresh mount, and view/sort survive because those are read
           // from sessionStorage on mount rather than from props.
-          key={`${section ?? ''}|${shelf ?? ''}|${searchParams.q ?? ''}`}
-          items={items.map(forBrowsing)}
-          initialSection={section}
+          key={`${searchParams.path ?? ''}|${section ?? ''}|${shelf ?? ''}|${searchParams.q ?? ''}`}
+          items={scoped.map(forBrowsing)}
+          initialSection={crumbs.length ? undefined : section}
           initialQ={searchParams.q}
-          initialShelf={shelf}
+          initialShelf={crumbs.length ? undefined : shelf}
           vocab={{ sections: vocab.sections, genres: vocab.genres, shelves: flatShelves(vocab), shelvesBySection: vocab.shelvesBySection }}
           isAdmin={viewer.isAdmin}
         />

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getItems } from '@/lib/data';
 import { getVocab } from '@/lib/vocab';
 import { coverImage, imageUrl } from '@/lib/img';
+import { pathOptions } from '@/lib/taxonomy';
 import ManageTable from '@/app/ui/ManageTable';
 
 export const dynamic = 'force-dynamic';
@@ -17,9 +18,9 @@ export default async function Manage() {
     return {
       id: i.id,
       title: i.title,
+      itemType: i.itemType || 'Book',
       thumb: cover ? imageUrl(cover, 'thumb') : '',
-      section: i.section || '',
-      shelf: i.shelf || '',
+      classification: i.classification || '',
       genres: i.genres || [],
       subjects: i.subjects || [],
     };
@@ -31,19 +32,23 @@ export default async function Manage() {
       <Link href="/admin" className="text-sm text-rust hover:underline">← admin</Link>
       <h1 className="mt-3 font-serif text-2xl">Tag items</h1>
       <p className="mt-1 max-w-prose text-sm text-muted">
-        Section and shelf are locked to the managed vocabulary — no free-typing new ones. Filter to
-        “Unsorted” to assign sections to the books that lack one, or “Unshelved” to work through
-        those that have a section but no shelf. Tick several rows to set section and shelf together.
-        Shelves are scoped to their section, so with no section chosen the shelf filter matches a
-        name wherever it appears. Everything saves as you go. Hover a thumbnail to enlarge it.
+        Filing is one place in the classification tree, chosen from the picker — no free-typing.
+        Filter to “Unfiled” to work through what has no place yet, or pick a branch to see
+        everything under it. Tick several rows to file or retype them together. Type is what the
+        object IS — a book, a recording, a frame — and decides which extra fields the item page
+        offers. Everything saves as you go. Hover a thumbnail to enlarge it.
       </p>
       <div className="mt-5">
         <ManageTable
           rows={rows}
-          sections={vocab.sections}
-          shelvesBySection={vocab.shelvesBySection}
+          paths={pathOptions(vocab.tree)}
           genreSuggest={vocab.genres}
           subjectSuggest={subjectSuggest}
+          // The managed list, plus whatever is already in use — so a type set by
+          // hand or by the pipeline never vanishes from the picker showing it.
+          types={Array.from(
+            new Set([...vocab.types, ...items.map((i) => i.itemType || 'Book')]),
+          )}
         />
       </div>
     </div>

@@ -16,6 +16,7 @@ import EditMode from '@/app/ui/EditMode';
 import { typeFields } from '@/lib/itemTypes';
 import { getVocab, flatShelves } from '@/lib/vocab';
 import { publicView } from '@/lib/fieldVisibility';
+import { parsePath, formatPath } from '@/lib/taxonomy';
 import { canView, normalizeVisibility, VISIBILITY_LABEL, VISIBILITY_MARK } from '@/lib/visibility';
 
 // Render on-demand so a cover change (writing items.json) shows up on refresh.
@@ -57,7 +58,6 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
       ['Printing', item.printing],
       ['ISBN', item.isbn],
       ['Format', item.format],
-      ['Shelf', canSee('shelf') ? item.shelf : ''],
       ['Condition', item.condition],
       ['Condition notes', canSee('conditionNotes') ? item.conditionNotes || '' : ''],
       ['Location', canSee('location') ? item.location : ''],
@@ -80,6 +80,16 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
     ] as [string, string][]
   ).filter(([, v]) => v);
 
+  // Where the record is filed, as a trail. Replaces the flat Shelf row in the
+  // table below, which could only ever name the second level.
+  //
+  // Depth follows the same rule the Shelf row did: the first segment is the
+  // section, which the public tier already sees on every card, and anything
+  // deeper is shelf-level detail that publicView withholds. So a visitor sees
+  // Literature and an admin sees Literature › Poetry › Anthologies.
+  const filedAt = parsePath(item.classification);
+  const crumbs = canSee('shelf') ? filedAt : filedAt.slice(0, 1);
+
   return (
     <article className="max-w-3xl">
       <Link href="/browse" className="text-sm text-rust hover:underline">
@@ -95,6 +105,22 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
           {item.author && <p className="mt-1 text-lg text-muted">{item.author}</p>}
         </>
       )}
+      {crumbs.length > 0 && (
+        <nav className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
+          {crumbs.map((seg, i) => (
+            <span key={seg + i} className="flex items-center gap-1.5">
+              {i > 0 && <span className="text-muted">›</span>}
+              <Link
+                href={`/browse?path=${encodeURIComponent(formatPath(crumbs.slice(0, i + 1)))}`}
+                className="text-rust hover:underline"
+              >
+                {seg}
+              </Link>
+            </span>
+          ))}
+        </nav>
+      )}
+
       {item.signed && (
         <p className="mt-3 inline-block rounded-full bg-rust/10 px-3 py-1 text-sm text-rust">
           Signed / inscribed

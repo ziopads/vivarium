@@ -10,19 +10,29 @@ import {
   shelvesBySectionFromTree,
   type TaxonNode,
 } from './taxonomy';
+import { TYPE_OPTIONS } from './itemTypes';
 
 // Server-only. `tree` is the classification: one ordered, arbitrarily deep tree
 // of names (see lib/taxonomy.ts). `sections` and `shelvesBySection` are DERIVED
 // from its first two levels and are not independently editable — they exist so
 // the surfaces still written against section/shelf keep working while they are
 // moved over. Genres stay flat, being cross-cutting.
-export type VocabKind = 'sections' | 'genres' | 'shelves';
+export type VocabKind = 'sections' | 'genres' | 'shelves' | 'types';
 export type Vocab = {
   /** The classification tree. The stored source of truth for section and shelf. */
   tree: TaxonNode[];
   /** Derived: top-level node names, in tree order. Do not edit directly. */
   sections: string[];
   genres: string[];
+  /**
+   * Item types, in the order they should appear in pickers.
+   *
+   * The LIST is editable here; the FIELDS a type carries are not. Frame's
+   * dimensions and the artwork types' medium and provenance are declared in
+   * lib/itemTypes.ts because they need labels and rendering, so a type added
+   * here is one with no type-specific fields — which is exactly what Book is.
+   */
+  types: string[];
   /** Derived: each top-level node's children, in tree order. Do not edit directly. */
   shelvesBySection: Record<string, string[]>;
   /** Attribute keys currently exposed to the public tier. A subset of
@@ -62,6 +72,7 @@ const DEFAULTS: Vocab = {
   tree: [],
   sections: [],
   genres: [],
+  types: [...TYPE_OPTIONS],
   shelvesBySection: {},
   publicFields: [...DEFAULT_PUBLIC_FIELDS],
 };
@@ -104,6 +115,9 @@ export function tidyVocab(v: Vocab): Vocab {
     sections: sectionsFromTree(tree),
     shelvesBySection: shelvesBySectionFromTree(tree),
     genres: [...v.genres].sort(byName),
+    // Types keep their stored order for the same reason the tree does: Book
+    // belongs at the top of the picker, and alphabetising would bury it.
+    types: Array.from(new Set(v.types.map((t) => t.trim()).filter(Boolean))),
   };
 }
 
@@ -126,6 +140,10 @@ function normalize(raw: any): Vocab {
     tree,
     sections: [],
     genres: Array.isArray(raw?.genres) ? raw.genres : [],
+    // Seeded from the code list on first read, then stored — the same migration
+    // the tree gets. After that the stored list is what pickers show, so adding
+    // a type in the editor is not undone by the next deploy.
+    types: Array.isArray(raw?.types) && raw.types.length ? raw.types : [...TYPE_OPTIONS],
     shelvesBySection: {},
     publicFields: cleanPublicFields(raw?.publicFields),
   });
