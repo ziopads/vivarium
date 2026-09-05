@@ -33,10 +33,15 @@ export default function VocabEditor({
   const [vocab, setVocab] = useState<Vocab>(initial);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  // Refusals were going into the same green line as successes, at the top of the
+  // page and out of sight of whoever was working down in the columns. A move the
+  // server declined and a move that did nothing looked identical.
+  const [err, setErr] = useState('');
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);
     setMsg('');
+    setErr('');
     try {
       const res = await fetch('/api/vocab', {
         method: 'POST',
@@ -45,13 +50,22 @@ export default function VocabEditor({
       });
       const data = await res.json();
       if (!res.ok) {
-        setMsg(data.error || 'Failed');
+        setErr(data.error || 'That was refused, with no reason given.');
         return;
       }
       setVocab(data.vocab);
-      if (data.affected) {
-        setMsg(`${data.affected} item${data.affected === 1 ? '' : 's'} updated.`);
-      }
+      // Every success says so, including the ones that touch no record. A
+      // reorder reports affected: 0, and reporting nothing for it left the
+      // commonest operation in the editor with no confirmation at all.
+      setMsg(
+        data.affected
+          ? `${data.affected} item${data.affected === 1 ? '' : 's'} updated.`
+          : 'Saved.',
+      );
+    } catch {
+      // A thrown fetch used to fall through the finally and clear busy with no
+      // message, which is the same silence as a refusal.
+      setErr('The request failed — nothing was changed.');
     } finally {
       setBusy(false);
     }
@@ -69,10 +83,9 @@ export default function VocabEditor({
 
   return (
     <div className="mt-6">
-      {msg && <p className="mb-3 text-sm text-moss">{msg}</p>}
-
       <div className="space-y-6">
         <Panel title="Classification">
+          <Note msg={msg} err={err} />
           <TreeEditor
             tree={vocab.tree}
             counts={counts.byPath}
@@ -83,6 +96,7 @@ export default function VocabEditor({
 
         <div className="grid gap-6 md:grid-cols-2 lg:max-w-3xl">
           <Panel title="Genres" count={vocab.genres.length}>
+            <Note msg={msg} err={err} />
             <List
               values={vocab.genres}
               counts={counts.genres}
@@ -123,6 +137,23 @@ export default function VocabEditor({
       </div>
     </div>
   );
+}
+
+/**
+ * One line of feedback, rendered where the work is instead of at the top of the
+ * page. An error gets the accent colour and a box, so a refused move reads as a
+ * refusal without scrolling anywhere to find out.
+ */
+function Note({ msg, err }: { msg: string; err: string }) {
+  if (err) {
+    return (
+      <p className="mb-3 rounded border border-rust/40 bg-rust/5 px-2 py-1 text-sm text-rust">
+        {err}
+      </p>
+    );
+  }
+  if (msg) return <p className="mb-3 text-sm text-moss">{msg}</p>;
+  return null;
 }
 
 function Panel({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {

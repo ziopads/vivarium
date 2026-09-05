@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getItems } from '@/lib/data';
 import { getVocab } from '@/lib/vocab';
 import { CONDITIONS } from '@/lib/sections';
+import { parsePath } from '@/lib/taxonomy';
 import VocabEditor from '@/app/ui/VocabEditor';
 
 export const dynamic = 'force-dynamic';
@@ -14,8 +15,14 @@ export default async function VocabPage() {
   const genres: Record<string, number> = {};
   const types: Record<string, number> = {};
   const shelvesBySection: Record<string, Record<string, number>> = {};
-  // Keyed by joined path. Only the first two levels can have counts: an item
-  // records where it sits in `section` and `shelf` and nowhere else yet.
+  // Keyed by joined path, at EVERY depth, and rolled up: a book at A/B/C counts
+  // at A, at A/B and at A/B/C, so a parent's number covers everything beneath
+  // it and the columns read the way a file browser does.
+  //
+  // These used to come from `section` and `shelf`, which meant nothing below the
+  // second level could ever show a number — and that limitation was written into
+  // the editor's help text as though it were a rule about what could be filed.
+  // `classification` is the record's full path, so the limit is gone.
   const byPath: Record<string, number> = {};
   for (const i of items) {
     const sec = (i.section || '').trim();
@@ -24,11 +31,13 @@ export default async function VocabPage() {
     const t = (i.itemType || 'Book').trim();
     types[t] = (types[t] || 0) + 1;
     const sh = (i.shelf || '').trim();
-    if (sec) byPath[sec] = (byPath[sec] || 0) + 1;
     if (sec && sh) {
       if (!shelvesBySection[sec]) shelvesBySection[sec] = {};
       shelvesBySection[sec][sh] = (shelvesBySection[sec][sh] || 0) + 1;
-      const key = `${sec}/${sh}`;
+    }
+    const segs = parsePath(i.classification || '');
+    for (let n = 1; n <= segs.length; n++) {
+      const key = segs.slice(0, n).join('/');
       byPath[key] = (byPath[key] || 0) + 1;
     }
   }

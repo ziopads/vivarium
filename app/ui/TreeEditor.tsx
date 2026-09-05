@@ -142,6 +142,9 @@ export default function TreeEditor({
             </button>
           </span>
         ))}
+        {/* A drop that has been sent and not yet answered otherwise looks the
+            same as a drop that was ignored. */}
+        {busy && <span className="ml-2 text-xs text-muted">saving…</span>}
       </div>
 
       {/* Columns */}
@@ -250,12 +253,15 @@ export default function TreeEditor({
       </div>
 
       <p className="mt-3 max-w-prose text-xs text-muted">
-        Drag an entry onto another to file it inside, or into the gap between two to set where it
-        sits. The buttons do the same thing and are there for the keyboard. Order is kept exactly as
-        you set it, at every level — nothing here is sorted alphabetically. Counts appear on the
-        first two levels only: an item records its place in section and shelf, so nothing can yet be
-        filed deeper. A move that would push filed books to a third level is refused until items
-        carry a full path.
+        Drag an entry onto another to file it inside, into the gap between two to set where it sits,
+        or into a column’s empty space to put it at the end of that level — which is how you promote
+        something from a deeper level to a shallower one. The buttons do the same thing and are
+        there for the keyboard. Order is kept exactly as you set it, at every level; nothing here is
+        sorted alphabetically. Counts include everything filed beneath an entry, so a section’s
+        number covers all of its shelves. Depth is unlimited now that items carry a full path, and
+        books follow their entry wherever it goes. The one refusal left is a name collision: an
+        entry cannot move somewhere that already holds one of that name, since merging two branches
+        means merging their books and that should be asked for on purpose.
       </p>
     </div>
   );
@@ -289,9 +295,11 @@ function Column({
   onAdd: (value: string) => void;
 }) {
   const [draft, setDraft] = useState('');
-  // Which target the pointer is over: a row index to drop INTO, or a gap index
-  // to drop BETWEEN. Kept per column so two columns never both light up.
-  const [over, setOver] = useState<{ kind: 'into' | 'gap'; at: number } | null>(null);
+  // Which target the pointer is over: a row index to drop INTO, a gap index to
+  // drop BETWEEN, or the column's own empty space, which files the dragged node
+  // under whatever this column is showing the children of. Kept per column so
+  // two columns never both light up.
+  const [over, setOver] = useState<{ kind: 'into' | 'gap' | 'column'; at: number } | null>(null);
 
   // Bring the selected row into view when it changes. Adding an entry appends
   // it to the end of the list, and in a long column that is off-screen; without
@@ -318,6 +326,9 @@ function Column({
       onDragOver={(e) => {
         if (!gapsOpen) return;
         e.preventDefault();
+        // Without this the column's own handler below fires next and overwrites
+        // the indicator, so an exact gap would light up as a whole-column drop.
+        e.stopPropagation();
         e.dataTransfer.dropEffect = 'move';
         setOver({ kind: 'gap', at });
       }}
@@ -337,7 +348,37 @@ function Column({
 
   return (
     <div className="flex w-56 shrink-0 flex-col bg-card">
-      <ul className="flex-1 overflow-y-auto py-1" onDragLeave={() => setOver(null)}>
+      {/* THE COLUMN ITSELF IS A DROP TARGET.
+
+          Until this, the only places that accepted a drop were the rows and the
+          eight-pixel gaps between them. Within one column that is enough, since
+          the rows fill it. Moving a node UP a level means dragging into a column
+          that is mostly empty space — The Earth has one child and twenty rows of
+          nothing under it — and releasing in that space did nothing at all, with
+          no indicator and no message. Dropping here files the node under whatever
+          this column lists the children of, appended last.
+
+          Rows and gaps stop propagation, so an exact hit still wins. A row that
+          refuses the drop does not stop it, which is right: releasing on the
+          dragged node's own row falls through to the column and appends. */}
+      <ul
+        className={`flex-1 overflow-y-auto py-1 ${
+          gapsOpen && over?.kind === 'column' ? 'bg-rust/5 ring-1 ring-inset ring-rust/40' : ''
+        }`}
+        onDragLeave={() => setOver(null)}
+        onDragOver={(e) => {
+          if (!gapsOpen) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          setOver({ kind: 'column', at: -1 });
+        }}
+        onDrop={(e) => {
+          if (!gapsOpen) return;
+          e.preventDefault();
+          setOver(null);
+          onDrop(parent);
+        }}
+      >
         {gap(0)}
         {nodes.map((n, i) => {
           const childPath = [...parent, n.name];
@@ -369,6 +410,7 @@ function Column({
                 onDragOver={(e) => {
                   if (!canDropInto) return;
                   e.preventDefault();
+                  e.stopPropagation();
                   e.dataTransfer.dropEffect = 'move';
                   setOver({ kind: 'into', at: i });
                 }}
