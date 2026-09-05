@@ -4,12 +4,31 @@ import path from 'node:path';
 // production the wishlist lives in the Supabase `wishlist` table.
 import bundled from '@/data/wishlist.example.json';
 import { getSupabase } from './supabase';
+import { parsePath } from './taxonomy';
 import type { Item } from './types';
 
 export type Wish = {
   id: number;
   title: string;
   author: string;
+  /**
+   * What the object is, as on a catalogue record.
+   *
+   * A wish had no type at all, and itemFromWish hardcoded Book on the way back —
+   * so a wished-for record or frame arrived in the library as a book. It is also
+   * what decides which branches of the classification the wish may be filed
+   * under, which is why the picker needs it. Optional, and absent means Book, so
+   * every wish written before this field keeps working.
+   */
+  itemType?: string;
+  /**
+   * Full path into the classification tree, exactly as a record carries it.
+   * `section` below is its first segment and is kept in step by whatever writes
+   * this — the wishlist groups by section and would otherwise show paths as
+   * headings.
+   */
+  classification?: string;
+  /** Derived from `classification` — its first segment. Do not write alone. */
   section: string;
   note?: string;
   image?: string; // R2 key, e.g. "wishlist/42.webp"
@@ -50,7 +69,9 @@ function normalizeLocal(raw: any[]): Wish[] {
     id: typeof w.id === 'number' ? w.id : i + 1,
     title: w.title || '',
     author: w.author || '',
-    section: w.section || '',
+    itemType: w.itemType || undefined,
+    classification: w.classification || undefined,
+    section: w.section || wishSection(w.classification || ''),
     note: w.note || undefined,
     image: w.image || undefined,
     images: Array.isArray(w.images) && w.images.length ? w.images : undefined,
@@ -91,6 +112,18 @@ async function writeLocal(items: Wish[]) {
 export async function nextWishId(): Promise<number> {
   const all = await getWishlist();
   return all.reduce((m, w) => Math.max(m, w.id), 0) + 1;
+}
+
+/**
+ * The first segment of a path, which is what `section` mirrors.
+ *
+ * Kept here rather than derived at each call site because three of them write a
+ * wish — the editor, the catalogue hand-off and the local normalizer — and a
+ * `section` holding a whole path would show up as a heading in the wishlist and,
+ * worse, reach validateItem as a section name containing separators.
+ */
+export function wishSection(classification: string): string {
+  return parsePath(classification)[0] || '';
 }
 
 /**
@@ -141,7 +174,12 @@ export function wishFromItem(item: Item, id: number, addedBy: string): Wish {
     id,
     title: item.title || '',
     author: item.author || '',
-    section: item.section || '',
+    // The type and the whole filing path travel out with the record, so a frame
+    // or a recording does not come back as a book, and a wish filed four levels
+    // deep does not come back filed at two.
+    itemType: item.itemType || 'Book',
+    classification: item.classification || '',
+    section: wishSection(item.classification || '') || item.section || '',
     note: item.notes || undefined,
     // The photographs stay in R2 when the record goes, so the gallery is still
     // renderable. `image` is left alone: it means a wishlist-native upload at
@@ -186,7 +224,7 @@ export function itemFromWish(w: Wish, id: number): Item {
 
   return {
     id,
-    itemType: 'Book',
+    itemType: w.itemType || 'Book',
     title: w.title || 'Untitled',
     author: w.author || '',
     publisher: w.publisher || '',
@@ -214,6 +252,10 @@ export function itemFromWish(w: Wish, id: number): Item {
     // only carry a catalogue src. For wishlist-hosted photographs it stays null
     // and coverImage() falls through to images[0], which knows its own base.
     image: fromCatalogue ? gallery[0]?.src ?? null : null,
+    // The path is authoritative and validateItem rewrites section and shelf from
+    // it. `section` is still passed for a wish that predates `classification`,
+    // where it is the only thing there is to file by.
+    classification: w.classification || '',
     section: w.section || '',
     visibility: 'public',
   };

@@ -5,8 +5,14 @@ import { typeFields } from '@/lib/itemTypes';
 import { isVisibility } from '@/lib/visibility';
 
 // POST /api/items/:id/meta
-//   { section?, shelf?, genres?, subjects?, location?, notes?, condition?,
-//     conditionNotes?, visibility? }
+//   { classification?, section?, shelf?, genres?, subjects?, location?, notes?,
+//     condition?, conditionNotes?, visibility? }
+//
+// `classification` is the whole filing position and is what the pickers now
+// send. It is self-contained, so updateItem stays on its fast path and
+// validateItem rewrites section and shelf from it. A patch naming section or
+// shelf ALONE still works, and still truncates the path to two segments — which
+// is why nothing in the app sends one any more.
 //
 // Writes through updateItem, which touches one row. This route used to read the
 // whole catalogue, mutate one object in it and write every record back, so a
@@ -16,6 +22,7 @@ import { isVisibility } from '@/lib/visibility';
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const id = Number(params.id);
   let body: {
+    classification?: string;
     section?: string; shelf?: string; genres?: string[]; subjects?: string[];
     location?: string; notes?: string; condition?: string; conditionNotes?: string;
     visibility?: string; itemType?: string; fields?: Record<string, string>;
@@ -42,6 +49,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   // Acquisition / provenance — admin-only, shown only to admins on the detail page.
   if (typeof body.source === 'string') patch.source = body.source.trim();
   if (typeof body.pricePaid === 'string') patch.pricePaid = body.pricePaid.trim();
+  if (typeof body.classification === 'string') patch.classification = body.classification.trim();
   if (typeof body.section === 'string') patch.section = body.section.trim();
   if (typeof body.shelf === 'string') patch.shelf = body.shelf.trim();
   if (Array.isArray(body.genres)) patch.genres = clean(body.genres);

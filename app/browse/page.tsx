@@ -4,7 +4,7 @@ import { getVocab, flatShelves } from '@/lib/vocab';
 import Catalog from '@/app/ui/Catalog';
 import { getViewer } from '@/lib/auth';
 import { sectionOf } from '@/lib/sections';
-import { childrenAt, parsePath, formatPath, isUnderPath } from '@/lib/taxonomy';
+import { childrenAt, parsePath, formatPath, isUnderPath, pathOptionsByType } from '@/lib/taxonomy';
 import { needsWriteup } from '@/lib/writeup';
 import type { Item } from '@/lib/types';
 
@@ -93,6 +93,17 @@ export default async function Browse({
     chips = names.map((n) => ({ name: n, count: counts[n] }));
   }
 
+  // Pickable paths for the list view's filing control, one set per item type.
+  // Built here rather than in the client: the tree is a single vocabulary row on
+  // the server, and computing it per row in the browser would repeat the walk
+  // once for every record on screen. The types actually in use are unioned with
+  // the managed list, so a type set by hand or by the pipeline still gets a
+  // picker rather than an empty one.
+  const pathsByType = pathOptionsByType(vocab.tree, [
+    ...vocab.types,
+    ...items.map((i) => i.itemType || 'Book'),
+  ]);
+
   const chipCls = (active: boolean) =>
     `rounded-full border px-3 py-1 text-sm transition ${
       active ? 'border-rust bg-rust text-white' : 'border-line bg-card hover:border-rust'
@@ -174,6 +185,7 @@ export default async function Browse({
           initialQ={searchParams.q}
           initialShelf={crumbs.length ? undefined : shelf}
           vocab={{ sections: vocab.sections, genres: vocab.genres, shelves: flatShelves(vocab), shelvesBySection: vocab.shelvesBySection }}
+          pathsByType={pathsByType}
           isAdmin={viewer.isAdmin}
         />
       </div>

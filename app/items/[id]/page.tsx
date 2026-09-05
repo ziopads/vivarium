@@ -14,9 +14,9 @@ import TitleEditor from '@/app/ui/TitleEditor';
 import DetailsEditor from '@/app/ui/DetailsEditor';
 import EditMode from '@/app/ui/EditMode';
 import { typeFields } from '@/lib/itemTypes';
-import { getVocab, flatShelves } from '@/lib/vocab';
+import { getVocab } from '@/lib/vocab';
 import { publicView } from '@/lib/fieldVisibility';
-import { parsePath, formatPath } from '@/lib/taxonomy';
+import { parsePath, formatPath, pathOptionsForType } from '@/lib/taxonomy';
 import { canView, normalizeVisibility, VISIBILITY_LABEL, VISIBILITY_MARK } from '@/lib/visibility';
 
 // Render on-demand so a cover change (writing items.json) shows up on refresh.
@@ -41,11 +41,14 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
   const canSee = (key: string) =>
     viewer.isAdmin || Object.prototype.hasOwnProperty.call(visible, key);
 
-  // The shelf and genre datalists come from the vocabulary — a single row —
-  // rather than from every item in the catalogue. Reading all 1,600 records
-  // (with their images JSONB, uncached) to derive two lists of strings is what
-  // made opening one book take seconds.
-  const allShelves = flatShelves(vocab);
+  // The filing options and the genre datalist come from the vocabulary — a
+  // single row — rather than from every item in the catalogue. Reading all 1,600
+  // records (with their images JSONB, uncached) to derive two lists of strings is
+  // what made opening one book take seconds.
+  //
+  // Scoped to this record's own type: a Recording is not offered the book
+  // shelves, and a book is not offered a Recording-only branch.
+  const filingPaths = pathOptionsForType(vocab.tree, item.itemType);
   const allGenres = vocab.genres;
   const rows: [string, string][] = (
     [
@@ -195,10 +198,10 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
           />
           <MetaEditor
             itemId={item.id}
-            shelf={item.shelf}
+            classification={item.classification || ''}
             genres={item.genres}
             subjects={item.subjects}
-            allShelves={allShelves}
+            paths={filingPaths}
             allGenres={allGenres}
           />
         </EditMode>

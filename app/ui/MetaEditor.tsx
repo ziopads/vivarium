@@ -1,33 +1,43 @@
 'use client';
 
 import { useState } from 'react';
-import EditableText from './EditableText';
+import PathSelect from './PathSelect';
+import type { PathOption } from '@/lib/taxonomy';
 
 // Taxonomy editing. Rendered inside EditMode, so it has no toggle of its own and
-// no save-all: the shelf saves when you leave it, and a chip saves the moment it's
-// added or removed. Nothing here can be lost by navigating away.
+// no save-all: filing saves on change, and a chip saves the moment it's added or
+// removed. Nothing here can be lost by navigating away.
+//
+// The Shelf field this replaced was free text over a flat datalist of every
+// shelf name in the vocabulary, and it POSTed `{ shelf }` alone — which sends
+// updateItem down its slow path, where the classification is blanked and rebuilt
+// from section and shelf. Editing the shelf of a book filed four levels deep
+// therefore threw away everything below the second level. One picker sending the
+// whole path cannot do that.
 export default function MetaEditor({
   itemId,
-  shelf,
+  classification,
   genres,
   subjects,
-  allShelves,
+  paths,
   allGenres,
 }: {
   itemId: number;
-  shelf: string;
+  classification: string;
   genres: string[];
   subjects: string[];
-  allShelves: string[];
+  /** Pickable paths, already scoped to this record's item type. */
+  paths: PathOption[];
   allGenres: string[];
 }) {
+  const [filed, setFiled] = useState(classification);
   const [g, setG] = useState<string[]>(genres);
   const [sub, setSub] = useState<string[]>(subjects);
   const [gNew, setGNew] = useState('');
   const [subNew, setSubNew] = useState('');
   const [state, setState] = useState<'idle' | 'saving' | 'ok' | 'err'>('idle');
 
-  async function persist(patch: Record<string, string[]>) {
+  async function persist(patch: Record<string, string | string[]>) {
     setState('saving');
     try {
       const res = await fetch(`/api/items/${itemId}/meta`, {
@@ -40,6 +50,11 @@ export default function MetaEditor({
     } catch {
       setState('err');
     }
+  }
+
+  function file(v: string) {
+    setFiled(v);
+    persist({ classification: v });
   }
 
   function addGenre(v: string) {
@@ -100,12 +115,15 @@ export default function MetaEditor({
       </div>
 
       <div className="mb-3">
-        <EditableText itemId={itemId} field="shelf" label="Shelf" initial={shelf} list="shelves" />
-        <datalist id="shelves">
-          {allShelves.map((x) => (
-            <option key={x} value={x} />
-          ))}
-        </datalist>
+        <label className="block text-sm">
+          <span className="mb-1 block text-muted">Filed under</span>
+          <PathSelect
+            value={filed}
+            paths={paths}
+            onChange={file}
+            className="w-full rounded border border-line bg-card px-2 py-1 outline-none focus:border-rust"
+          />
+        </label>
       </div>
 
       <p className="mb-1 text-sm text-muted">Genres</p>

@@ -6,6 +6,8 @@ import type { Item } from '@/lib/types';
 import { CONDITIONS } from '@/lib/sections';
 import { coverImage, imageUrl } from '@/lib/img';
 import { needsWriteup } from '@/lib/writeup';
+import PathSelect from './PathSelect';
+import type { PathOption } from '@/lib/taxonomy';
 import {
   VISIBILITY,
   VISIBILITY_HINT,
@@ -16,7 +18,7 @@ import {
 } from '@/lib/visibility';
 
 /**
- * Row thumbnail. Lives inside the sticky Title column deliberately: the Section
+ * Row thumbnail. Lives inside the sticky Title column deliberately: the filing
  * dropdown sits far to the right, and a non-sticky thumbnail would scroll out of
  * view at the moment you need to see the work to categorise it.
  *
@@ -54,8 +56,11 @@ function Thumb({ item }: { item: Item }) {
  * value, which is all a closed control ever displays. The full list fills in on
  * hover or focus, before any click can open the popup.
  *
- * `options` may be a function so that per-row work (sorting a section's shelves)
- * is skipped for the rows you never touch.
+ * ONE CALLER LEFT: condition, whose list is a dozen fixed grades. The deferral
+ * earns nothing at that size and is kept because it costs nothing either. The
+ * section and shelf dropdowns it was written for are now a single PathSelect,
+ * which carries the same deferral under its own `lazy` flag — that one still
+ * needs it, since the path list is longer than the section list ever was.
  */
 function LazySelect({
   value,
@@ -102,8 +107,7 @@ type Row = Item;
 type Patch = Partial<
   Pick<
     Item,
-    | 'section'
-    | 'shelf'
+    | 'classification'
     | 'genres'
     | 'subjects'
     | 'location'
@@ -117,8 +121,8 @@ type Patch = Partial<
 /**
  * Visibility cell control.
  *
- * A plain <select> rather than the LazySelect used for section and shelf. That
- * one always offers "— none —", and a record always has a tier, so an empty
+ * A plain <select> rather than a deferred one. LazySelect always offers
+ * "— none —", and a record always has a tier, so an empty
  * option here would be a way to write a value that means nothing. Three options
  * is also well under the count that made deferred building worth it.
  */
@@ -146,12 +150,12 @@ function VisSelect({
   );
 }
 
-// Shelves for a section (alphabetized), always including the row's current shelf.
-function shelfOpts(sbs: Record<string, string[]>, section: string, current: string): string[] {
-  const list = sbs[section] || [];
-  const merged = current && !list.includes(current) ? [...list, current] : list;
-  return [...merged].sort((a, b) => a.localeCompare(b));
-}
+// Nothing stands between the two filing fields any more. A path is one value
+// naming the whole position, so there is no shelf list to recompute from a
+// section and no shelf to drop when the section under it changes.
+
+/** No paths for a type nobody tagged. One shared identity, so the memo holds. */
+const NO_PATHS: PathOption[] = [];
 
 type CellClasses = { tdId: string; tdTitle: string; cell: string; sel: string };
 
@@ -159,8 +163,9 @@ type CellClasses = { tdId: string; tdTitle: string; cell: string; sel: string };
  * A cell that shows its value as text and becomes a control when you reach for
  * it.
  *
- * The list renders three dropdowns and six text inputs per row. At 1,700 rows
- * that is fifteen thousand form controls — the most expensive elements a
+ * The list renders three dropdowns — filing, visibility, condition — and six
+ * text inputs per row. At 1,700 rows that is fifteen thousand form controls,
+ * which are the most expensive elements a
  * browser creates, hydrates and reconciles, and the reason the list view felt
  * so much heavier than the card view under the same filters.
  *
@@ -241,8 +246,7 @@ const TableRow = memo(function TableRow({
   editable,
   selected,
   isSaved,
-  sections,
-  shelvesBySection,
+  pathsByType,
   classes,
   save,
   pick,
@@ -251,14 +255,19 @@ const TableRow = memo(function TableRow({
   editable: boolean;
   selected: boolean;
   isSaved: boolean;
-  sections: string[];
-  shelvesBySection: Record<string, string[]>;
+  /** Pickable paths keyed by item type. The whole map, not this row's slice, so
+   *  the prop keeps one identity across renders and the memo below holds. */
+  pathsByType: Record<string, PathOption[]>;
   classes: CellClasses;
   save: (id: number, patch: Patch) => void;
   pick: (id: number, shift: boolean) => void;
 }) {
   const { tdId, tdTitle, cell, sel } = classes;
   const ro = !editable;
+  // The row offers the branches its own type is served by. A Recording's shelf
+  // and a book's have almost nothing in common, and a picker that offered both
+  // would be a picker of mistakes.
+  const paths = pathsByType[r.itemType || 'Book'] ?? NO_PATHS;
   const vis = normalizeVisibility(r.visibility);
   const visCls = vis === 'public' ? 'text-muted' : 'text-moss';
   const toList = (s: string) =>
@@ -328,39 +337,28 @@ const TableRow = memo(function TableRow({
         )}
       </td>
 
-      {/* Section — controlled dropdown */}
-      <td className="px-2 py-1.5">
-        {editable ? (
-          <HoverEdit display={r.section || ''}>
-            <LazySelect
-              value={r.section || ''}
-              options={sections}
-              className={`w-full ${sel}`}
-              onChange={(ns) => {
-                const keep = (shelvesBySection[ns] || []).includes(r.shelf);
-                save(r.id, keep ? { section: ns } : { section: ns, shelf: '' });
-              }}
-            />
-          </HoverEdit>
-        ) : (
-          <span className="px-1">{r.section}</span>
-        )}
-      </td>
+      {/* Filed under — one path, replacing the Section and Shelf pair.
 
-      {/* Shelf — section-aware dropdown */}
+          The two dropdowns were the last place in the app still writing
+          `section` and `shelf` directly, and doing so TRUNCATED the record: a
+          patch naming either without a path makes updateItem blank the
+          classification and rebuild it from the two segments, so a book filed
+          four levels deep lost everything below the second the moment anyone
+          touched its shelf here. Sending the whole path is self-contained, and
+          keeps the write on updateItem's fast path as well. */}
       <td className="px-2 py-1.5">
         {editable ? (
-          <HoverEdit display={r.shelf || ''}>
-            <LazySelect
-              value={r.shelf || ''}
-              disabled={!r.section}
-              options={() => shelfOpts(shelvesBySection, r.section || '', r.shelf)}
-              className={`w-full ${sel} disabled:opacity-40`}
-              onChange={(v) => save(r.id, { shelf: v })}
+          <HoverEdit display={r.classification || ''}>
+            <PathSelect
+              lazy
+              value={r.classification || ''}
+              paths={paths}
+              className={`w-full ${sel}`}
+              onChange={(v) => save(r.id, { classification: v })}
             />
           </HoverEdit>
         ) : (
-          <span className="px-1">{r.shelf}</span>
+          <span className="px-1">{r.classification}</span>
         )}
       </td>
 
@@ -457,14 +455,13 @@ const TableRow = memo(function TableRow({
 
 export default function CatalogList({
   items,
-  sections,
-  shelvesBySection,
+  pathsByType,
   genres,
   editable = true,
 }: {
   items: Item[];
-  sections: string[];
-  shelvesBySection: Record<string, string[]>;
+  /** Pickable classification paths, keyed by item type. Built server-side. */
+  pathsByType: Record<string, PathOption[]>;
   genres: string[];
   editable?: boolean;
 }) {
@@ -609,7 +606,18 @@ export default function CatalogList({
   }
 
   const save = useCallback(async (id: number, patch: Patch) => {
-    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    // The optimistic row mirrors what the server will derive, so the Section and
+    // Shelf the card view reads stay in step without a refetch. validateItem
+    // does the same on the way in; this is the client's copy of that one rule.
+    const path = patch.classification;
+    const derived: Partial<Item> =
+      typeof path === 'string'
+        ? (() => {
+            const segs = path.split('/').map((s) => s.trim()).filter(Boolean);
+            return { section: segs[0] || '', shelf: segs[1] || '' };
+          })()
+        : {};
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch, ...derived } : r)));
     try {
       await fetch(`/api/items/${id}/meta`, {
         method: 'POST',
@@ -782,8 +790,7 @@ export default function CatalogList({
             <col className="w-[200px]" />
             <col className="w-[56px]" />
             <col className="w-[110px]" />
-            <col className="w-[150px]" />
-            <col className="w-[140px]" />
+            <col className="w-[260px]" />
             <col className="w-[220px]" />
             <col />
             <col className="w-[120px]" />
@@ -809,8 +816,7 @@ export default function CatalogList({
               <th className={th}>Author</th>
               <th className={th}>Yr</th>
               <th className={th}>Visibility</th>
-              <th className={th}>Section</th>
-              <th className={th}>Shelf</th>
+              <th className={th}>Filed under</th>
               <th className={th}>Genres</th>
               <th className={th}>Subjects</th>
               <th className={th}>Location</th>
@@ -827,8 +833,7 @@ export default function CatalogList({
                 editable={editable}
                 selected={selected.has(r.id)}
                 isSaved={saved === r.id}
-                sections={sections}
-                shelvesBySection={shelvesBySection}
+                pathsByType={pathsByType}
                 classes={classes}
                 save={save}
                 pick={pick}
@@ -846,10 +851,11 @@ export default function CatalogList({
       </datalist>
       {editable && (
         <p className="px-2 py-2 text-xs text-muted">
-          Edit inline — changes save on change. Section, shelf, and condition are dropdowns from the
-          managed vocabulary (shelf follows the section); genres and subjects are comma-separated.
-          Visibility is Public (anyone through the site gate), Restricted (signed-in viewers) or
-          Private (admins only); select rows and use the picker above to set a run at once.
+          Edit inline — changes save on change. “Filed under” is one place in the classification
+          tree, offering the branches that record’s type is served by; condition is a dropdown from
+          the managed vocabulary; genres and subjects are comma-separated. Visibility is Public
+          (anyone through the site gate), Restricted (signed-in viewers) or Private (admins only);
+          select rows and use the picker above to set a run at once.
         </p>
       )}
     </div>

@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getViewer } from '@/lib/auth';
 import { getWishlist, wishPhotos } from '@/lib/wishlist';
 import { getVocab } from '@/lib/vocab';
+import { pathOptionsByType } from '@/lib/taxonomy';
 import { r2Url, imageUrl } from '@/lib/img';
 import Discussion from '@/app/ui/Discussion';
 import WishGallery, { type WishShot } from '@/app/ui/WishGallery';
@@ -20,6 +21,9 @@ export default async function WishDetail({ params }: { params: { id: string } })
   if (!w) notFound();
 
   const vocab = await getVocab();
+  // The managed list plus whatever this wish already is, so a type set before it
+  // was in the vocabulary does not vanish from the picker showing it.
+  const types = Array.from(new Set([...vocab.types, w.itemType || 'Book']));
   const who = w.addedBy ? w.addedBy.split('@')[0] : '—';
   const when = w.createdAt ? new Date(w.createdAt).toLocaleDateString() : '';
   // Two sources of photographs, resolved to URLs here so the gallery component
@@ -51,7 +55,14 @@ export default async function WishDetail({ params }: { params: { id: string } })
         <div className="min-w-0 flex-1">
           <h1 className="font-serif text-2xl leading-tight sm:text-3xl">{w.title || '(untitled)'}</h1>
           {w.author && <p className="mt-1 text-lg text-muted">{w.author}</p>}
-          {w.section && <p className="mt-2 text-sm text-rust">{w.section}</p>}
+          {/* The whole path when there is one, since a wish can be filed as deep
+              as a record. `section` is its first segment and is all a wish added
+              before the path existed has. */}
+          {(w.classification || w.section) && (
+            <p className="mt-2 text-sm text-rust">
+              {(w.classification || w.section).split('/').join(' › ')}
+            </p>
+          )}
           {(w.publisher || w.year || w.isbn) && (
             <p className="mt-1 text-xs text-muted">
               {[w.publisher, w.year, w.isbn].filter(Boolean).join(' · ')}
@@ -83,7 +94,16 @@ export default async function WishDetail({ params }: { params: { id: string } })
       )}
 
       {viewer.isAdmin && <WishToItem wishId={w.id} />}
-      {viewer.isAdmin && <WishEditor w={w} sections={vocab.sections} />}
+      {viewer.isAdmin && (
+        <WishEditor
+          w={w}
+          types={types}
+          // Every type's options, not just this wish's. The editor can change the
+          // type, and the filing picker has to change with it without a round
+          // trip to the server.
+          pathsByType={pathOptionsByType(vocab.tree, types)}
+        />
+      )}
     </article>
   );
 }

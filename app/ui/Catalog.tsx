@@ -8,6 +8,7 @@ import { sectionOf, isMaine } from '@/lib/sections';
 import { coverImage, imageUrl } from '@/lib/img';
 import { needsWriteup } from '@/lib/writeup';
 import { normalizeVisibility, VISIBILITY_LABEL, VISIBILITY_MARK } from '@/lib/visibility';
+import type { PathOption } from '@/lib/taxonomy';
 
 /** Nothing for a public record — the badge marks the exception, not the rule. */
 function VisBadge({ v }: { v?: string }) {
@@ -57,12 +58,16 @@ function titleKey(t: string): string {
   return t.replace(/^\s*(the|a|an)\s+/i, '').toLowerCase();
 }
 
+/** One identity, so a missing prop does not re-render every memoized row. */
+const EMPTY_PATHS: Record<string, PathOption[]> = {};
+
 export default function Catalog({
   items,
   initialSection,
   initialQ,
   initialShelf,
   vocab,
+  pathsByType,
   isAdmin = false,
 }: {
   items: Item[];
@@ -70,6 +75,9 @@ export default function Catalog({
   initialQ?: string;
   initialShelf?: string;
   vocab?: { sections: string[]; genres: string[]; shelves: string[]; shelvesBySection?: Record<string, string[]> };
+  /** Pickable classification paths keyed by item type — threaded to the list
+   *  view's filing picker. Pass-through; nothing here reads it. */
+  pathsByType?: Record<string, PathOption[]>;
   isAdmin?: boolean;
 }) {
   // When arriving from a section click or the home search, the URL params drive a
@@ -298,8 +306,7 @@ export default function Catalog({
         <div className="mx-[calc(50%-50vw)] w-screen px-4 sm:px-6">
           <CatalogList
             items={filtered}
-            sections={vocab?.sections ?? []}
-            shelvesBySection={vocab?.shelvesBySection ?? {}}
+            pathsByType={pathsByType ?? EMPTY_PATHS}
             genres={vocab?.genres ?? genres.slice(1)}
             editable={isAdmin}
           />

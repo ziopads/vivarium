@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { isUnderPath } from '@/lib/taxonomy';
+import { isUnderPath, type PathOption } from '@/lib/taxonomy';
+import PathSelect from './PathSelect';
 
 type Row = {
   id: number;
@@ -16,8 +17,6 @@ type Row = {
   genres: string[];
   subjects: string[];
 };
-
-type PathOption = { path: string; depth: number; name: string };
 
 /**
  * Row thumbnail.
@@ -63,56 +62,6 @@ function Thumb({ src, title }: { src: string; title: string }) {
         style={{ width: '13rem', height: 'auto' }}
       />
     </div>
-  );
-}
-
-/**
- * The filing picker.
- *
- * One control where there were two. Section and shelf were separate because they
- * were separate fields, and keeping them in step took real work: the shelf list
- * had to be recomputed from the chosen section, a shelf already set had to be
- * checked against a new section and silently dropped when it no longer fitted,
- * and a bulk change needed the shelves common to every selected item. A path is
- * one value naming the whole position, so all of that goes.
- *
- * Depth is shown by indentation. Figure spaces rather than CSS because this is
- * an <option>, which browsers will not let us style.
- */
-function PathSelect({
-  value,
-  paths,
-  onChange,
-  className,
-  extra,
-}: {
-  value: string;
-  paths: PathOption[];
-  onChange: (v: string) => void;
-  className?: string;
-  /** Leading options the caller adds — sentinels for the bulk bar. */
-  extra?: { value: string; label: string }[];
-}) {
-  // A path stored on a record but missing from the tree still has to be
-  // selectable, or opening the row would silently reassign it to whatever the
-  // browser picks first.
-  const known = paths.some((p) => p.path === value);
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className={className}>
-      {extra?.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-      <option value="">— unfiled —</option>
-      {!known && value && <option value={value}>{value} (not in the classification)</option>}
-      {paths.map((p) => (
-        <option key={p.path} value={p.path}>
-          {'\u2007\u2007'.repeat(p.depth)}
-          {p.name}
-        </option>
-      ))}
-    </select>
   );
 }
 

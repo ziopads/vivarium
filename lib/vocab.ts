@@ -150,9 +150,12 @@ function normalize(raw: any): Vocab {
 }
 
 // Every shelf across all sections, de-duped — for surfaces not yet section-aware.
-// Two callers left: the item detail page and (via browse/page.tsx) Catalog. Both
-// are pickers, and both should move to pathOptionsForType — an item in hand has
-// an itemType, which is what decides the branches it may be filed under.
+//
+// ONE CALLER LEFT: browse/page.tsx, which passes it to Catalog as `vocab.shelves`
+// for the browse menu's Shelf FILTER. That is a filter over the `shelf` values
+// items actually carry, not a picker, so it is not a pathOptionsForType case; it
+// goes when the filter itself becomes a path filter. The item detail page's
+// shelf picker was the other caller and now uses pathOptionsForType.
 export function flatShelves(v: Vocab): string[] {
   return Array.from(new Set(Object.values(v.shelvesBySection).flat())).sort();
 }

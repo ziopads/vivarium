@@ -28,8 +28,33 @@ import type { Item } from './types';
 /** Path separator. Forbidden inside a node name — see isValidName. */
 export const SEP = '/';
 
+/**
+ * How the ITEMS filed at a node are listed when you browse into it.
+ *
+ * Distinct from the order of the node's children, which is always the curated
+ * order they are stored in. A classical shelf wants its records chronological
+ * and a soundtrack shelf wants them alphabetical, and that is a property of the
+ * material rather than something to re-choose on every visit.
+ *
+ * Inherited from the nearest ancestor that sets one; `title` when none does.
+ */
+export const SORTS = ['manual', 'title', 'author', 'year'] as const;
+export type NodeSort = (typeof SORTS)[number];
+
 export type TaxonNode = {
   name: string;
+  /**
+   * The item types this branch serves. Absent means every type, which is what
+   * every node written before this field existed is — so an untagged vocabulary
+   * keeps working unchanged, on this instance and on Tamplin's.
+   *
+   * Meaningful on a root and inherited by everything under it. A record shelf
+   * and a book shelf have almost nothing in common, so a Recording tagged branch
+   * never appears in a book's picker.
+   */
+  types?: string[];
+  /** How items filed here are listed. Inherited. See SORTS. */
+  sort?: NodeSort;
   children?: TaxonNode[];
 };
 
@@ -54,6 +79,12 @@ export function formatPath(segments: string[]): string {
  * into circulation. Unnamed nodes, names containing the separator, and duplicate
  * siblings are dropped rather than repaired: a duplicate sibling would make one
  * path refer to two nodes, and there is no way to guess which was meant.
+ *
+ * EVERY FIELD A NODE CARRIES HAS TO BE LISTED HERE. This runs on the way in AND
+ * on the way out — writeVocab tidies before it saves — so a property this
+ * function does not copy is silently dropped on the next read, with no error and
+ * nothing in the response to notice. `types` and `sort` are the two beyond
+ * `name` and `children`.
  */
 export function sanitizeTree(raw: unknown): TaxonNode[] {
   if (!Array.isArray(raw)) return [];
@@ -65,7 +96,22 @@ export function sanitizeTree(raw: unknown): TaxonNode[] {
     if (!isValidName(name) || seen.has(name)) continue;
     seen.add(name);
     const children = sanitizeTree((entry as any).children);
-    out.push(children.length ? { name, children } : { name });
+
+    const rawTypes = (entry as any).types;
+    const types = Array.isArray(rawTypes)
+      ? Array.from(new Set(rawTypes.map((t: unknown) => String(t ?? '').trim()).filter(Boolean)))
+      : [];
+
+    const rawSort = String((entry as any).sort ?? '').trim() as NodeSort;
+    const sort = (SORTS as readonly string[]).includes(rawSort) ? rawSort : undefined;
+
+    const node: TaxonNode = { name };
+    // An empty list is stored as absent, so "serves nothing" cannot be written by
+    // accident — a node no type can reach would be invisible everywhere.
+    if (types.length) node.types = types;
+    if (sort) node.sort = sort;
+    if (children.length) node.children = children;
+    out.push(node);
   }
   return out;
 }
@@ -129,8 +175,10 @@ export function leafPaths(tree: TaxonNode[]): string[][] {
  * book about Asia belongs there and nowhere more specific, and forcing it down
  * to a leaf would invent a precision the book does not have.
  */
-export function pathOptions(tree: TaxonNode[]): { path: string; depth: number; name: string }[] {
-  const out: { path: string; depth: number; name: string }[] = [];
+export type PathOption = { path: string; depth: number; name: string };
+
+export function pathOptions(tree: TaxonNode[]): PathOption[] {
+  const out: PathOption[] = [];
   walk(tree, (node, path) => {
     out.push({ path: formatPath(path), depth: path.length - 1, name: node.name });
   });
@@ -141,6 +189,126 @@ export function pathOptions(tree: TaxonNode[]): { path: string; depth: number; n
 export function isUnderPath(path: string, prefix: string): boolean {
   if (!prefix) return true;
   return path === prefix || path.startsWith(prefix + SEP);
+}
+
+// --- Type scoping and item sort ---------------------------------------------
+//
+// A record collection and a book collection are different taxonomies, not two
+// sizes of one. Classical goes chronological, soundtracks alphabetical, world
+// music by geography, rock by subgenre; none of that belongs anywhere near
+// Literature or Maritime. So a branch declares which item types it serves, and
+// the editor shows one tab per type.
+//
+// The declaration lives on the node and NOT in the path. `classification` stays
+// one global namespace, which is what lets rewritePrefix, itemsUnder and
+// bulk-classify carry on unchanged: one path is one place, whatever type of
+// object is filed there. The only constraint it buys is that root names must be
+// unique across the whole vocabulary, since the root is what disambiguates.
+
+/** Does a branch tagged `types` serve `itemType`? Untagged serves everything. */
+export function servesType(types: string[] | undefined, itemType: string): boolean {
+  if (!types || !types.length) return true;
+  return types.includes(itemType);
+}
+
+/**
+ * Walk a path and return the value of `pick` on the DEEPEST node that sets one,
+ * or undefined. Both `types` and `sort` inherit this way: set on a root and
+ * everything beneath follows, override anywhere down the branch.
+ */
+function inherited<T>(
+  tree: TaxonNode[],
+  segments: string[],
+  pick: (n: TaxonNode) => T | undefined,
+): T | undefined {
+  let level = tree;
+  let found: T | undefined;
+  for (const seg of segments) {
+    const node = level.find((n) => n.name === seg);
+    if (!node) return found;
+    const v = pick(node);
+    if (v !== undefined) found = v;
+    level = node.children || [];
+  }
+  return found;
+}
+
+/** The types serving a path, inherited. undefined means every type. */
+export function typesAt(tree: TaxonNode[], segments: string[]): string[] | undefined {
+  return inherited(tree, segments, (n) => (n.types?.length ? n.types : undefined));
+}
+
+/** How items filed at a path are listed, inherited. `title` when nothing sets one. */
+export function sortAt(tree: TaxonNode[], segments: string[]): NodeSort {
+  return inherited(tree, segments, (n) => n.sort) ?? 'title';
+}
+
+/** Is this path one an item of `itemType` may be filed at? */
+export function pathServesType(tree: TaxonNode[], path: string, itemType: string): boolean {
+  if (!path) return true;
+  return servesType(typesAt(tree, parsePath(path)), itemType);
+}
+
+/**
+ * The roots one tab shows. Filtering stops at the top level: tags are meaningful
+ * on a root, and a child that overrode its root's tags would put one branch in
+ * two tabs with no way to say which one owns its order.
+ */
+export function rootsForType(tree: TaxonNode[], itemType: string): TaxonNode[] {
+  return tree.filter((n) => servesType(n.types, itemType));
+}
+
+/**
+ * Pickable paths for one item type.
+ *
+ * PRUNED AT EVERY LEVEL, not just at the root, and that is deliberate. Tabs
+ * filter roots only, because a tab has to own a branch's order and a child
+ * overriding its root's tags would put one branch in two tabs. A PICKER has no
+ * such constraint, and it has to agree with pathServesType — which reads the
+ * deepest `types` on the path, so a Recording-only shelf under a shared root is
+ * a path a book may not be filed at. Offering it here and refusing it at the
+ * write would produce exactly the mis-filed rows the /manage flag is meant to
+ * catch. Same rule, computed the same way, in both places.
+ *
+ * The paths are real paths into the real tree, so every mutation still
+ * addresses them by name; nothing here renumbers anything.
+ */
+export function pathOptionsForType(tree: TaxonNode[], itemType: string): PathOption[] {
+  const out: PathOption[] = [];
+  const descend = (nodes: TaxonNode[], prefix: string[], from: string[] | undefined) => {
+    for (const node of nodes) {
+      // The same inheritance typesAt walks: a node's own tags win, otherwise it
+      // keeps whatever the nearest tagged ancestor said.
+      const types = node.types?.length ? node.types : from;
+      if (!servesType(types, itemType)) continue;
+      const path = [...prefix, node.name];
+      out.push({ path: formatPath(path), depth: path.length - 1, name: node.name });
+      if (node.children?.length) descend(node.children, path, types);
+    }
+  };
+  descend(tree, [], undefined);
+  return out;
+}
+
+/**
+ * The same, for several types at once, keyed by type.
+ *
+ * The list view holds a mixed set of records and each row's picker has to offer
+ * that row's own branches. Computing per row would repeat the walk seventeen
+ * hundred times; there are a handful of types, so it is computed once per type
+ * and looked up.
+ */
+export function pathOptionsByType(
+  tree: TaxonNode[],
+  itemTypes: string[],
+): Record<string, PathOption[]> {
+  const out: Record<string, PathOption[]> = {};
+  for (const raw of itemTypes) {
+    const t = (raw || '').trim() || 'Book';
+    if (!out[t]) out[t] = pathOptionsForType(tree, t);
+  }
+  if (!out.Book) out.Book = pathOptionsForType(tree, 'Book');
+  return out;
 }
 
 /**
@@ -282,19 +450,33 @@ export function moveNode(
 /**
  * Reorder one level to match `order`.
  *
- * Names absent from `order` keep their relative positions at the end, so a
- * partial or stale ordering rearranges what it names and leaves the rest alone
- * instead of dropping it.
+ * PARTIAL ORDERS ARE POSITIONAL. The names in `order` are rearranged among the
+ * slots those names currently occupy, and every sibling not named keeps the
+ * index it already has. This matters because the editor's tabs show one type's
+ * roots at a time: reordering inside the Recordings tab sends only the Recording
+ * roots, and the earlier behaviour — unnamed siblings fall to the end — would
+ * have swept every book root to the bottom of the tree as a side effect of
+ * dragging two records.
  */
 export function reorderChildren(tree: TaxonNode[], parent: string[], order: string[]): boolean {
   const siblings = parent.length ? findNode(tree, parent)?.children : tree;
   if (!siblings || !siblings.length) return false;
+
   const rank = new Map(order.map((n, i) => [n, i]));
+  // The indices held by the nodes being reordered. Everything else stays put.
+  const slots: number[] = [];
+  siblings.forEach((n, i) => {
+    if (rank.has(n.name)) slots.push(i);
+  });
+  if (!slots.length) return false;
+
+  const moving = slots
+    .map((i) => siblings[i])
+    .sort((a, b) => rank.get(a.name)! - rank.get(b.name)!);
+
   const before = siblings.map((n) => n.name).join(SEP);
-  siblings.sort((a, b) => {
-    const ra = rank.has(a.name) ? rank.get(a.name)! : Number.MAX_SAFE_INTEGER;
-    const rb = rank.has(b.name) ? rank.get(b.name)! : Number.MAX_SAFE_INTEGER;
-    return ra - rb;
+  slots.forEach((slot, k) => {
+    siblings[slot] = moving[k];
   });
   return siblings.map((n) => n.name).join(SEP) !== before;
 }
