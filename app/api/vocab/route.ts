@@ -5,6 +5,7 @@ import {
   writeLocalItems,
   rewriteClassifications,
   clearClassificationsUnder,
+  itemTypeCountsUnder,
 } from '@/lib/data';
 import type { Item } from '@/lib/types';
 import { getVocab, writeVocab, tidyVocab, type VocabKind } from '@/lib/vocab';
@@ -14,10 +15,14 @@ import {
   removeNode,
   reorderChildren,
   moveNode,
+  setNodeMeta,
   childrenAt,
   findNode,
   isValidName,
   formatPath,
+  servesType,
+  SORTS,
+  type NodeSort,
 } from '@/lib/taxonomy';
 
 // POST /api/vocab
@@ -27,9 +32,10 @@ import {
 //   { kind: 'genres',   action: 'add'|'rename'|'delete', value, newValue? }
 //   { kind: 'sections', action: 'add'|'rename'|'delete', value, newValue? }
 //   { kind: 'shelves',  action: 'add'|'rename'|'delete', value, newValue?, section }
-//   { kind: 'path',     action: 'add'|'rename'|'delete'|'reorder'|'move',
+//   { kind: 'path',     action: 'add'|'rename'|'delete'|'reorder'|'move'|'set',
 //                       path?: string[], parent?: string[], value?, order?: string[],
-//                       index?: number }
+//                       index?: number, types?: string[]|null, sort?: string|null,
+//                       force?: boolean }
 //
 // The first three are the original wire contract, kept so the existing editor
 // works unchanged. They are now thin wrappers: a section is a top-level node, a
@@ -43,7 +49,7 @@ import {
 export async function POST(req: Request) {
   let body: {
     kind?: VocabKind | 'path';
-    action?: 'add' | 'rename' | 'delete' | 'reorder' | 'move';
+    action?: 'add' | 'rename' | 'delete' | 'reorder' | 'move' | 'set';
     value?: string;
     newValue?: string;
     section?: string;
@@ -51,6 +57,9 @@ export async function POST(req: Request) {
     parent?: string[];
     order?: string[];
     index?: number;
+    types?: string[] | null;
+    sort?: string | null;
+    force?: boolean;
   };
   try {
     body = await req.json();
@@ -213,6 +222,70 @@ export async function POST(req: Request) {
   if (!findNode(vocab.tree, path)) return bad('No such entry', 404);
 
   const target = path[path.length - 1];
+
+  // Set which item types a branch serves, and how the items filed there are
+  // listed. Both inherit downward from the node, so setting them on a root is
+  // the normal case and setting them deeper is an override.
+  //
+  // Neither touches a record, so `affected` stays zero — but tagging a branch
+  // CAN strand records that are already there. A book filed under a branch that
+  // becomes Recording-only keeps its path, and no picker will offer that path
+  // back to it. So the records under the node are counted first and the write is
+  // refused when any of them would be stranded, with the count and the types, and
+  // `force: true` goes through anyway. This is the same bargain bulk-classify
+  // makes in the other direction.
+  if (action === 'set') {
+    const meta: { types?: string[] | null; sort?: NodeSort | null } = {};
+
+    if (body.types !== undefined) {
+      if (body.types !== null && !Array.isArray(body.types)) return bad('types must be a list');
+      const wanted = segs(body.types ?? []);
+      // Checked against the managed type list. A typo here would tag a branch
+      // with a type no record can ever have, which reads as an empty picker with
+      // nothing on screen to explain it.
+      const unknown = wanted.filter((t) => !vocab.types.includes(t));
+      if (unknown.length) {
+        return bad(`Not item types: ${unknown.join(', ')}`);
+      }
+      meta.types = wanted;
+    }
+
+    if (body.sort !== undefined) {
+      const wanted = (body.sort || '').trim();
+      if (wanted && !(SORTS as readonly string[]).includes(wanted)) {
+        return bad(`Sort must be one of ${SORTS.join(', ')}`);
+      }
+      meta.sort = (wanted || null) as NodeSort | null;
+    }
+
+    if (meta.types === undefined && meta.sort === undefined) {
+      return bad('Nothing to set');
+    }
+
+    if (meta.types && meta.types.length && !body.force) {
+      const counts = await itemTypeCountsUnder(formatPath(path));
+      const stranded = Object.entries(counts).filter(([t]) => !servesType(meta.types!, t));
+      if (stranded.length) {
+        const total = stranded.reduce((n, [, c]) => n + c, 0);
+        return NextResponse.json(
+          {
+            error:
+              `${total} record${total === 1 ? '' : 's'} under ${target} ` +
+              `${total === 1 ? 'is' : 'are'} ` +
+              stranded.map(([t, c]) => `${t} (${c})`).join(', ') +
+              `, which ${total === 1 ? 'is' : 'are'} not served by this branch. ` +
+              `They keep their place and stop being offered it.`,
+            stranded: stranded.map(([itemType, count]) => ({ itemType, count })),
+            total,
+          },
+          { status: 409 },
+        );
+      }
+    }
+
+    if (!setNodeMeta(vocab.tree, path, meta)) return bad(`${target} is already like that`);
+    return save();
+  }
 
   if (action === 'move') {
     const dest = segs(body.parent);

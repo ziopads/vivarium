@@ -374,6 +374,47 @@ export function removeNode(tree: TaxonNode[], segments: string[]): TaxonNode | n
   return siblings.splice(idx, 1)[0];
 }
 
+/**
+ * Set or clear a node's `types` and `sort`.
+ *
+ * Absent and empty mean different things on the way in and the same thing in
+ * storage. Passing `undefined` for a key LEAVES IT ALONE — which is what lets a
+ * caller set the sort without disturbing the types. Passing null, or an empty
+ * array, CLEARS it, and clearing is stored as the field being absent, matching
+ * what sanitizeTree writes. There is no way to store "serves nothing": a node no
+ * type could reach would be invisible in every picker and every tab, with
+ * nothing on screen to say why.
+ *
+ * Both fields inherit downward from here — see typesAt and sortAt — so clearing
+ * one on a child does not mean "no types", it means "whatever my ancestor says".
+ */
+export function setNodeMeta(
+  tree: TaxonNode[],
+  segments: string[],
+  meta: { types?: string[] | null; sort?: NodeSort | null },
+): boolean {
+  const node = findNode(tree, segments);
+  if (!node) return false;
+
+  const snapshot = () => `${(node.types || []).join(SEP)}|${node.sort || ''}`;
+  const before = snapshot();
+
+  if (meta.types !== undefined) {
+    const list = Array.isArray(meta.types)
+      ? Array.from(new Set(meta.types.map((t) => String(t ?? '').trim()).filter(Boolean)))
+      : [];
+    if (list.length) node.types = list;
+    else delete node.types;
+  }
+
+  if (meta.sort !== undefined) {
+    if (meta.sort && (SORTS as readonly string[]).includes(meta.sort)) node.sort = meta.sort;
+    else delete node.sort;
+  }
+
+  return snapshot() !== before;
+}
+
 export function samePath(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((s, i) => b[i] === s);
 }

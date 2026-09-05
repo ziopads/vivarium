@@ -68,6 +68,17 @@ function vocabFile(): string {
   return path.join(process.cwd(), 'data', 'vocab.json');
 }
 
+/**
+ * The starting shape for an instance with no stored vocabulary.
+ *
+ * Returned through normalize() rather than directly, because this object is
+ * module-level and shared: the vocabulary routes MUTATE the tree they are handed
+ * (addNode pushes, setNodeMeta assigns), so handing out the same arrays would
+ * let one request's edit persist in memory across requests on a warm instance
+ * and then be written by an unrelated one. normalize builds fresh arrays every
+ * time. It matters here and not for items because a first-run instance — the
+ * Tamplin catalogue, before its migrations — is exactly the case that hits it.
+ */
 const DEFAULTS: Vocab = {
   tree: [],
   sections: [],
@@ -165,14 +176,14 @@ export async function getVocab(): Promise<Vocab> {
     const sb = getSupabase()!;
     const { data, error } = await sb.from('vocab').select('data').eq('id', 1).maybeSingle();
     if (error) throw new Error(`Supabase getVocab: ${error.message}`);
-    return data?.data ? normalize(data.data) : DEFAULTS;
+    return normalize(data?.data ?? DEFAULTS);
   }
   try {
     return normalize(JSON.parse(fs.readFileSync(vocabFile(), 'utf8')));
   } catch {
     // Absent vocab is the first-run case for a new instance. Unlike items,
     // there is nothing to lose by starting from defaults.
-    return DEFAULTS;
+    return normalize(DEFAULTS);
   }
 }
 

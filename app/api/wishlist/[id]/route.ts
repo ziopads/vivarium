@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getViewer } from '@/lib/auth';
 import { getWishlist, addWish, deleteWish, wishSection } from '@/lib/wishlist';
 import { getVocab } from '@/lib/vocab';
-import { parsePath, formatPath, pathExists } from '@/lib/taxonomy';
+import { parsePath, formatPath, pathExists, typesAt, servesType } from '@/lib/taxonomy';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,6 +48,22 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         return NextResponse.json(
           { error: `${formatPath(segments)} is not in the classification` },
           { status: 400 },
+        );
+      }
+      // And that the branch takes this wish's type. Read AFTER itemType is
+      // applied above, so changing both in one request is checked against the
+      // type it is becoming. No override here, unlike bulk-classify: this is one
+      // record edited through a picker that already offered only the branches its
+      // type is served by, so reaching this is a malformed request rather than a
+      // judgement call.
+      const served = typesAt(vocab.tree, segments);
+      const type = w.itemType || 'Book';
+      if (served && !servesType(served, type)) {
+        return NextResponse.json(
+          {
+            error: `${formatPath(segments)} does not take ${type}. It serves ${served.join(', ')}.`,
+          },
+          { status: 409 },
         );
       }
     }

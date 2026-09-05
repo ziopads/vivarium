@@ -301,8 +301,11 @@ const ITEM_TO_COLUMN: Record<string, string> = {
  */
 const FILING_COLUMNS = ['classification', 'section', 'shelf'];
 
+/** The wildcard tail matching everything strictly beneath a path. */
+const SEP_LIKE = '/%';
+
 /**
- * Records filed at `prefix` or anywhere beneath it, as id and current path.
+ * Every row at `prefix` or beneath it, selecting whatever columns are asked for.
  *
  * Two queries rather than one `.or()`: PostgREST splits an or-filter on commas,
  * so a node name containing one would silently become two conditions. Names can
@@ -311,19 +314,103 @@ const FILING_COLUMNS = ['classification', 'section', 'shelf'];
  *
  * LIKE metacharacters in the prefix are escaped for the same reason: a name with
  * a percent sign in it would otherwise match far more than itself.
+ *
+ * PAGED, and it has to be. PostgREST caps a select at 1000 rows, and this
+ * catalogue holds about 1,900 — so an unpaged read of a large top-level branch
+ * came back truncated, and rewriteClassifications then moved the first thousand
+ * records and left the rest pointing at a path that no longer existed. getItems
+ * pages for exactly this reason; this did not.
  */
-async function itemsUnder(prefix: string): Promise<{ id: number; classification: string }[]> {
+async function selectUnder(prefix: string, columns: string): Promise<Row[]> {
   const sb = getSupabase()!;
   const escaped = prefix.replace(/([\\%_])/g, '\\$1');
+  const PAGE = 1000;
+  const out: Row[] = [];
 
-  const [exact, below] = await Promise.all([
-    sb.from('items').select('id, classification').eq('classification', prefix),
-    sb.from('items').select('id, classification').like('classification', `${escaped}/%`),
-  ]);
-  if (exact.error) throw new Error(`Supabase itemsUnder: ${exact.error.message}`);
-  if (below.error) throw new Error(`Supabase itemsUnder: ${below.error.message}`);
+  for (const mode of ['exact', 'below'] as const) {
+    for (let from = 0; ; from += PAGE) {
+      // Rebuilt each round: a PostgREST query builder is not reusable once
+      // awaited, and ordering by id is what makes the ranges disjoint.
+      const q = sb.from('items').select(columns).order('id').range(from, from + PAGE - 1);
+      const { data, error } =
+        mode === 'exact'
+          ? await q.eq('classification', prefix)
+          : await q.like('classification', `${escaped}${SEP_LIKE}`);
+      if (error) throw new Error(`Supabase selectUnder: ${error.message}`);
+      out.push(...((data || []) as unknown as Row[]));
+      if (!data || data.length < PAGE) break;
+    }
+  }
+  return out;
+}
 
-  return [...(exact.data || []), ...(below.data || [])] as { id: number; classification: string }[];
+/** Records filed at `prefix` or anywhere beneath it, as id and current path. */
+async function itemsUnder(prefix: string): Promise<{ id: number; classification: string }[]> {
+  return (await selectUnder(prefix, 'id, classification')) as {
+    id: number;
+    classification: string;
+  }[];
+}
+
+/**
+ * How many records of each item type sit at `prefix` or beneath it.
+ *
+ * Answers the question the vocabulary route has to ask before tagging a branch
+ * with the types it serves: tagging one Recording-only when three hundred books
+ * are filed under it does not move those books, it strands them — they keep a
+ * path their own type is no longer served by, so no picker will offer it back to
+ * them and only the /manage flag will say so.
+ */
+export async function itemTypeCountsUnder(prefix: string): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  if (!prefix) return counts;
+  const bump = (t: string) => {
+    counts[t] = (counts[t] ?? 0) + 1;
+  };
+
+  if (dataSource().mode !== 'supabase') {
+    for (const it of await readLocalItems()) {
+      const p = it.classification || '';
+      if (p && (p === prefix || p.startsWith(`${prefix}/`))) bump(it.itemType || 'Book');
+    }
+    return counts;
+  }
+
+  for (const row of await selectUnder(prefix, 'item_type')) bump(row.item_type || 'Book');
+  return counts;
+}
+
+/**
+ * The item type of each named record, as a map. Ids that do not exist are absent
+ * rather than defaulted, so a caller can tell "is a Book" from "is not there".
+ *
+ * One narrow select per 200 ids, and no `attributes` — this exists so
+ * bulk-classify can check a selection against a branch's types without reading
+ * the catalogue, which is the property that route was built around.
+ */
+export async function itemTypesFor(ids: number[]): Promise<Map<number, string>> {
+  const unique = Array.from(new Set(ids.map(Number).filter(Number.isFinite)));
+  const out = new Map<number, string>();
+  if (!unique.length) return out;
+
+  if (dataSource().mode === 'supabase') {
+    const sb = getSupabase()!;
+    for (let i = 0; i < unique.length; i += 200) {
+      const { data, error } = await sb
+        .from('items')
+        .select('id, item_type')
+        .in('id', unique.slice(i, i + 200));
+      if (error) throw new Error(`Supabase itemTypesFor: ${error.message}`);
+      for (const r of (data || []) as Row[]) out.set(r.id, r.item_type || 'Book');
+    }
+    return out;
+  }
+
+  const target = new Set(unique);
+  for (const it of await readLocalItems()) {
+    if (target.has(it.id)) out.set(it.id, it.itemType || 'Book');
+  }
+  return out;
 }
 
 /**

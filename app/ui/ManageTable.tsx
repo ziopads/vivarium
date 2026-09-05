@@ -92,6 +92,11 @@ export default function ManageTable({
   const [bulkPath, setBulkPath] = useState(NO_CHANGE);
   const [bulkType, setBulkType] = useState(NO_CHANGE);
   const [bulkNote, setBulkNote] = useState<string | null>(null);
+  // A refused filing, held so the operator can send it again with `force`. The
+  // API refuses a path whose types the selection does not match; the selection
+  // is cleared on success, so the retry has to carry its own ids rather than
+  // reading them back off the table.
+  const [override, setOverride] = useState<{ ids: number[]; classification: string } | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [saving, setSaving] = useState<Set<number>>(new Set());
   const [busyBulk, setBusyBulk] = useState(false);
@@ -197,9 +202,13 @@ export default function ManageTable({
 
     setBusyBulk(true);
     setBulkNote(null);
+    setOverride(null);
     const bits: string[] = [];
 
     try {
+      // Type first, then filing. A selection being retyped AND refiled in one
+      // click has to change type before the destination checks what types it
+      // holds, or the check runs against the types they are leaving.
       if (bulkType !== NO_CHANGE) {
         const res = await fetch('/api/items/bulk-type', {
           method: 'POST',
@@ -217,23 +226,13 @@ export default function ManageTable({
 
       if (bulkPath !== NO_CHANGE) {
         const classification = bulkPath === CLEAR ? '' : bulkPath;
-        const res = await fetch('/api/items/bulk-classify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids, classification }),
-        });
-        const out = await res.json().catch(() => null);
-        if (!res.ok) {
-          bits.push(out?.error ? `Not filed — ${out.error}` : 'Not filed.');
+        const out = await fileThem(ids, classification);
+        if (out.error) {
+          bits.push(`Not filed — ${out.error}`);
+          // 409 is the type refusal, and the only failure worth offering again.
+          if (out.status === 409) setOverride({ ids, classification });
         } else {
-          // No reconciliation to mirror: every selected row gets the value that
-          // was sent, which is the whole benefit of filing by path.
-          setRows((rs) =>
-            rs.map((r) => (selected.has(r.id) ? { ...r, classification } : r)),
-          );
-          bits.push(
-            `${out?.updated ?? ids.length} ${classification ? `filed under ${classification}` : 'unfiled'}`,
-          );
+          bits.push(out.note);
         }
       }
 
@@ -241,6 +240,49 @@ export default function ManageTable({
       setSelected(new Set());
       setBulkPath(NO_CHANGE);
       setBulkType(NO_CHANGE);
+    } finally {
+      setBusyBulk(false);
+    }
+  }
+
+  /**
+   * One filing request, shared by the normal apply and the override.
+   *
+   * Returns the note to show rather than setting it, since the caller is
+   * assembling a line out of two operations.
+   */
+  async function fileThem(
+    ids: number[],
+    classification: string,
+    force = false,
+  ): Promise<{ note: string; error?: string; status?: number }> {
+    const res = await fetch('/api/items/bulk-classify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, classification, force }),
+    });
+    const out = await res.json().catch(() => null);
+    if (!res.ok) {
+      return { note: '', error: out?.error || 'the request failed.', status: res.status };
+    }
+    // No reconciliation to mirror: every selected row gets the value that was
+    // sent, which is the whole benefit of filing by path.
+    const touched = new Set(ids);
+    setRows((rs) => rs.map((r) => (touched.has(r.id) ? { ...r, classification } : r)));
+    return {
+      note: `${out?.updated ?? ids.length} ${
+        classification ? `filed under ${classification}` : 'unfiled'
+      }`,
+    };
+  }
+
+  async function applyOverride() {
+    if (!override) return;
+    setBusyBulk(true);
+    try {
+      const out = await fileThem(override.ids, override.classification, true);
+      setBulkNote(out.error ? `Not filed — ${out.error}` : `${out.note} anyway`);
+      setOverride(null);
     } finally {
       setBusyBulk(false);
     }
@@ -344,7 +386,23 @@ export default function ManageTable({
       )}
 
       {bulkNote && (
-        <p className="mb-2 text-xs text-moss">{bulkNote}</p>
+        <p className="mb-2 flex flex-wrap items-center gap-3 text-xs text-moss">
+          <span className={override ? 'text-rust' : undefined}>{bulkNote}</span>
+          {override && (
+            <button
+              onClick={applyOverride}
+              disabled={busyBulk}
+              className="rounded border border-rust px-2 py-0.5 text-rust hover:bg-rust hover:text-white disabled:opacity-50"
+            >
+              File {override.ids.length} there anyway
+            </button>
+          )}
+          {override && (
+            <button onClick={() => setOverride(null)} className="text-muted hover:text-rust">
+              Leave them
+            </button>
+          )}
+        </p>
       )}
 
       <div className="overflow-x-auto rounded-lg border border-line">
