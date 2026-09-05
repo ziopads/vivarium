@@ -150,12 +150,11 @@ function normalize(raw: any): Vocab {
 }
 
 // Every shelf across all sections, de-duped — for surfaces not yet section-aware.
+// Two callers left: the item detail page and (via browse/page.tsx) Catalog. Both
+// are pickers, and both should move to pathOptionsForType — an item in hand has
+// an itemType, which is what decides the branches it may be filed under.
 export function flatShelves(v: Vocab): string[] {
   return Array.from(new Set(Object.values(v.shelvesBySection).flat())).sort();
-}
-
-export function shelvesFor(v: Vocab, section: string | undefined): string[] {
-  return (section && v.shelvesBySection[section]) || [];
 }
 
 export async function getVocab(): Promise<Vocab> {
