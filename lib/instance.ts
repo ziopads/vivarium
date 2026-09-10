@@ -28,6 +28,19 @@ export type InstanceConfig = {
   showAppNav: boolean;
   /** Footer line. `{year}` is substituted at render time. */
   footer: string;
+  /**
+   * Copy for the shared-password prompt. Only rendered when the gate is on
+   * (PUBLIC_GATE_ENABLED=1), and worth setting per instance because the reason
+   * a site is gated differs: an invitation-only catalogue is addressing someone
+   * who was sent a link, a private working inventory is addressing its owner.
+   * Omitted falls back to the neutral wording in app/gate/page.tsx.
+   */
+  gate?: {
+    title: string;
+    intro: string;
+    /** Small print under the form. Omit for none. */
+    help?: string;
+  };
   metadata: {
     title: string;
     /** Optional `%s`-style template for child page titles. */
@@ -69,6 +82,11 @@ const tamplin: InstanceConfig = {
   // wishlist/auth nav. Admins reach /login directly (it is gate-exempt).
   showAppNav: false,
   footer: '© {year} Valerie Tamplin. All rights reserved.',
+  gate: {
+    title: 'Selected Works',
+    intro: 'This catalogue is shared privately. Please enter the password you were given.',
+    help: 'An access issue? Reply to the message that brought you here.',
+  },
   metadata: {
     title: 'Valerie Tamplin — Catalogue Raisonné',
     titleTemplate: '%s — Valerie Tamplin',
@@ -96,6 +114,10 @@ const sirsinate: InstanceConfig = {
   // the app's own nav stays on alongside the site chrome.
   showAppNav: true,
   footer: '© {year} Gaff Cutter LLC. All rights reserved.',
+  gate: {
+    title: 'Studio Catalogue',
+    intro: 'A private record of the studio — instruments, software and reference.',
+  },
   metadata: {
     title: 'Sirsinate — Studio Catalogue',
     titleTemplate: '%s — Sirsinate',
