@@ -51,3 +51,8 @@ __pycache__/
 /reports/
 public/cr
 public/items-tamplin/
+
+# Frozen July 2026 build snapshot for the Tamplin instance. Kept locally as a
+# record; not carried in the repository, since it documents one instance rather
+# than the codebase. supabase/migrations/README.md is the tracked instance record.
+docs/HANDOFF.md

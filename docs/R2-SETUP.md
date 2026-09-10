@@ -1,89 +1,109 @@
-# Cloudflare R2 setup (morning task)
+# Cloudflare R2 — image storage for an instance
 
-Goal: stand up object storage for Vivarium's images. This is deliberately the *same*
-storage pattern we'll use for the FOIA/research project (14 GB of PDFs), so we're dry-running
-it here. R2 is S3-compatible and charges **zero egress**, which is why it beats S3/Supabase
-Storage for files that get served repeatedly.
+Object storage for a Vivarium instance's images. R2 is S3-compatible and charges
+**no egress**, which is why it is used rather than Supabase Storage for files
+that get served repeatedly.
 
-You'll create a bucket + an API token, drop five values into `.env.local`, and hand me three
-of them (not the secret). Then I build `lib/storage.ts`, a migration that pushes your
-existing images to R2, and the app-side swap to render from R2.
+Part of standing up an instance — see `docs/NEW-INSTANCE.md` for where this fits
+in the sequence. About ten minutes.
 
-Estimated time: ~10 minutes.
+## The decision this depends on
+
+A separate bucket per instance, or a prefix inside an existing one.
+
+**This is permanent.** The key of every image is baked into that record's stored
+`images[].src` value, so changing the arrangement after cataloguing has started
+means rewriting every record and moving every object. Settle it before the first
+upload.
+
+Separate buckets keep access policies, lifecycles and tokens cleanly divided,
+which matters when one instance is public and another holds a commercially
+sensitive catalogue. A shared bucket with per-instance prefixes keeps the number
+of credentials down. The application code is identical either way: it reads
+`R2_BUCKET` and `NEXT_PUBLIC_R2_PUBLIC_URL`, and the per-instance image
+directory is set by `NEXT_PUBLIC_LOCAL_IMAGE_DIR` for local development.
+
+If you are adding a prefix to an existing bucket, skip to step 5 — the bucket,
+its public URL and its token already exist.
 
 ---
 
-## 1. Enable R2 on your Cloudflare account
+## 1. Enable R2 on the Cloudflare account
 
-1. Sign in at https://dash.cloudflare.com (create a free account if needed).
-2. In the left sidebar, click **R2**.
-3. If prompted, **add a payment method**. This is required to activate R2 even though the
-   free tier costs nothing — **10 GB storage, 1M writes, 10M reads per month, and $0 egress
-   forever.** Vivarium's images are ~1–3 GB, so you'll stay free.
+1. Sign in at https://dash.cloudflare.com.
+2. In the sidebar, open **R2**.
+3. If prompted, add a payment method. This is required to activate R2 even though
+   the free tier costs nothing: 10 GB storage, 1M writes, 10M reads per month,
+   and no egress charges. An instance's images run 1–3 GB, so it stays free.
 
 ## 2. Create the bucket
 
 1. **R2 → Create bucket.**
-2. Name it **`vivarium`**.
-3. Location: **Automatic**. Storage class: **Standard**.
-4. Create.
+2. Name it for the instance — `vivarium`, `vivarium-sirsinate`, and so on.
+3. Location **Automatic**, storage class **Standard**.
 
-> Use a *separate* bucket per project (you'll make a `foia` bucket later). The code is
-> identical either way; separate buckets keep the access policies and lifecycles clean —
-> Vivarium public, the research corpus possibly controlled.
+## 3. Turn on public serving
 
-## 3. Turn on public serving (for the dry run)
+1. Open the bucket → **Settings**.
+2. Under **Public Development URL** (the `r2.dev` option), click **Enable** and
+   confirm.
+3. Copy the URL, which looks like `https://pub-<hash>.r2.dev`. This is
+   `NEXT_PUBLIC_R2_PUBLIC_URL`.
 
-1. Open the **`vivarium`** bucket → **Settings**.
-2. Under **Public Development URL** (the `r2.dev` option), click **Enable** and confirm.
-3. Copy the URL it gives you — it looks like `https://pub-<hash>.r2.dev`. **This is your
-   `NEXT_PUBLIC_R2_PUBLIC_URL`.**
+`r2.dev` is fine indefinitely for a small instance. For anything with a real
+audience, point a subdomain at the bucket instead — a custom domain avoids
+Cloudflare's rate limiting on `r2.dev` and keeps image URLs stable if the bucket
+is ever replaced.
 
-> `r2.dev` is fine for now. For production you'd point a subdomain (e.g.
-> `img.gaffcutter.com`) at the bucket instead — a later step, not needed today.
+## 4. Create an API token
 
-## 4. Create an API token (the upload credentials)
-
-1. In the sidebar go to **Storage & databases → R2 → Overview** (R2 now lives under
-   "Storage & databases"). On that page find the **API Tokens** section and click **Manage**
-   — *not* the generic My Profile → API Tokens page, which gives the wrong kind of token.
-2. **Create Account API token** → name it `vivarium-app`.
+1. In the sidebar go to **Storage & databases → R2 → Overview**. On that page
+   find the **API Tokens** section and click **Manage** — *not* the generic
+   My Profile → API Tokens page, which issues the wrong kind of token.
+2. **Create Account API token**, named for the instance.
 3. Permissions: **Object Read & Write**.
-4. Scope: **Apply to specific buckets only → `vivarium`**.
+4. Scope: **Apply to specific buckets only**, and pick this instance's bucket.
+   Scoping matters — an account-wide token in one instance's `.env.local`
+   defeats the separation the clones are for.
 5. **Create API Token.**
-6. Copy these three, shown once:
+6. Copy the three values, shown once:
    - **Access Key ID**
-   - **Secret Access Key** *(you won't see it again — grab it now)*
-   - the **S3 endpoint**, which looks like `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
-     The hex string in the middle is your **`R2_ACCOUNT_ID`**.
+   - **Secret Access Key** — you will not see it again
+   - the **S3 endpoint**, `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`. The
+     hex string in the middle is `R2_ACCOUNT_ID`.
 
 ## 5. Put the values in `.env.local`
 
-Add these lines (the file is git-ignored, so secrets stay local):
+In that instance's clone. The file is gitignored, so the secret stays local.
 
 ```dotenv
 # --- Cloudflare R2 (image storage) ---
-R2_ACCOUNT_ID=            # the hex from the S3 endpoint
+R2_ACCOUNT_ID=                   # the hex from the S3 endpoint
 R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=     # keep this private — do not paste it in chat
-R2_BUCKET=vivarium
+R2_SECRET_ACCESS_KEY=            # server and scripts only
+R2_BUCKET=
 NEXT_PUBLIC_R2_PUBLIC_URL=https://pub-xxxx.r2.dev
 ```
 
-## 6. Hand back the non-secret bits
+The same five go into the instance's Vercel project. `NEXT_PUBLIC_R2_PUBLIC_URL`
+is inlined at build time, so changing it needs a redeploy rather than only an
+environment edit.
 
-When you're done, send me: **the bucket name (`vivarium`), the account ID, and the public
-URL.** Keep the access key + secret in `.env.local` — I write the code against the env-var
-names, not the values.
+For local development against images on disk rather than R2, set
+`NEXT_PUBLIC_LOCAL_IMAGE_DIR`. It wins over R2 deliberately, so a development
+clone holding one instance's R2 credentials cannot fetch another instance's
+images from the wrong bucket.
 
-Then I'll build:
-- `lib/storage.ts` — an S3 client pointed at R2 + `uploadFile` / presign helpers (the piece
-  the FOIA project reuses verbatim).
-- a migration script that uploads `public/items/**` to R2 and rewrites each item's image
-  references in the database.
-- the app-side change to render images from `${NEXT_PUBLIC_R2_PUBLIC_URL}/<key>`.
+## 6. Check it
 
-## Pricing reference
+Upload one image through the application and confirm it renders from
+`${NEXT_PUBLIC_R2_PUBLIC_URL}/<key>`, then reload to confirm the record kept the
+reference. A 404 here is almost always the public development URL not having been
+enabled in step 3.
 
-Storage $0.015/GB-month, no egress fees, free tier 10 GB. A few dollars a year at most for
-Vivarium; for the FOIA corpus, ~$0.21/month for 14 GB.
+---
+
+## Pricing
+
+Storage $0.015/GB-month, no egress fees, 10 GB free. A few dollars a year at
+most for a catalogue of this size.
