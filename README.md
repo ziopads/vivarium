@@ -9,7 +9,7 @@ private to edit.
 - **Next.js 14** (App Router, TypeScript) — server-rendered pages + API routes
 - **Tailwind CSS** — parchment/ink theme
 - **Supabase** — Postgres (catalog data) + Auth (magic-link login)
-- **Cloudflare R2** — image storage *(in progress — see `R2-SETUP.md`)*
+- **Cloudflare R2** — image storage *(in progress — see `docs/R2-SETUP.md`)*
 - Falls back to local JSON files when no database is configured, so the UI can be developed
   with zero setup.
 
@@ -37,7 +37,7 @@ and `data/vocab.json` and writes back to those files — good for developing the
 
 ## Run against Supabase
 
-See **`DEPLOY.md`** for the full runbook. In short: create a Supabase project, run
+See **`docs/DEPLOY.md`** for the full runbook. In short: create a Supabase project, run
 `supabase/schema.sql` in its SQL editor, put the keys in `.env.local` (see `.env.example`),
 then seed:
 
@@ -76,7 +76,7 @@ JSON files — automatically, no code change.
 
 - `scripts/migrate-to-supabase.mjs` — seed Supabase from the local JSON files (idempotent).
 - `scripts/prep_images.py` / `scripts/apply_images.py` — resize/convert source images to
-  webp and associate them with items. (Image storage is moving to R2 — see `R2-SETUP.md`.)
+  webp and associate them with items. (Image storage is moving to R2 — see `docs/R2-SETUP.md`.)
 
 ## Project layout
 
@@ -99,5 +99,5 @@ lib/
 middleware.ts             session refresh + write/admin guards
 supabase/schema.sql       Postgres schema (run once)
 data/                     items.json + vocab.json (seed + local fallback)
-DEPLOY.md, R2-SETUP.md    runbooks
+docs/                     DEPLOY.md, DEVELOPMENT.md, HANDOFF.md, R2-SETUP.md
 ```
