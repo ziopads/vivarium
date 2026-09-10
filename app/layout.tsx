@@ -6,8 +6,9 @@ import AuthNav from './ui/AuthNav';
 import WishlistLink from './ui/WishlistLink';
 import { instance } from '@/lib/instance';
 
-// Loaded for every build, but only referenced by the tamplin theme's tokens, so
-// the library never actually downloads it (fonts fetch only when matched).
+// Loaded for every build, but only referenced by the tamplin and sirsinate
+// themes' tokens, so the library never actually downloads it (fonts fetch only
+// when matched).
 const instrumentSans = Instrument_Sans({
   subsets: ['latin'],
   display: 'swap',
@@ -56,17 +57,33 @@ function NavLink({
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const isTamplin = instance.theme === 'tamplin';
+  // THREE SEPARATE QUESTIONS, one flag until they diverged.
+  //
+  // `data-theme` selects the token block in globals.css. The library IS :root,
+  // so it emits nothing; every other instance emits its own theme name. Hardcoding
+  // 'tamplin' here meant a third theme's block could never match, and the symptom
+  // was a new instance silently rendering the library palette — the same silence
+  // as an unrecognised NEXT_PUBLIC_INSTANCE, from a different cause.
+  //
+  // The font variable is attached wherever a theme references it. Both tamplin
+  // and sirsinate map their font tokens to --font-instrument.
+  //
+  // CHROME IS NOT THEME. The gallery header is the invitation-only catalogue's
+  // presentation, and it renders no wishlist or auth nav. An instance can want
+  // the off-white palette and the working nav at once, which sirsinate does.
+  const theme = instance.theme === 'library' ? undefined : instance.theme;
+  const usesInstrument = instance.theme === 'tamplin' || instance.theme === 'sirsinate';
+  const galleryChrome = instance.theme === 'tamplin';
   const footer = instance.footer.replace('{year}', String(new Date().getFullYear()));
 
   return (
     <html
       lang="en"
-      data-theme={isTamplin ? 'tamplin' : undefined}
-      className={isTamplin ? instrumentSans.variable : undefined}
+      data-theme={theme}
+      className={usesInstrument ? instrumentSans.variable : undefined}
     >
       <body>
-        {isTamplin ? (
+        {galleryChrome ? (
           /* Gallery chrome — mirrors valerietamplin.com: fixed white header, a
              tracked medium wordmark, tracked 13px nav that goes grey -> ink. */
           <header className="fixed inset-x-0 top-0 z-50 bg-parchment">
@@ -116,7 +133,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <main
           className={
-            isTamplin
+            galleryChrome
               ? 'mx-auto w-full max-w-[1600px] px-6 pb-16 pt-24 sm:px-[60px] sm:pt-28'
               : 'mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8'
           }
@@ -126,7 +143,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <footer
           className={
-            isTamplin
+            galleryChrome
               ? 'mx-auto w-full max-w-[1600px] px-6 py-8 text-[11px] tracking-[0.02em] text-muted sm:px-[60px] sm:py-10'
               : 'mx-auto max-w-6xl px-4 py-8 text-sm text-muted sm:px-6 sm:py-10'
           }

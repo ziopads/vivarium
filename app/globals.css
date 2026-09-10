@@ -50,6 +50,32 @@
   --font-sans:  var(--font-instrument), system-ui, sans-serif;
 }
 
+/* Sirsinate Sound Laboratory — the same off-white ground as the Tamplin
+   catalogue, with the studio site's nav and wordmark carried by lib/instance.ts.
+   A dark instance was tried and abandoned: the app has light-mode literals
+   scattered through it (ManageTable's amber unfiled markers among them) and
+   inverting the ground surfaces every one of them.
+
+   The values are deliberately a copy of [data-theme="tamplin"] rather than a
+   shared block. They are free to diverge, and the two identities have nothing to
+   do with each other. If a third instance wants the same ground, that is the
+   point to factor it out.
+
+   Instrument Sans is already loaded in layout.tsx for Tamplin, so this needs no
+   new font. */
+[data-theme="sirsinate"] {
+  --parchment: 255 255 255; /* #ffffff */
+  --card:      255 255 255; /* #ffffff */
+  --ink:        26  26  26; /* #1a1a1a */
+  --muted:     102 102 102; /* #666666 */
+  --rust:       26  26  26; /* accent -> near-black */
+  --moss:      102 102 102; /* secondary accent -> grey */
+  --line:      229 229 229; /* #e5e5e5 */
+
+  --font-serif: var(--font-instrument), system-ui, sans-serif;
+  --font-sans:  var(--font-instrument), system-ui, sans-serif;
+}
+
 body {
   @apply bg-parchment text-ink font-sans antialiased;
 }

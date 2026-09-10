@@ -17,7 +17,7 @@ export type NavItem = { label: string; href: string };
 
 export type InstanceConfig = {
   /** Selects the palette/font block in globals.css ([data-theme="…"]). */
-  theme: 'library' | 'tamplin';
+  theme: 'library' | 'tamplin' | 'sirsinate';
   /** Wordmark text and where it links (the "home" of this identity). */
   wordmark: string;
   homeUrl: string;
@@ -78,7 +78,34 @@ const tamplin: InstanceConfig = {
   },
 };
 
-const instances: Record<string, InstanceConfig> = { library, tamplin };
+const sirsinate: InstanceConfig = {
+  theme: 'sirsinate',
+  wordmark: 'Sirsinate',
+  // The wordmark and nav point back to sirsinate.com, so the catalogue reads as
+  // one more part of the studio site rather than a separate application. That
+  // site is a single-page scroller, so every nav target is an anchor on it.
+  homeUrl: 'https://sirsinate.com',
+  nav: [
+    { label: 'Depths', href: 'https://sirsinate.com/#depths' },
+    { label: 'Voices', href: 'https://sirsinate.com/#voices' },
+    { label: 'Current', href: 'https://sirsinate.com/#current' },
+    { label: 'Contact', href: 'https://sirsinate.com/#contact' },
+  ],
+  // Unlike the Tamplin catalogue, this instance is a working tool rather than
+  // something shown to visitors, and the wishlist is the gear-to-find list. So
+  // the app's own nav stays on alongside the site chrome.
+  showAppNav: true,
+  footer: '© {year} Gaff Cutter LLC. All rights reserved.',
+  metadata: {
+    title: 'Sirsinate — Studio Catalogue',
+    titleTemplate: '%s — Sirsinate',
+    description: 'Hardware, software and reference for Sirsinate Sound Laboratory.',
+    siteName: 'Sirsinate Sound Laboratory',
+    metadataBase: 'https://studio.sirsinate.com',
+  },
+};
+
+const instances: Record<string, InstanceConfig> = { library, tamplin, sirsinate };
 
 export const instance: InstanceConfig =
   instances[process.env.NEXT_PUBLIC_INSTANCE ?? 'library'] ?? library;
