@@ -11,12 +11,19 @@ function isAdmin(email: string | null | undefined): boolean {
 
 // Paths that must stay reachable WITHOUT the gate cookie, or a gated site can
 // never show its own password prompt or accept the answer.
+//
+// `/auth` covers the magic-link callback, and leaving it out was a real bug on a
+// gated deployment: an admin clicked their sign-in link, landed on
+// /auth/callback with no gate cookie, and was redirected to /gate with the auth
+// code thrown away. The link is single-use, so it was spent — and the symptom
+// looked like a broken magic link rather than the gate. The earlier entry read
+// `/api/auth`, which is not a route this app has.
 function isGateExempt(path: string): boolean {
   return (
     path === '/gate' ||
     path.startsWith('/api/gate') ||
     path === '/login' ||          // admins still need to reach the magic-link login
-    path.startsWith('/api/auth') ||
+    path.startsWith('/auth') ||   // magic-link callback + signout
     path.startsWith('/_next') ||
     path === '/favicon.ico'
   );
@@ -38,6 +45,19 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(dest);
     }
   }
+
+  // THE GATE IS STANDALONE, AND THIS IS WHAT MAKES THAT TRUE.
+  //
+  // Neither of these paths reads a session: /gate renders a password form and
+  // /api/gate compares a string and sets a cookie. Falling through to the
+  // Supabase block below made both of them wait on a round trip to the database
+  // before returning, so a deployment whose database was slow or unhealthy could
+  // not show its own password prompt. The request simply hung — nothing threw,
+  // nothing logged, and the browser showed a pending POST with a clean console.
+  //
+  // Returning here restores the property the header claims: the rope works
+  // whether or not Supabase is reachable.
+  if (path === '/gate' || path.startsWith('/api/gate')) return res;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

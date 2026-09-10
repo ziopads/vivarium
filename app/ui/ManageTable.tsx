@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { isUnderPath, pathServesType, type PathOption, type TaxonNode } from '@/lib/taxonomy';
+import { typeOptions } from '@/lib/itemTypes';
 import PathSelect from './PathSelect';
 
 type Row = {
@@ -589,12 +590,18 @@ function ManageRow({
           <span className="ml-2 font-mono text-[10px] text-muted">#{String(r.id).padStart(6, '0')}</span>
         </td>
         <td className="px-2 py-2 align-top">
+          {/* The row's own type is unioned in. A <select> whose value matches no
+              <option> renders the first one instead, so a record typed outside
+              the vocabulary would display as Book while still being a Recording
+              — and the next edit to any control on this row saves that display
+              value. Browse unions the same way when building its filing
+              pickers, for the same reason. */}
           <select
             value={r.itemType}
             onChange={(e) => onRetype(e.target.value)}
             className="rounded border border-line bg-card px-1.5 py-1"
           >
-            {types.map((t) => (<option key={t}>{t}</option>))}
+            {typeOptions(types, r.itemType).map((t) => (<option key={t}>{t}</option>))}
           </select>
         </td>
         <td className="px-2 py-2 align-top">
