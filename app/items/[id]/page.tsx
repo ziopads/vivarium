@@ -192,6 +192,7 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
           <TypeFieldsEditor
             itemId={item.id}
             itemType={item.itemType}
+            types={vocab.types}
             values={Object.fromEntries(
               typeFields(item.itemType).map((f) => [f.key, String((item as Record<string, any>)[f.key] || '')]),
             )}

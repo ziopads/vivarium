@@ -2,15 +2,20 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { TYPE_OPTIONS } from '@/lib/itemTypes';
+import { typeOptions } from '@/lib/itemTypes';
 
-export default function NewItemButton() {
+// `types` is vocab.types, read on the server and passed down. Previously this
+// imported the TYPE_OPTIONS constant directly, so a type added in /admin/vocab
+// never reached the one picker where a record's type is first set.
+export default function NewItemButton({ types }: { types?: string[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState('Book');
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const options = typeOptions(types, type);
 
   async function create() {
     if (!title.trim()) return;
@@ -46,7 +51,7 @@ export default function NewItemButton() {
           onChange={(e) => setType(e.target.value)}
           className="rounded border border-line bg-parchment px-2 py-1"
         >
-          {TYPE_OPTIONS.map((t) => (
+          {options.map((t) => (
             <option key={t} value={t}>{t}</option>
           ))}
         </select>

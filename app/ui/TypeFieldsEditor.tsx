@@ -1,25 +1,33 @@
 'use client';
 
 import { useState } from 'react';
-import { ITEM_TYPES, TYPE_OPTIONS, typeFields } from '@/lib/itemTypes';
+import { ITEM_TYPES, typeFields, typeOptions } from '@/lib/itemTypes';
 import EditableText from './EditableText';
 
 // Item type + its type-specific fields (e.g. frame dimensions). The type saves the
 // moment you pick it; each field saves when you leave it. No save-all button, so
 // half-entered frame measurements can't evaporate.
+//
+// `types` is vocab.types, passed down because this is a client component and the
+// vocabulary is a server read. It used to import the TYPE_OPTIONS constant, which
+// meant a type added in /admin/vocab appeared in the tree editor's tabs and never
+// in this picker.
 export default function TypeFieldsEditor({
   itemId,
   itemType,
+  types,
   values,
 }: {
   itemId: number;
   itemType: string;
+  types?: string[];
   values: Record<string, string>;
 }) {
   const [type, setType] = useState(itemType || 'Book');
   const [state, setState] = useState<'idle' | 'saving' | 'ok' | 'err'>('idle');
 
   const defs = typeFields(type);
+  const options = typeOptions(types, type);
 
   async function saveType(next: string) {
     setType(next);
@@ -46,7 +54,7 @@ export default function TypeFieldsEditor({
           onChange={(e) => saveType(e.target.value)}
           className="rounded border border-line bg-card px-2 py-1 text-sm"
         >
-          {TYPE_OPTIONS.map((t) => (
+          {options.map((t) => (
             <option key={t} value={t}>
               {t}
             </option>

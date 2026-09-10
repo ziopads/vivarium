@@ -48,6 +48,12 @@ export const NEVER_PUBLIC_FIELDS = [
   'location',
   'owner',
   'conditionNotes',
+  // Hardware and software. An attribute key absent from PUBLICABLE_FIELDS is
+  // already dropped for the public tier, so these are defence in depth: naming
+  // them here neutralises any future edit that puts them on that ceiling.
+  // `location` above covers which iLok holds a license, and is already listed.
+  'serialNumber',
+  'licenseKey',
 ] as const;
 
 /**
