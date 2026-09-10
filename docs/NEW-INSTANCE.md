@@ -168,7 +168,7 @@ that matter for a new instance:
     NEXT_PUBLIC_SUPABASE_URL
     NEXT_PUBLIC_SUPABASE_ANON_KEY
     SUPABASE_SERVICE_ROLE_KEY       server only — never reaches the client
-    SUPABASE_DB_URL                 pooled connection string, port 6543
+    SUPABASE_DB_URL                 direct connection, port 5432 (see below)
     AUTH_ALLOWLIST                  emails permitted to sign in at all
     AUTH_ADMINS                     the subset permitted to edit
     NEXT_PUBLIC_SITE_URL
@@ -180,6 +180,15 @@ that matter for a new instance:
 Supabase is fully configured — naming a dataset is treated as an unambiguous
 statement about which one you want — and the symptom is a clone that appears to
 work while quietly ignoring the database you just built.
+
+**`SUPABASE_DB_URL` is read by nothing in either repository.** It is there for
+`pg_dump` and `psql` at a terminal, which is what makes it the pre-migration
+backup route. Take the DIRECT or SESSION connection on port 5432, not the
+transaction pooler on 6543: pooling does not support the statements `pg_dump`
+issues. Fill it in at setup even though nothing breaks without it — the Tamplin
+env file carried a bare `SUPABASE_DB_URL=` from July, nobody noticed because no
+code reads it, and it was discovered on 10 September at the moment a backup was
+needed before a migration.
 
 `PUBLIC_GATE_ENABLED` and `PUBLIC_GATE_PASSWORD` belong in the Vercel project
 rather than your working `.env.local`; you do not want to type a password to see
