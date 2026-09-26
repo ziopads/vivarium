@@ -1,12 +1,34 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { gateEnabled, isGateCookieValid, GATE_COOKIE } from '@/lib/gate';
+import { instance } from '@/lib/instance';
+
+function emailList(v: string | undefined): string[] {
+  return (v || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+}
 
 function isAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
-  const admins = (process.env.AUTH_ADMINS || '')
-    .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  return admins.includes(email.toLowerCase());
+  return emailList(process.env.AUTH_ADMINS).includes(email.toLowerCase());
+}
+
+// Studio access: the email must be NAMED in AUTH_ALLOWLIST or AUTH_ADMINS.
+//
+// Deliberately stricter than lib/auth.ts isAllowed(), where an empty allowlist
+// admits anyone with a valid login. That default is tolerable for a catalogue
+// whose writes are admin-only; the studio lets every member create projects and
+// upload audio, so an unfilled list must mean nobody, not everybody.
+function isStudioMember(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const e = email.toLowerCase();
+  return emailList(process.env.AUTH_ALLOWLIST).includes(e) || emailList(process.env.AUTH_ADMINS).includes(e);
+}
+
+function isStudioPath(path: string): boolean {
+  return (
+    path === '/studio' || path.startsWith('/studio/') ||
+    path === '/api/studio' || path.startsWith('/api/studio/')
+  );
 }
 
 // Paths that must stay reachable WITHOUT the gate cookie, or a gated site can
@@ -59,9 +81,22 @@ export async function middleware(req: NextRequest) {
   // whether or not Supabase is reachable.
   if (path === '/gate' || path.startsWith('/api/gate')) return res;
 
+  // Studio section: absent entirely on instances that don't turn it on.
+  const studioPath = isStudioPath(path);
+  if (studioPath && !instance.studio) {
+    return new NextResponse('Not found', { status: 404 });
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) return res; // auth not configured (local mode)
+  if (!url || !anon) {
+    // Local-JSON mode has no sessions and no studio tables, so there is no
+    // one to let in. Say so plainly instead of letting the page fail later.
+    if (studioPath) {
+      return new NextResponse('The studio needs Supabase configured.', { status: 503 });
+    }
+    return res; // auth not configured (local mode)
+  }
 
   const supabase = createServerClient(url, anon, {
     cookies: {
@@ -75,6 +110,26 @@ export async function middleware(req: NextRequest) {
   });
 
   const { data: { user } } = await supabase.auth.getUser();
+
+  // Studio: any listed member may read and write (create projects, upload,
+  // leave notes) — not only admins. Route handlers check again; this is the door.
+  if (studioPath) {
+    if (!user) {
+      if (path.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+      }
+      const dest = new URL('/login', req.url);
+      dest.searchParams.set('next', path + req.nextUrl.search);
+      return NextResponse.redirect(dest);
+    }
+    if (!isStudioMember(user.email)) {
+      // Signed in but not listed: redirecting to /login would loop, so refuse.
+      return path.startsWith('/api/')
+        ? NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+        : new NextResponse('This account does not have studio access.', { status: 403 });
+    }
+    return res;
+  }
 
   // Guard write APIs — every mutation is a non-GET request under these paths.
   if (

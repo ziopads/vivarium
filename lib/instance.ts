@@ -26,6 +26,14 @@ export type InstanceConfig = {
   /** Whether to show the app's own nav (wishlist + auth). Off for the public
    *  catalogue, which mirrors the marketing site's chrome instead. */
   showAppNav: boolean;
+  /**
+   * Turns on the studio section: music projects, reference MP3s and notes
+   * (/studio, /api/studio, and the studio_* tables). Off means those paths
+   * answer 404 in middleware and nothing queries the tables, so an instance
+   * that never ran the studio migration is unaffected. A section switch, not a
+   * look: it is independent of `theme`.
+   */
+  studio: boolean;
   /** Footer line. `{year}` is substituted at render time. */
   footer: string;
   /**
@@ -57,6 +65,7 @@ const library: InstanceConfig = {
   homeUrl: '/',
   nav: [{ label: 'Catalog', href: '/' }],
   showAppNav: true,
+  studio: false,
   footer: 'Vivarium — kept, not discarded.',
   metadata: {
     title: 'Vivarium',
@@ -81,6 +90,7 @@ const tamplin: InstanceConfig = {
   // NOT advertised as a nav item, and it does not surface the library's
   // wishlist/auth nav. Admins reach /login directly (it is gate-exempt).
   showAppNav: false,
+  studio: false,
   footer: '© {year} Valerie Tamplin. All rights reserved.',
   gate: {
     title: 'Selected Works',
@@ -113,6 +123,9 @@ const sirsinate: InstanceConfig = {
   // something shown to visitors, and the wishlist is the gear-to-find list. So
   // the app's own nav stays on alongside the site chrome.
   showAppNav: true,
+  // Music projects for the label roster (KR, VIG, KJI, ASU). See the
+  // studio_* tables in supabase/schema.sql.
+  studio: true,
   footer: '© {year} Gaff Cutter LLC. All rights reserved.',
   gate: {
     title: 'Studio Catalogue',

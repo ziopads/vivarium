@@ -77,3 +77,96 @@ create table if not exists wishlist (
   data jsonb not null
 );
 alter table wishlist enable row level security;
+
+-- ── Studio ──────────────────────────────────────────────────────────────────
+-- Music projects, reference MP3s and notes. Used only by instances with
+-- `studio: true` in lib/instance.ts (Sirsinate); elsewhere these tables sit
+-- empty and nothing queries them. The roster itself is instance data, loaded
+-- from supabase/seeds/, not here. Full commentary on each table is in
+-- migrations/2026-09-26-studio.sql.
+
+-- The roster: one row per act on the label (a person or a collaboration).
+create table if not exists studio_artists (
+  id    bigint generated always as identity primary key,
+  code  text not null unique,   -- short label code: KR, VIG, KJI, ASU
+  name  text not null unique
+);
+
+-- Which artist a signed-in person appears as. Display only; access is
+-- AUTH_ALLOWLIST / AUTH_ADMINS.
+create table if not exists studio_members (
+  email      text primary key check (email = lower(email)),
+  artist_id  bigint not null references studio_artists(id)
+);
+
+-- `canonical_id` is the Ableton folder name and is PERMANENT (trigger below).
+create table if not exists studio_projects (
+  id            bigint generated always as identity primary key,
+  artist_id     bigint not null references studio_artists(id),
+  canonical_id  text not null check (canonical_id <> '' and canonical_id = btrim(canonical_id)),
+  working_name  text not null default '',
+  starred       boolean not null default false,
+  created_by    text not null,
+  created_at    timestamptz not null default now(),
+  unique (artist_id, canonical_id)
+);
+create index if not exists studio_projects_artist_idx on studio_projects (artist_id);
+
+create or replace function studio_projects_lock_canonical() returns trigger
+language plpgsql as $body$
+begin
+  if new.canonical_id is distinct from old.canonical_id then
+    raise exception 'studio_projects.canonical_id is permanent (project %: "%" cannot become "%")',
+      old.id, old.canonical_id, new.canonical_id;
+  end if;
+  return new;
+end;
+$body$;
+
+drop trigger if exists studio_projects_lock_canonical on studio_projects;
+create trigger studio_projects_lock_canonical
+  before update of canonical_id on studio_projects
+  for each row execute function studio_projects_lock_canonical();
+
+-- Every working name a project has had, including the first.
+create table if not exists studio_project_names (
+  id          bigint generated always as identity primary key,
+  project_id  bigint not null references studio_projects(id) on delete cascade,
+  name        text not null,
+  set_by      text not null,
+  set_at      timestamptz not null default now()
+);
+create index if not exists studio_project_names_project_idx on studio_project_names (project_id, set_at desc);
+
+-- One row per reference MP3 (audio in the private R2 audio bucket).
+create table if not exists studio_tracks (
+  id                 bigint generated always as identity primary key,
+  project_id         bigint not null references studio_projects(id) on delete cascade,
+  version            int not null check (version > 0),
+  r2_key             text not null unique,
+  original_filename  text not null,
+  bytes              bigint,
+  duration_s         real,
+  uploaded_by        text not null,
+  uploaded_at        timestamptz not null default now(),
+  unique (project_id, version)
+);
+
+-- Notes on a project, optionally about one reference track.
+create table if not exists studio_notes (
+  id          bigint generated always as identity primary key,
+  project_id  bigint not null references studio_projects(id) on delete cascade,
+  track_id    bigint references studio_tracks(id) on delete set null,
+  author      text not null,
+  body        text not null check (btrim(body) <> ''),
+  created_at  timestamptz not null default now(),
+  edited_at   timestamptz
+);
+create index if not exists studio_notes_project_idx on studio_notes (project_id, created_at desc);
+
+alter table studio_artists        enable row level security;
+alter table studio_members        enable row level security;
+alter table studio_projects       enable row level security;
+alter table studio_project_names  enable row level security;
+alter table studio_tracks         enable row level security;
+alter table studio_notes          enable row level security;

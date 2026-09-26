@@ -15,10 +15,15 @@ running instances break on their first write.
 
 ## Instances
 
-| Instance | Supabase account | 2026-09-03 visibility | 2026-09-04 classification |
-|---|---|---|---|
-| Library (James's books) | ziopads | applied 2026-09-03 | applied 2026-09-04 — 1,740 of 1,905 filed |
-| Tamplin catalogue raisonné (valerietamplin.com) | Gaff Cutter's Org — project `vivarium: valerietamplin` | applied 2026-09-10 | applied 2026-09-10 |
+| Instance | Supabase account | 2026-09-03 visibility | 2026-09-04 classification | 2026-09-26 studio |
+|---|---|---|---|---|
+| Library (James's books) | ziopads | applied 2026-09-03 | applied 2026-09-04 — 1,740 of 1,905 filed | not needed |
+| Tamplin catalogue raisonné (valerietamplin.com) | Gaff Cutter's Org — project `vivarium: valerietamplin` | applied 2026-09-10 | applied 2026-09-10 | not needed |
+| Sirsinate studio (studio.sirsinate.com) | project `vivarium-sirsinate` — account not recorded | not recorded | not recorded | pending, then `seeds/sirsinate-studio.sql` |
+
+The Sirsinate row's first two columns were never written down. Check whether
+that database has `items_visibility_chk` and an `items.classification` column
+before assuming it was created from a current `schema.sql`.
 
 The Tamplin project was set up under a separate valerietamplin login and has
 since moved; as of 10 September 2026 it sits in Gaff Cutter's Org. Confirm which
@@ -26,7 +31,7 @@ project the dashboard has open before running anything, since the name and the
 organization are not the same thing.
 
 Each instance has its own local clone of this repository, named for it —
-`vivarium`, `vivarium-tamplin` — with `.env.local` as a real file in each. The
+`vivarium`, `vivarium-tamplin`, `vivarium-sirsinate` — with `.env.local` as a real file in each. The
 old arrangement, one checkout with `.env.local` symlinked to whichever instance
 was active, is gone: instance identity is directory state now, and a script run
 in the wrong tree cannot reach another instance's database because those
@@ -51,6 +56,19 @@ The real verification was neither query. Every Vercel project deploys from
 `main`, so that instance had been running current code since 4 September, writing
 a `classification` column that did not exist — Postgres rejecting every save for
 six days. Editing one record and watching it stick is what proved the repair.
+
+### The studio migration is for Sirsinate only
+
+`2026-09-26-studio.sql` creates the `studio_*` tables behind the studio section,
+which only instances with `studio: true` in `lib/instance.ts` turn on. Library
+and Tamplin skip it: with the switch off, middleware answers 404 on every
+studio path and no code touches the tables. It is purely additive, so it can
+run before or after the deploy.
+
+The roster (artists, and which sign-in email appears as which artist) is
+instance data, so it lives in `supabase/seeds/sirsinate-studio.sql` and runs
+once, after the migration. Seeds are not migrations: other instances never run
+them.
 
 ## Before you run one
 
