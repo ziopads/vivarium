@@ -4,6 +4,7 @@ import { Instrument_Sans } from 'next/font/google';
 import './globals.css';
 import AuthNav from './ui/AuthNav';
 import WishlistLink from './ui/WishlistLink';
+import StudioLink from './ui/StudioLink';
 import { instance } from '@/lib/instance';
 
 // Loaded for every build, but only referenced by the tamplin and sirsinate
@@ -122,6 +123,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 ))}
                 {instance.showAppNav && (
                   <>
+                    <StudioLink />
                     <WishlistLink />
                     <AuthNav />
                   </>

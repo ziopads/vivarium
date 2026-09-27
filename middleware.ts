@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { gateEnabled, isGateCookieValid, GATE_COOKIE } from '@/lib/gate';
 import { instance } from '@/lib/instance';
+import { isStudioMember, isStudioPath } from '@/lib/studioAccess';
 
 function emailList(v: string | undefined): string[] {
   return (v || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -10,25 +11,6 @@ function emailList(v: string | undefined): string[] {
 function isAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
   return emailList(process.env.AUTH_ADMINS).includes(email.toLowerCase());
-}
-
-// Studio access: the email must be NAMED in AUTH_ALLOWLIST or AUTH_ADMINS.
-//
-// Deliberately stricter than lib/auth.ts isAllowed(), where an empty allowlist
-// admits anyone with a valid login. That default is tolerable for a catalogue
-// whose writes are admin-only; the studio lets every member create projects and
-// upload audio, so an unfilled list must mean nobody, not everybody.
-function isStudioMember(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const e = email.toLowerCase();
-  return emailList(process.env.AUTH_ALLOWLIST).includes(e) || emailList(process.env.AUTH_ADMINS).includes(e);
-}
-
-function isStudioPath(path: string): boolean {
-  return (
-    path === '/studio' || path.startsWith('/studio/') ||
-    path === '/api/studio' || path.startsWith('/api/studio/')
-  );
 }
 
 // Paths that must stay reachable WITHOUT the gate cookie, or a gated site can
