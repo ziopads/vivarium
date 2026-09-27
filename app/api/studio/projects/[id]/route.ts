@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getProject, getStudioViewer, updateProject } from '@/lib/studio';
-import { parseRating, parseWorkingName } from '@/lib/studioTypes';
+import { parseBpm, parseGenre, parseRating, parseWorkingName } from '@/lib/studioTypes';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return NextResponse.json({ project });
 }
 
-// PATCH /api/studio/projects/:id   { workingName?, rating?, artistId? }
+// PATCH /api/studio/projects/:id   { workingName?, rating?, genre?, bpm?, artistId? }
 // Any studio member. The canonical ID is permanent, so a body that tries to set
 // it is refused outright rather than having that key quietly ignored.
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -43,7 +43,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     );
   }
 
-  const patch: { workingName?: string; rating?: number; artistId?: number } = {};
+  const patch: { workingName?: string; rating?: number; genre?: string; bpm?: number | null; artistId?: number } = {};
   if ('workingName' in body) {
     const name = parseWorkingName(body.workingName);
     if ('error' in name) return NextResponse.json({ error: name.error }, { status: 400 });
@@ -53,6 +53,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const rating = parseRating(body.rating);
     if ('error' in rating) return NextResponse.json({ error: rating.error }, { status: 400 });
     patch.rating = rating.value;
+  }
+  if ('genre' in body) {
+    const genre = parseGenre(body.genre);
+    if ('error' in genre) return NextResponse.json({ error: genre.error }, { status: 400 });
+    patch.genre = genre.value;
+  }
+  if ('bpm' in body) {
+    const bpm = parseBpm(body.bpm);
+    if ('error' in bpm) return NextResponse.json({ error: bpm.error }, { status: 400 });
+    patch.bpm = bpm.value;
   }
   if ('artistId' in body) {
     const artistId = Number(body.artistId);

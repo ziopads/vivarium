@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { StudioArtist, StudioProject } from '@/lib/studioTypes';
 import { RATING_MAX, todayCanonicalId } from '@/lib/studioTypes';
 
-// The studio's project list: create, rename, rate, filter.
+// The studio's project list: create, rename, rate, set genre and BPM, filter.
 //
 // State is local and updated from each API response, so a change shows at once
 // without re-fetching the whole list. The server sorts the same way on load.
@@ -36,9 +36,16 @@ export default function StudioProjects({
   const [artistFilter, setArtistFilter] = useState<number | ''>('');
   // 'any', 'unrated', or a minimum number of stars.
   const [ratingFilter, setRatingFilter] = useState<'any' | 'unrated' | number>('any');
+  const [genreFilter, setGenreFilter] = useState('');
   const [error, setError] = useState('');
 
-  const filtering = query.trim() !== '' || artistFilter !== '' || ratingFilter !== 'any';
+  const filtering = query.trim() !== '' || artistFilter !== '' || ratingFilter !== 'any' || genreFilter !== '';
+
+  // The genre menu offers the genres in use, so it never lists an empty choice.
+  const genres = useMemo(
+    () => Array.from(new Set(projects.map((p) => p.genre).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [projects],
+  );
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -46,13 +53,14 @@ export default function StudioProjects({
       if (artistFilter !== '' && p.artist.id !== artistFilter) return false;
       if (ratingFilter === 'unrated' && p.rating !== 0) return false;
       if (typeof ratingFilter === 'number' && p.rating < ratingFilter) return false;
+      if (genreFilter && p.genre !== genreFilter) return false;
       if (q) {
-        const hay = `${p.canonicalId} ${p.workingName} ${p.artist.code} ${p.artist.name}`.toLowerCase();
+        const hay = `${p.canonicalId} ${p.workingName} ${p.genre} ${p.artist.code} ${p.artist.name}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [projects, query, artistFilter, ratingFilter]);
+  }, [projects, query, artistFilter, ratingFilter, genreFilter]);
 
   function replace(p: StudioProject) {
     setProjects((list) => list.map((x) => (x.id === p.id ? p : x)));
@@ -72,17 +80,17 @@ export default function StudioProjects({
     }
   }
 
-  async function rename(p: StudioProject, workingName: string): Promise<boolean> {
+  async function patch(p: StudioProject, fields: Record<string, unknown>): Promise<boolean> {
     setError('');
     const r = await api<{ project: StudioProject }>(`/api/studio/projects/${p.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ workingName }),
+      body: JSON.stringify(fields),
     });
     if (r.ok) {
       replace(r.data.project);
       return true;
     }
-    setError(r.body.error || 'Could not rename the project.');
+    setError(r.body.error || 'Could not save the change.');
     return false;
   }
 
@@ -137,6 +145,23 @@ export default function StudioProjects({
             <option value="unrated">Unrated</option>
           </select>
         </label>
+        {genres.length > 0 && (
+          <label className="flex items-center gap-2">
+            <span className="text-muted">Genre</span>
+            <select
+              value={genreFilter}
+              onChange={(e) => setGenreFilter(e.target.value)}
+              className="rounded-md border border-line bg-card px-2 py-1 outline-none focus:border-rust"
+            >
+              <option value="">All</option>
+              {genres.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {filtering && (
           <span className="flex items-baseline gap-2 text-xs text-muted">
             showing {shown.length} of {projects.length}
@@ -145,6 +170,7 @@ export default function StudioProjects({
                 setQuery('');
                 setArtistFilter('');
                 setRatingFilter('any');
+                setGenreFilter('');
               }}
               className="underline hover:text-ink"
             >
@@ -163,7 +189,7 @@ export default function StudioProjects({
       ) : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-card">
           {shown.map((p) => (
-            <ProjectRow key={p.id} project={p} onRate={(n) => rate(p, n)} onRename={(n) => rename(p, n)} />
+            <ProjectRow key={p.id} project={p} onRate={(n) => rate(p, n)} onPatch={(f) => patch(p, f)} />
           ))}
         </ul>
       )}
@@ -174,36 +200,14 @@ export default function StudioProjects({
 function ProjectRow({
   project: p,
   onRate,
-  onRename,
+  onPatch,
 }: {
   project: StudioProject;
   onRate: (rating: number) => void;
-  onRename: (name: string) => Promise<boolean>;
+  onPatch: (fields: Record<string, unknown>) => Promise<boolean>;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(p.workingName);
-  const [saving, setSaving] = useState(false);
-  // Escape cancels, and the blur that follows must not then save.
-  const cancelled = useRef(false);
-
-  async function commit() {
-    if (cancelled.current) {
-      cancelled.current = false;
-      return;
-    }
-    const next = draft.trim();
-    if (next === p.workingName) {
-      setEditing(false);
-      return;
-    }
-    setSaving(true);
-    const ok = await onRename(next);
-    setSaving(false);
-    if (ok) setEditing(false);
-  }
-
   return (
-    <li className="flex items-center gap-3 px-4 py-3">
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:flex-nowrap">
       <Stars rating={p.rating} onRate={onRate} />
 
       <span className="w-10 shrink-0 text-xs font-medium tracking-[0.04em] text-muted" title={p.artist.name}>
@@ -214,46 +218,119 @@ function ProjectRow({
         {p.canonicalId}
       </span>
 
-      <div className="min-w-0 flex-1">
-        {editing ? (
-          <input
-            autoFocus
-            value={draft}
-            disabled={saving}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') e.currentTarget.blur();
-              if (e.key === 'Escape') {
-                cancelled.current = true;
-                setDraft(p.workingName);
-                setEditing(false);
-              }
-            }}
-            placeholder="Working name"
-            className="w-full rounded-md border border-line bg-parchment px-2 py-1 text-sm outline-none focus:border-rust"
-          />
-        ) : (
-          <button
-            onClick={() => {
-              // Browsers disagree on whether removing a focused input fires blur,
-              // so the Escape flag may never have been consumed. Clear it here.
-              cancelled.current = false;
-              setDraft(p.workingName);
-              setEditing(true);
-            }}
-            title="Rename"
-            className="block w-full truncate text-left text-sm hover:text-rust"
-          >
-            {p.workingName || <span className="text-muted">untitled</span>}
-          </button>
-        )}
+      <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+        <InlineEdit
+          value={p.workingName}
+          placeholder="untitled"
+          label="Working name"
+          onSave={(v) => onPatch({ workingName: v })}
+        />
       </div>
 
-      <span className="hidden shrink-0 text-xs text-muted sm:inline">
+      <div className="w-32 shrink-0 text-muted">
+        <InlineEdit value={p.genre} placeholder="genre" label="Genre" onSave={(v) => onPatch({ genre: v })} />
+      </div>
+
+      <div className="w-16 shrink-0 text-right tabular-nums text-muted">
+        <InlineEdit
+          value={p.bpm === null ? '' : String(p.bpm)}
+          placeholder="bpm"
+          label="BPM"
+          inputMode="decimal"
+          align="right"
+          onSave={(v) => onPatch({ bpm: v })}
+        />
+      </div>
+
+      <span className="hidden w-24 shrink-0 text-right text-xs text-muted md:inline">
         {new Date(p.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
       </span>
     </li>
+  );
+}
+
+/**
+ * Click to edit; Enter or leaving the field saves, Escape cancels. The text
+ * sent is trimmed and the server does the validating, so an error comes back
+ * through the list's error line and the field stays open for a correction.
+ */
+function InlineEdit({
+  value,
+  placeholder,
+  label,
+  onSave,
+  inputMode,
+  align = 'left',
+}: {
+  value: string;
+  placeholder: string;
+  label: string;
+  onSave: (v: string) => Promise<boolean>;
+  inputMode?: 'text' | 'decimal';
+  align?: 'left' | 'right';
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+  // Escape cancels, and the blur that may follow must not then save.
+  const cancelled = useRef(false);
+
+  async function commit() {
+    if (cancelled.current) {
+      cancelled.current = false;
+      return;
+    }
+    const next = draft.trim();
+    if (next === value) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    const ok = await onSave(next);
+    setSaving(false);
+    if (ok) setEditing(false);
+  }
+
+  const alignClass = align === 'right' ? 'text-right' : 'text-left';
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        disabled={saving}
+        inputMode={inputMode}
+        aria-label={label}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Escape') {
+            cancelled.current = true;
+            setDraft(value);
+            setEditing(false);
+          }
+        }}
+        placeholder={placeholder}
+        className={`w-full rounded-md border border-line bg-parchment px-2 py-1 text-sm text-ink outline-none focus:border-rust ${alignClass}`}
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => {
+        // Browsers disagree on whether removing a focused input fires blur,
+        // so the Escape flag may never have been consumed. Clear it here.
+        cancelled.current = false;
+        setDraft(value);
+        setEditing(true);
+      }}
+      title={`Edit ${label.toLowerCase()}`}
+      className={`block w-full truncate text-sm hover:text-rust ${alignClass}`}
+    >
+      {value || <span className="text-muted/60">{placeholder}</span>}
+    </button>
   );
 }
 

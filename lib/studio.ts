@@ -46,13 +46,16 @@ export async function getMemberArtistId(email: string): Promise<number | null> {
 // ── Projects ─────────────────────────────────────────────────────────────────
 
 const PROJECT_COLUMNS =
-  'id, canonical_id, working_name, rating, created_by, created_at, artist:studio_artists(id, code, name)';
+  'id, canonical_id, working_name, rating, genre, bpm, created_by, created_at, artist:studio_artists(id, code, name)';
 
 type ProjectRow = {
   id: number;
   canonical_id: string;
   working_name: string;
   rating: number;
+  genre: string;
+  // numeric arrives from PostgREST as a number or a string depending on size.
+  bpm: number | string | null;
   created_by: string;
   created_at: string;
   // PostgREST embeds a to-one relation as an object; the untyped client's
@@ -70,6 +73,8 @@ function toProject(r: ProjectRow): StudioProject {
     canonicalId: r.canonical_id,
     workingName: r.working_name,
     rating: Number(r.rating),
+    genre: r.genre ?? '',
+    bpm: r.bpm === null || r.bpm === undefined ? null : Number(r.bpm),
     createdBy: r.created_by,
     createdAt: r.created_at,
   };
@@ -161,12 +166,12 @@ export type UpdateResult =
   | { ok: false; reason: 'not-found' | 'taken' | 'no-artist' };
 
 /**
- * Rename, rate, or move to another artist. The canonical ID is not a parameter:
+ * Rename, rate, set genre or BPM, or move to another artist. The canonical ID is not a parameter:
  * nothing in the app can change it, and the database trigger refuses it anyway.
  */
 export async function updateProject(
   id: number,
-  patch: { workingName?: string; rating?: number; artistId?: number },
+  patch: { workingName?: string; rating?: number; genre?: string; bpm?: number | null; artistId?: number },
   by: string,
 ): Promise<UpdateResult> {
   const current = await getProject(id);
@@ -175,6 +180,8 @@ export async function updateProject(
   const row: Record<string, unknown> = {};
   if (patch.workingName !== undefined && patch.workingName !== current.workingName) row.working_name = patch.workingName;
   if (patch.rating !== undefined && patch.rating !== current.rating) row.rating = patch.rating;
+  if (patch.genre !== undefined && patch.genre !== current.genre) row.genre = patch.genre;
+  if (patch.bpm !== undefined && patch.bpm !== current.bpm) row.bpm = patch.bpm;
   if (patch.artistId !== undefined && patch.artistId !== current.artist.id) row.artist_id = patch.artistId;
   if (Object.keys(row).length === 0) return { ok: true, project: current };
 

@@ -19,7 +19,7 @@ running instances break on their first write.
 |---|---|---|---|---|
 | Library (James's books) | ziopads | applied 2026-09-03 | applied 2026-09-04 — 1,740 of 1,905 filed | not needed |
 | Tamplin catalogue raisonné (valerietamplin.com) | Gaff Cutter's Org — project `vivarium: valerietamplin` | applied 2026-09-10 | applied 2026-09-10 | not needed |
-| Sirsinate studio (studio.sirsinate.com) | project `vivarium-sirsinate` — account not recorded | not recorded | not recorded | applied and seeded 2026-09-26; `2026-09-26b` rating pending |
+| Sirsinate studio (studio.sirsinate.com) | project `vivarium-sirsinate` — account not recorded | not recorded | not recorded | applied and seeded 2026-09-26; `2026-09-26b` rating and `2026-09-27` genre/bpm pending |
 
 The Sirsinate row's first two columns were never written down. Check whether
 that database has `items_visibility_chk` and an `items.classification` column
@@ -74,6 +74,9 @@ them.
 studio file that is not additive: it drops `starred` and adds `rating`, so run it
 immediately after the deploy that reads `rating`. The `b` is there because
 `2026-09-26-studio-rating.sql` would sort before `2026-09-26-studio.sql`.
+
+`2026-09-27-studio-genre-bpm.sql` is additive again (two columns with
+defaults) and can run at any time after those two.
 
 ## Before you run one
 

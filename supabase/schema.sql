@@ -106,6 +106,8 @@ create table if not exists studio_projects (
   canonical_id  text not null check (canonical_id <> '' and canonical_id = btrim(canonical_id)),
   working_name  text not null default '',
   rating        smallint not null default 0 check (rating between 0 and 5),  -- 0 = unrated
+  genre         text not null default '',                                    -- '' = not set
+  bpm           numeric(5,2) check (bpm is null or bpm between 20 and 400),  -- null = not set
   created_by    text not null,
   created_at    timestamptz not null default now(),
   unique (artist_id, canonical_id)

@@ -13,6 +13,10 @@ export type StudioProject = {
   workingName: string;
   /** 0 = unrated, 1–5 stars. One shared rating per project. */
   rating: number;
+  /** Free text; '' when not set. */
+  genre: string;
+  /** Beats per minute; null when not set. */
+  bpm: number | null;
   createdBy: string;
   createdAt: string;
 };
@@ -20,6 +24,28 @@ export type StudioProject = {
 export const CANONICAL_ID_MAX = 80;
 export const WORKING_NAME_MAX = 200;
 export const RATING_MAX = 5;
+
+export const GENRE_MAX = 60;
+export const BPM_MIN = 20;
+export const BPM_MAX = 400;
+
+export function parseGenre(raw: unknown): { value: string } | { error: string } {
+  if (raw === undefined || raw === null) return { value: '' };
+  if (typeof raw !== 'string') return { error: 'The genre must be text.' };
+  const value = raw.trim().replace(/\s+/g, ' ');
+  if (value.length > GENRE_MAX) return { error: `Keep the genre under ${GENRE_MAX} characters.` };
+  return { value };
+}
+
+/** Accepts a number or numeric text; '' or null clears it. Two decimal places, like the column. */
+export function parseBpm(raw: unknown): { value: number | null } | { error: string } {
+  if (raw === null || raw === undefined || (typeof raw === 'string' && raw.trim() === '')) return { value: null };
+  const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw.trim()) : NaN;
+  if (!Number.isFinite(n) || n < BPM_MIN || n > BPM_MAX) {
+    return { error: `BPM must be a number from ${BPM_MIN} to ${BPM_MAX}.` };
+  }
+  return { value: Math.round(n * 100) / 100 };
+}
 
 export function parseRating(raw: unknown): { value: number } | { error: string } {
   if (typeof raw !== 'number' || !Number.isInteger(raw) || raw < 0 || raw > RATING_MAX) {
