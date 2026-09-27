@@ -19,6 +19,21 @@ export type StudioProject = {
   bpm: number | null;
   createdBy: string;
   createdAt: string;
+  /**
+   * The newest reference track, for the list's player. Filled in by
+   * listProjects only; responses about a single project leave it undefined,
+   * and the list keeps whatever it already had.
+   */
+  latest?: LatestTrack | null;
+};
+
+export type LatestTrack = {
+  trackId: number;
+  version: number;
+  durationS: number | null;
+  uploadedAt: string;
+  /** How many versions the project has. */
+  count: number;
 };
 
 /** One reference MP3. The audio itself is only reachable through the app's signed links. */

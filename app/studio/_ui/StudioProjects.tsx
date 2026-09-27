@@ -1,21 +1,62 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { StudioArtist, StudioProject } from '@/lib/studioTypes';
 import { RATING_MAX, todayCanonicalId } from '@/lib/studioTypes';
 import { api, GenreSelect, InlineEdit, Stars } from './controls';
+import PlayerBar from './PlayerBar';
 
-// The studio's project list: create, rename, rate, set genre and BPM, filter.
+// The studio's project list and audition room: create, rename, rate, set genre
+// and BPM, sort, filter, and play each project's newest mix through one shared
+// player that steps through the list as it is currently sorted and filtered.
 //
 // State is local and updated from each API response, so a change shows at once
-// without re-fetching the whole list. The server sorts the same way on load.
+// without re-fetching the whole list.
 
-function sortProjects(list: StudioProject[]): StudioProject[] {
+const SORTS = {
+  rating: 'Rating',
+  newest: 'Newest session',
+  oldest: 'Oldest session',
+  recent: 'Latest upload',
+  name: 'Working name',
+  bpm: 'BPM',
+} as const;
+type SortKey = keyof typeof SORTS;
+
+function sortProjects(list: StudioProject[], by: SortKey): StudioProject[] {
+  const newest = (a: StudioProject, b: StudioProject) => b.createdAt.localeCompare(a.createdAt);
   return [...list].sort((a, b) => {
-    if (a.rating !== b.rating) return b.rating - a.rating;
-    return b.createdAt.localeCompare(a.createdAt);
+    switch (by) {
+      case 'rating':
+        return b.rating - a.rating || newest(a, b);
+      case 'newest':
+        return newest(a, b);
+      case 'oldest':
+        return -newest(a, b);
+      case 'recent': {
+        // Projects with audio first, most recent upload on top; then the rest by session date.
+        const ua = a.latest?.uploadedAt ?? '';
+        const ub = b.latest?.uploadedAt ?? '';
+        return ub.localeCompare(ua) || newest(a, b);
+      }
+      case 'name':
+        return (a.workingName || '~').localeCompare(b.workingName || '~', undefined, { sensitivity: 'base' });
+      case 'bpm':
+        // Slowest first; projects with no BPM last.
+        return (a.bpm ?? Infinity) - (b.bpm ?? Infinity) || newest(a, b);
+    }
   });
+}
+
+function audioSrc(p: StudioProject): string | null {
+  return p.latest ? `/api/studio/tracks/${p.latest.trackId}/audio` : null;
+}
+
+/** Keys typed into a field belong to the field, not the player. */
+function typingInField(e: KeyboardEvent): boolean {
+  const el = e.target as HTMLElement | null;
+  return !!el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 }
 
 export default function StudioProjects({
@@ -36,14 +77,18 @@ export default function StudioProjects({
   // 'any', 'unrated', or a minimum number of stars.
   const [ratingFilter, setRatingFilter] = useState<'any' | 'unrated' | number>('any');
   const [genreFilter, setGenreFilter] = useState('');
+  const [audioOnly, setAudioOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<SortKey>('rating');
   const [error, setError] = useState('');
 
-  const filtering = query.trim() !== '' || artistFilter !== '' || ratingFilter !== 'any' || genreFilter !== '';
+  const filtering =
+    query.trim() !== '' || artistFilter !== '' || ratingFilter !== 'any' || genreFilter !== '' || audioOnly;
 
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return sortProjects(projects).filter((p) => {
+    return sortProjects(projects, sortBy).filter((p) => {
+      if (audioOnly && !p.latest) return false;
       if (artistFilter !== '' && p.artist.id !== artistFilter) return false;
       if (ratingFilter === 'unrated' && p.rating !== 0) return false;
       if (typeof ratingFilter === 'number' && p.rating < ratingFilter) return false;
@@ -54,11 +99,78 @@ export default function StudioProjects({
       }
       return true;
     });
-  }, [projects, query, artistFilter, ratingFilter, genreFilter]);
+  }, [projects, query, artistFilter, ratingFilter, genreFilter, audioOnly, sortBy]);
 
+  // API responses about one project carry no `latest`; keep the one we have.
   function replace(p: StudioProject) {
-    setProjects((list) => list.map((x) => (x.id === p.id ? p : x)));
+    setProjects((list) => list.map((x) => (x.id === p.id ? { ...p, latest: p.latest ?? x.latest } : x)));
   }
+
+  // ── Player ────────────────────────────────────────────────────────────────
+  const audio = useRef<HTMLAudioElement>(null);
+  const [currentId, setCurrentId] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [time, setTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [autoAdvance, setAutoAdvance] = useState(true);
+  const current = projects.find((p) => p.id === currentId) ?? null;
+
+  const start = useCallback((p: StudioProject) => {
+    const el = audio.current;
+    const src = audioSrc(p);
+    if (!el || !src) return;
+    setCurrentId(p.id);
+    setTime(0);
+    setDuration(p.latest?.durationS ?? 0);
+    el.src = src;
+    el.play().catch(() => setPlaying(false));
+  }, []);
+
+  const toggle = useCallback(
+    (p?: StudioProject) => {
+      const el = audio.current;
+      if (!el) return;
+      if (p && p.id !== currentId) return start(p);
+      if (currentId === null) {
+        const first = shown.find((x) => x.latest);
+        if (first) start(first);
+        return;
+      }
+      if (el.paused) el.play().catch(() => setPlaying(false));
+      else el.pause();
+    },
+    [currentId, shown, start],
+  );
+
+  // Next and previous walk the list as it is shown, skipping projects with no audio.
+  const step = useCallback(
+    (dir: 1 | -1) => {
+      const playable = shown.filter((p) => p.latest);
+      if (!playable.length) return;
+      const i = playable.findIndex((p) => p.id === currentId);
+      const next = i < 0 ? playable[0] : playable[(i + dir + playable.length) % playable.length];
+      start(next);
+    },
+    [shown, currentId, start],
+  );
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (typingInField(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === ' ') {
+        // Leave Space to scroll the page when there is nothing to play.
+        if (currentId === null && !shown.some((p) => p.latest)) return;
+        e.preventDefault();
+        toggle();
+      } else if (e.key === 'n' || e.key === 'N') step(1);
+      else if (e.key === 'p' || e.key === 'P') step(-1);
+      else if (current && /^[0-5]$/.test(e.key)) rate(current, Number(e.key));
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // rate is recreated each render but only reads its arguments.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toggle, step, current, currentId, shown]);
 
   async function rate(p: StudioProject, rating: number) {
     setError('');
@@ -103,7 +215,16 @@ export default function StudioProjects({
   }
 
   return (
-    <div>
+    <div className={current ? 'pb-28' : undefined}>
+      <audio
+        ref={audio}
+        preload="none"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+        onLoadedMetadata={(e) => Number.isFinite(e.currentTarget.duration) && setDuration(e.currentTarget.duration)}
+        onEnded={() => (autoAdvance ? step(1) : setPlaying(false))}
+      />
       <NewProject
         artists={artists}
         defaultArtistId={defaultArtistId}
@@ -170,6 +291,24 @@ export default function StudioProjects({
             </select>
           </label>
         )}
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={audioOnly} onChange={(e) => setAudioOnly(e.target.checked)} />
+          <span className="text-muted">With audio</span>
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="text-muted">Sort</span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortKey)}
+            className="rounded-md border border-line bg-card px-2 py-1 outline-none focus:border-rust"
+          >
+            {(Object.keys(SORTS) as SortKey[]).map((k) => (
+              <option key={k} value={k}>
+                {SORTS[k]}
+              </option>
+            ))}
+          </select>
+        </label>
         {filtering && (
           <span className="flex items-baseline gap-2 text-xs text-muted">
             showing {shown.length} of {projects.length}
@@ -179,6 +318,7 @@ export default function StudioProjects({
                 setArtistFilter('');
                 setRatingFilter('any');
                 setGenreFilter('');
+                setAudioOnly(false);
               }}
               className="underline hover:text-ink"
             >
@@ -200,6 +340,9 @@ export default function StudioProjects({
             <ProjectRow
               key={p.id}
               project={p}
+              isCurrent={p.id === currentId}
+              playing={p.id === currentId && playing}
+              onPlay={() => toggle(p)}
               genres={genres}
               onAddGenre={addGenre}
               onRate={(n) => rate(p, n)}
@@ -208,25 +351,73 @@ export default function StudioProjects({
           ))}
         </ul>
       )}
+
+      {current && (
+        <PlayerBar
+          project={current}
+          playing={playing}
+          time={time}
+          duration={duration}
+          autoAdvance={autoAdvance}
+          onToggle={() => toggle()}
+          onPrev={() => step(-1)}
+          onNext={() => step(1)}
+          onSeek={(t) => {
+            if (audio.current) audio.current.currentTime = t;
+            setTime(t);
+          }}
+          onRate={(n) => rate(current, n)}
+          onAutoAdvance={setAutoAdvance}
+        />
+      )}
+
+      {shown.some((p) => p.latest) && (
+        <p className="mt-3 text-xs text-muted">
+          Keys: Space play/pause · N next · P previous · 1–5 rate the playing project · 0 clears
+        </p>
+      )}
     </div>
   );
 }
 
 function ProjectRow({
   project: p,
+  isCurrent,
+  playing,
+  onPlay,
   genres,
   onAddGenre,
   onRate,
   onPatch,
 }: {
   project: StudioProject;
+  isCurrent: boolean;
+  playing: boolean;
+  onPlay: () => void;
   genres: string[];
   onAddGenre: (name: string) => Promise<string | null>;
   onRate: (rating: number) => void;
   onPatch: (fields: Record<string, unknown>) => Promise<boolean>;
 }) {
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:flex-nowrap">
+    <li
+      className={`flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:flex-nowrap ${isCurrent ? 'bg-ink/5' : ''}`}
+    >
+      {p.latest ? (
+        <button
+          onClick={onPlay}
+          aria-label={playing ? 'Pause' : `Play v${p.latest.version}`}
+          title={`${playing ? 'Pause' : 'Play'} v${p.latest.version}${p.latest.count > 1 ? ` (of ${p.latest.count})` : ''}`}
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs ${
+            isCurrent ? 'border-ink bg-ink text-parchment' : 'border-line hover:border-ink'
+          }`}
+        >
+          {playing ? '❚❚' : '▶'}
+        </button>
+      ) : (
+        <span className="h-7 w-7 shrink-0" title="No reference track yet" />
+      )}
+
       <Stars rating={p.rating} onRate={onRate} />
 
       <span className="w-10 shrink-0 text-xs font-medium tracking-[0.04em] text-muted" title={p.artist.name}>

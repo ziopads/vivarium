@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from './supabase';
 import { getViewer } from './auth';
 import { isStudioMember } from './studioAccess';
-import type { StudioArtist, StudioName, StudioNote, StudioProject, StudioTrack } from './studioTypes';
+import type { LatestTrack, StudioArtist, StudioName, StudioNote, StudioProject, StudioTrack } from './studioTypes';
 
 // Server-only studio data layer: the studio_* tables (supabase/schema.sql).
 //
@@ -80,15 +80,50 @@ function toProject(r: ProjectRow): StudioProject {
   };
 }
 
-/** Highest rated first, then newest. */
+/** Highest rated first, then newest, each with its newest reference track. */
 export async function listProjects(): Promise<StudioProject[]> {
-  const { data, error } = await db()
-    .from('studio_projects')
-    .select(PROJECT_COLUMNS)
-    .order('rating', { ascending: false })
-    .order('created_at', { ascending: false });
+  const [{ data, error }, latest] = await Promise.all([
+    db()
+      .from('studio_projects')
+      .select(PROJECT_COLUMNS)
+      .order('rating', { ascending: false })
+      .order('created_at', { ascending: false }),
+    latestTracks(),
+  ]);
   if (error) throw error;
-  return ((data ?? []) as unknown as ProjectRow[]).map(toProject);
+  return ((data ?? []) as unknown as ProjectRow[]).map((r) => {
+    const p = toProject(r);
+    return { ...p, latest: latest.get(p.id) ?? null };
+  });
+}
+
+/**
+ * projectId → its newest track and version count. One read of the small
+ * columns of every track; at studio scale (hundreds, not millions) that is
+ * cheaper and simpler than a per-project query or a view.
+ */
+async function latestTracks(): Promise<Map<number, LatestTrack>> {
+  const { data, error } = await db()
+    .from('studio_tracks')
+    .select('id, project_id, version, duration_s, uploaded_at')
+    .order('version', { ascending: false });
+  if (error) throw error;
+  const map = new Map<number, LatestTrack>();
+  for (const r of data ?? []) {
+    const pid = Number(r.project_id);
+    const seen = map.get(pid);
+    if (seen) seen.count += 1;
+    else {
+      map.set(pid, {
+        trackId: Number(r.id),
+        version: r.version as number,
+        durationS: (r.duration_s as number | null) ?? null,
+        uploadedAt: r.uploaded_at as string,
+        count: 1,
+      });
+    }
+  }
+  return map;
 }
 
 export async function getProject(id: number): Promise<StudioProject | null> {
