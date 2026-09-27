@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getProject, getStudioViewer, updateProject } from '@/lib/studio';
-import { parseWorkingName } from '@/lib/studioTypes';
+import { parseRating, parseWorkingName } from '@/lib/studioTypes';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return NextResponse.json({ project });
 }
 
-// PATCH /api/studio/projects/:id   { workingName?, starred?, artistId? }
+// PATCH /api/studio/projects/:id   { workingName?, rating?, artistId? }
 // Any studio member. The canonical ID is permanent, so a body that tries to set
 // it is refused outright rather than having that key quietly ignored.
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -43,15 +43,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     );
   }
 
-  const patch: { workingName?: string; starred?: boolean; artistId?: number } = {};
+  const patch: { workingName?: string; rating?: number; artistId?: number } = {};
   if ('workingName' in body) {
     const name = parseWorkingName(body.workingName);
     if ('error' in name) return NextResponse.json({ error: name.error }, { status: 400 });
     patch.workingName = name.value;
   }
-  if ('starred' in body) {
-    if (typeof body.starred !== 'boolean') return NextResponse.json({ error: 'starred must be true or false' }, { status: 400 });
-    patch.starred = body.starred;
+  if ('rating' in body) {
+    const rating = parseRating(body.rating);
+    if ('error' in rating) return NextResponse.json({ error: rating.error }, { status: 400 });
+    patch.rating = rating.value;
   }
   if ('artistId' in body) {
     const artistId = Number(body.artistId);

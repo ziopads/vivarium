@@ -11,13 +11,22 @@ export type StudioProject = {
   /** The Ableton folder name. Permanent: the database refuses to change it. */
   canonicalId: string;
   workingName: string;
-  starred: boolean;
+  /** 0 = unrated, 1–5 stars. One shared rating per project. */
+  rating: number;
   createdBy: string;
   createdAt: string;
 };
 
 export const CANONICAL_ID_MAX = 80;
 export const WORKING_NAME_MAX = 200;
+export const RATING_MAX = 5;
+
+export function parseRating(raw: unknown): { value: number } | { error: string } {
+  if (typeof raw !== 'number' || !Number.isInteger(raw) || raw < 0 || raw > RATING_MAX) {
+    return { error: `The rating must be a whole number from 0 to ${RATING_MAX}.` };
+  }
+  return { value: raw };
+}
 
 /**
  * A canonical ID is whatever the project's folder is called, usually a date

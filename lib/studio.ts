@@ -46,13 +46,13 @@ export async function getMemberArtistId(email: string): Promise<number | null> {
 // ── Projects ─────────────────────────────────────────────────────────────────
 
 const PROJECT_COLUMNS =
-  'id, canonical_id, working_name, starred, created_by, created_at, artist:studio_artists(id, code, name)';
+  'id, canonical_id, working_name, rating, created_by, created_at, artist:studio_artists(id, code, name)';
 
 type ProjectRow = {
   id: number;
   canonical_id: string;
   working_name: string;
-  starred: boolean;
+  rating: number;
   created_by: string;
   created_at: string;
   // PostgREST embeds a to-one relation as an object; the untyped client's
@@ -69,18 +69,18 @@ function toProject(r: ProjectRow): StudioProject {
       : { id: 0, code: '?', name: 'Unknown artist' },
     canonicalId: r.canonical_id,
     workingName: r.working_name,
-    starred: r.starred,
+    rating: Number(r.rating),
     createdBy: r.created_by,
     createdAt: r.created_at,
   };
 }
 
-/** Starred first, then newest. */
+/** Highest rated first, then newest. */
 export async function listProjects(): Promise<StudioProject[]> {
   const { data, error } = await db()
     .from('studio_projects')
     .select(PROJECT_COLUMNS)
-    .order('starred', { ascending: false })
+    .order('rating', { ascending: false })
     .order('created_at', { ascending: false });
   if (error) throw error;
   return ((data ?? []) as unknown as ProjectRow[]).map(toProject);
@@ -161,12 +161,12 @@ export type UpdateResult =
   | { ok: false; reason: 'not-found' | 'taken' | 'no-artist' };
 
 /**
- * Rename, star, or move to another artist. The canonical ID is not a parameter:
+ * Rename, rate, or move to another artist. The canonical ID is not a parameter:
  * nothing in the app can change it, and the database trigger refuses it anyway.
  */
 export async function updateProject(
   id: number,
-  patch: { workingName?: string; starred?: boolean; artistId?: number },
+  patch: { workingName?: string; rating?: number; artistId?: number },
   by: string,
 ): Promise<UpdateResult> {
   const current = await getProject(id);
@@ -174,7 +174,7 @@ export async function updateProject(
 
   const row: Record<string, unknown> = {};
   if (patch.workingName !== undefined && patch.workingName !== current.workingName) row.working_name = patch.workingName;
-  if (patch.starred !== undefined) row.starred = patch.starred;
+  if (patch.rating !== undefined && patch.rating !== current.rating) row.rating = patch.rating;
   if (patch.artistId !== undefined && patch.artistId !== current.artist.id) row.artist_id = patch.artistId;
   if (Object.keys(row).length === 0) return { ok: true, project: current };
 

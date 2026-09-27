@@ -19,7 +19,7 @@ running instances break on their first write.
 |---|---|---|---|---|
 | Library (James's books) | ziopads | applied 2026-09-03 | applied 2026-09-04 — 1,740 of 1,905 filed | not needed |
 | Tamplin catalogue raisonné (valerietamplin.com) | Gaff Cutter's Org — project `vivarium: valerietamplin` | applied 2026-09-10 | applied 2026-09-10 | not needed |
-| Sirsinate studio (studio.sirsinate.com) | project `vivarium-sirsinate` — account not recorded | not recorded | not recorded | pending, then `seeds/sirsinate-studio.sql` |
+| Sirsinate studio (studio.sirsinate.com) | project `vivarium-sirsinate` — account not recorded | not recorded | not recorded | applied and seeded 2026-09-26; `2026-09-26b` rating pending |
 
 The Sirsinate row's first two columns were never written down. Check whether
 that database has `items_visibility_chk` and an `items.classification` column
@@ -69,6 +69,11 @@ The roster (artists, and which sign-in email appears as which artist) is
 instance data, so it lives in `supabase/seeds/sirsinate-studio.sql` and runs
 once, after the migration. Seeds are not migrations: other instances never run
 them.
+
+`2026-09-26b-studio-rating.sql` follows it, also Sirsinate only. It is the one
+studio file that is not additive: it drops `starred` and adds `rating`, so run it
+immediately after the deploy that reads `rating`. The `b` is there because
+`2026-09-26-studio-rating.sql` would sort before `2026-09-26-studio.sql`.
 
 ## Before you run one
 

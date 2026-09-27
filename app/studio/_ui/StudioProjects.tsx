@@ -2,16 +2,16 @@
 
 import { useMemo, useRef, useState } from 'react';
 import type { StudioArtist, StudioProject } from '@/lib/studioTypes';
-import { todayCanonicalId } from '@/lib/studioTypes';
+import { RATING_MAX, todayCanonicalId } from '@/lib/studioTypes';
 
-// The studio's project list: create, rename, star, filter.
+// The studio's project list: create, rename, rate, filter.
 //
 // State is local and updated from each API response, so a change shows at once
 // without re-fetching the whole list. The server sorts the same way on load.
 
 function sortProjects(list: StudioProject[]): StudioProject[] {
   return [...list].sort((a, b) => {
-    if (a.starred !== b.starred) return a.starred ? -1 : 1;
+    if (a.rating !== b.rating) return b.rating - a.rating;
     return b.createdAt.localeCompare(a.createdAt);
   });
 }
@@ -32,33 +32,43 @@ export default function StudioProjects({
   defaultArtistId: number | null;
 }) {
   const [projects, setProjects] = useState(initialProjects);
+  const [query, setQuery] = useState('');
   const [artistFilter, setArtistFilter] = useState<number | ''>('');
-  const [starredOnly, setStarredOnly] = useState(false);
+  // 'any', 'unrated', or a minimum number of stars.
+  const [ratingFilter, setRatingFilter] = useState<'any' | 'unrated' | number>('any');
   const [error, setError] = useState('');
 
-  const shown = useMemo(
-    () =>
-      sortProjects(projects).filter(
-        (p) => (artistFilter === '' || p.artist.id === artistFilter) && (!starredOnly || p.starred),
-      ),
-    [projects, artistFilter, starredOnly],
-  );
+  const filtering = query.trim() !== '' || artistFilter !== '' || ratingFilter !== 'any';
+
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return sortProjects(projects).filter((p) => {
+      if (artistFilter !== '' && p.artist.id !== artistFilter) return false;
+      if (ratingFilter === 'unrated' && p.rating !== 0) return false;
+      if (typeof ratingFilter === 'number' && p.rating < ratingFilter) return false;
+      if (q) {
+        const hay = `${p.canonicalId} ${p.workingName} ${p.artist.code} ${p.artist.name}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [projects, query, artistFilter, ratingFilter]);
 
   function replace(p: StudioProject) {
     setProjects((list) => list.map((x) => (x.id === p.id ? p : x)));
   }
 
-  async function toggleStar(p: StudioProject) {
+  async function rate(p: StudioProject, rating: number) {
     setError('');
-    replace({ ...p, starred: !p.starred }); // optimistic
+    replace({ ...p, rating }); // optimistic
     const r = await api<{ project: StudioProject }>(`/api/studio/projects/${p.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ starred: !p.starred }),
+      body: JSON.stringify({ rating }),
     });
     if (r.ok) replace(r.data.project);
     else {
       replace(p);
-      setError(r.body.error || 'Could not update the star.');
+      setError(r.body.error || 'Could not save the rating.');
     }
   }
 
@@ -85,6 +95,13 @@ export default function StudioProjects({
       />
 
       <div className="mb-3 mt-6 flex flex-wrap items-center gap-4 text-sm">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search ID, name or artist…"
+          className="w-full rounded-md border border-line bg-card px-3 py-1.5 outline-none focus:border-rust sm:w-64"
+        />
         <label className="flex items-center gap-2">
           <span className="text-muted">Artist</span>
           <select
@@ -101,12 +118,38 @@ export default function StudioProjects({
           </select>
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={starredOnly} onChange={(e) => setStarredOnly(e.target.checked)} />
-          <span className="text-muted">Starred only</span>
+          <span className="text-muted">Rating</span>
+          <select
+            value={String(ratingFilter)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setRatingFilter(v === 'any' || v === 'unrated' ? v : Number(v));
+            }}
+            className="rounded-md border border-line bg-card px-2 py-1 outline-none focus:border-rust"
+          >
+            <option value="any">Any</option>
+            {Array.from({ length: RATING_MAX }, (_, i) => RATING_MAX - i).map((n) => (
+              <option key={n} value={n}>
+                {'★'.repeat(n)}
+                {n < RATING_MAX ? ' and up' : ''}
+              </option>
+            ))}
+            <option value="unrated">Unrated</option>
+          </select>
         </label>
-        {shown.length !== projects.length && (
-          <span className="text-xs text-muted">
+        {filtering && (
+          <span className="flex items-baseline gap-2 text-xs text-muted">
             showing {shown.length} of {projects.length}
+            <button
+              onClick={() => {
+                setQuery('');
+                setArtistFilter('');
+                setRatingFilter('any');
+              }}
+              className="underline hover:text-ink"
+            >
+              clear
+            </button>
           </span>
         )}
       </div>
@@ -120,7 +163,7 @@ export default function StudioProjects({
       ) : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-card">
           {shown.map((p) => (
-            <ProjectRow key={p.id} project={p} onStar={() => toggleStar(p)} onRename={(n) => rename(p, n)} />
+            <ProjectRow key={p.id} project={p} onRate={(n) => rate(p, n)} onRename={(n) => rename(p, n)} />
           ))}
         </ul>
       )}
@@ -130,11 +173,11 @@ export default function StudioProjects({
 
 function ProjectRow({
   project: p,
-  onStar,
+  onRate,
   onRename,
 }: {
   project: StudioProject;
-  onStar: () => void;
+  onRate: (rating: number) => void;
   onRename: (name: string) => Promise<boolean>;
 }) {
   const [editing, setEditing] = useState(false);
@@ -161,15 +204,7 @@ function ProjectRow({
 
   return (
     <li className="flex items-center gap-3 px-4 py-3">
-      <button
-        onClick={onStar}
-        title={p.starred ? 'Unstar' : 'Star as a priority'}
-        aria-label={p.starred ? 'Unstar' : 'Star'}
-        aria-pressed={p.starred}
-        className={`w-5 shrink-0 text-lg leading-none ${p.starred ? 'text-ink' : 'text-muted/50 hover:text-ink'}`}
-      >
-        {p.starred ? '★' : '☆'}
-      </button>
+      <Stars rating={p.rating} onRate={onRate} />
 
       <span className="w-10 shrink-0 text-xs font-medium tracking-[0.04em] text-muted" title={p.artist.name}>
         {p.artist.code}
@@ -350,5 +385,32 @@ function NewProject({
         </button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Five clickable stars. Hover previews; clicking the current rating clears it
+ * back to unrated, so there is no separate "remove rating" control.
+ */
+function Stars({ rating, onRate }: { rating: number; onRate: (n: number) => void }) {
+  const [hover, setHover] = useState(0);
+  const shown = hover || rating;
+  return (
+    <span className="flex shrink-0" onMouseLeave={() => setHover(0)} role="group" aria-label={`Rating: ${rating} of ${RATING_MAX}`}>
+      {Array.from({ length: RATING_MAX }, (_, i) => i + 1).map((n) => (
+        <button
+          key={n}
+          onMouseEnter={() => setHover(n)}
+          onFocus={() => setHover(n)}
+          onBlur={() => setHover(0)}
+          onClick={() => onRate(n === rating ? 0 : n)}
+          aria-label={n === rating ? `Clear rating (${n})` : `Rate ${n} of ${RATING_MAX}`}
+          title={n === rating ? 'Clear rating' : `${n} of ${RATING_MAX}`}
+          className={`px-px text-base leading-none ${n <= shown ? 'text-ink' : 'text-muted/40'}`}
+        >
+          {n <= shown ? '★' : '☆'}
+        </button>
+      ))}
+    </span>
   );
 }

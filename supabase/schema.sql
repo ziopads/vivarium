@@ -105,7 +105,7 @@ create table if not exists studio_projects (
   artist_id     bigint not null references studio_artists(id),
   canonical_id  text not null check (canonical_id <> '' and canonical_id = btrim(canonical_id)),
   working_name  text not null default '',
-  starred       boolean not null default false,
+  rating        smallint not null default 0 check (rating between 0 and 5),  -- 0 = unrated
   created_by    text not null,
   created_at    timestamptz not null default now(),
   unique (artist_id, canonical_id)

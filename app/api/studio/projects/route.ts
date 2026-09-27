@@ -11,7 +11,7 @@ import { parseCanonicalId, parseWorkingName } from '@/lib/studioTypes';
 export const dynamic = 'force-dynamic';
 
 // GET /api/studio/projects
-// Every project (starred first, then newest) and the roster.
+// Every project (highest rated first, then newest) and the roster.
 export async function GET() {
   const viewer = await getStudioViewer();
   if (!viewer) return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
