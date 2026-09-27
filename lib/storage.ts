@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Server-only. Cloudflare R2 (S3-compatible) upload. Reusable file layer —
 // the same client serves the FOIA project's page images later.
@@ -32,4 +33,12 @@ export async function uploadToR2(key: string, body: Uint8Array | Buffer, content
 
 export async function deleteFromR2(key: string): Promise<void> {
   await getClient().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+}
+
+/**
+ * A short-lived signed GET for an object in the instance's image bucket. Used
+ * by /api/img when NEXT_PUBLIC_PRIVATE_IMAGES=1 and the bucket has no public URL.
+ */
+export async function signImageGet(key: string, expiresIn: number): Promise<string> {
+  return getSignedUrl(getClient(), new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn });
 }

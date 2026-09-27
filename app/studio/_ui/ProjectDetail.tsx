@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { StudioArtist, StudioName, StudioNote, StudioProject, StudioTrack } from '@/lib/studioTypes';
+import Link from 'next/link';
+import type { StudioArtist, StudioName, StudioNote, StudioProject, StudioRelease, StudioTrack } from '@/lib/studioTypes';
 import { formatBytes, formatDuration } from '@/lib/studioTypes';
 import { api, GenreSelect, InlineEdit, Stars } from './controls';
 import Notes from './Notes';
@@ -69,6 +70,7 @@ export default function ProjectDetail({
   artists,
   initialGenres,
   initialNotes,
+  releases,
   viewerEmail,
   canDelete,
   uploadsEnabled,
@@ -79,6 +81,7 @@ export default function ProjectDetail({
   artists: StudioArtist[];
   initialGenres: string[];
   initialNotes: StudioNote[];
+  releases: StudioRelease[];
   viewerEmail: string;
   canDelete: boolean;
   uploadsEnabled: boolean;
@@ -255,6 +258,20 @@ export default function ProjectDetail({
           <dd>{formatDate(project.createdAt)}</dd>
         </div>
       </dl>
+
+      {releases.length > 0 && (
+        <p className="mt-3 text-sm">
+          <span className="text-muted">On </span>
+          {releases.map((r, i) => (
+            <span key={r.id}>
+              {i > 0 && ', '}
+              <Link href={`/studio/releases/${r.id}`} className="underline hover:text-rust">
+                {r.title}
+              </Link>
+            </span>
+          ))}
+        </p>
+      )}
 
       {pastNames.length > 0 && (
         <details className="mt-3 text-sm">

@@ -144,3 +144,10 @@ const instances: Record<string, InstanceConfig> = { library, tamplin, sirsinate 
 
 export const instance: InstanceConfig =
   instances[process.env.NEXT_PUBLIC_INSTANCE ?? 'library'] ?? library;
+
+/**
+ * Where the catalogue's front page lives. Studio instances open on their
+ * sessions at /, so their catalogue (the gear) moves to /gear. In-app links
+ * back to "the catalogue" use this rather than a bare "/".
+ */
+export const catalogHome = instance.studio ? '/gear' : '/';

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { catalogHome } from '@/lib/instance';
 import NewItemButton from '@/app/ui/NewItemButton';
 import { getVocab } from '@/lib/vocab';
 
@@ -31,7 +32,7 @@ export default async function Admin() {
   const vocab = await getVocab();
   return (
     <div>
-      <Link href="/" className="text-sm text-rust hover:underline">← home</Link>
+      <Link href={catalogHome} className="text-sm text-rust hover:underline">← home</Link>
       <h1 className="mt-3 font-serif text-2xl">Admin</h1>
       <p className="mt-1 text-sm text-muted">Behind-the-scenes tools — not part of the public catalogue.</p>
       <div className="mt-4">

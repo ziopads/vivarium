@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { catalogHome } from '@/lib/instance';
 import { getVisibleItems } from '@/lib/data';
 import { getVocab, flatShelves } from '@/lib/vocab';
 import Catalog from '@/app/ui/Catalog';
@@ -123,7 +124,7 @@ export default async function Browse({
 
   return (
     <div>
-      <Link href="/" className="text-sm text-rust hover:underline">
+      <Link href={catalogHome} className="text-sm text-rust hover:underline">
         ← sections
       </Link>
 

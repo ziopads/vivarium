@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { catalogHome } from '@/lib/instance';
 import { redirect } from 'next/navigation';
 import { getViewer } from '@/lib/auth';
 import { getWishlist } from '@/lib/wishlist';
@@ -17,7 +18,7 @@ export default async function WishlistPage() {
     <div>
       <div className="mb-4 flex items-baseline justify-between">
         <h1 className="font-serif text-2xl sm:text-3xl">Wishlist</h1>
-        <Link href="/" className="text-sm text-rust hover:underline">← catalog</Link>
+        <Link href={catalogHome} className="text-sm text-rust hover:underline">← catalog</Link>
       </div>
       <WishlistView wishes={wishes} viewerEmail={viewer.email} />
     </div>

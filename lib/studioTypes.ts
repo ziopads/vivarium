@@ -25,7 +25,38 @@ export type StudioProject = {
    * and the list keeps whatever it already had.
    */
   latest?: LatestTrack | null;
+  /** Releases this session is on. Filled in by listProjects only, like `latest`. */
+  releaseIds?: number[];
 };
+
+export const RELEASE_KINDS = ['album', 'ep', 'single', 'compilation', 'other'] as const;
+export type ReleaseKind = (typeof RELEASE_KINDS)[number];
+export const RELEASE_KIND_LABEL: Record<ReleaseKind, string> = {
+  album: 'Album',
+  ep: 'EP',
+  single: 'Single',
+  compilation: 'Compilation',
+  other: 'Other',
+};
+
+export type StudioRelease = {
+  id: number;
+  title: string;
+  kind: ReleaseKind;
+  /** null: various artists, or not decided yet. */
+  artist: StudioArtist | null;
+  year: number | null;
+  notes: string;
+  createdAt: string;
+  trackCount: number;
+};
+
+export function parseReleaseTitle(raw: unknown): { value: string } | { error: string } {
+  if (typeof raw !== 'string' || !raw.trim()) return { error: 'Give the release a title.' };
+  const value = raw.trim().replace(/\s+/g, ' ');
+  if (value.length > 200) return { error: 'Keep the title under 200 characters.' };
+  return { value };
+}
 
 export type LatestTrack = {
   trackId: number;

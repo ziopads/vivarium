@@ -19,7 +19,7 @@ running instances break on their first write.
 |---|---|---|---|---|
 | Library (James's books) | ziopads | applied 2026-09-03 | applied 2026-09-04 — 1,740 of 1,905 filed | not needed |
 | Tamplin catalogue raisonné (valerietamplin.com) | Gaff Cutter's Org — project `vivarium: valerietamplin` | applied 2026-09-10 | applied 2026-09-10 | not needed |
-| Sirsinate studio (studio.sirsinate.com) | project `vivarium-sirsinate` — account not recorded | not recorded | not recorded | applied and seeded 2026-09-26; `2026-09-26b` rating and `2026-09-27` genre/bpm applied 2026-09-27; `2026-09-27b` genres pending |
+| Sirsinate studio (studio.sirsinate.com) | project `vivarium-sirsinate` — account not recorded | not recorded | not recorded | applied and seeded 2026-09-26; `2026-09-26b` rating and `2026-09-27` genre/bpm applied 2026-09-27; `2026-09-27b` genres applied; `2026-09-27c` releases pending |
 
 The Sirsinate row's first two columns were never written down. Check whether
 that database has `items_visibility_chk` and an `items.classification` column
@@ -80,6 +80,9 @@ defaults) and can run at any time after those two.
 
 `2026-09-27b-studio-genres.sql` turns `genre` into a reference to a new
 `studio_genres` list. Run it BEFORE the deploy that uses it (its header says why).
+
+`2026-09-27c-studio-releases.sql` adds releases (albums, EPs …) and their
+running orders. Additive; any time after the others.
 
 ## Before you run one
 

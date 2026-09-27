@@ -2,7 +2,16 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getViewer } from '@/lib/auth';
 import { instance } from '@/lib/instance';
-import { getProject, getStudioViewer, listArtists, listGenres, listNames, listNotes, listTracks } from '@/lib/studio';
+import {
+  getProject,
+  getStudioViewer,
+  listArtists,
+  listGenres,
+  listNames,
+  listNotes,
+  listTracks,
+  releasesForProject,
+} from '@/lib/studio';
 import { audioConfigured } from '@/lib/studioAudio';
 import ProjectDetail from '../_ui/ProjectDetail';
 
@@ -25,19 +34,20 @@ export default async function StudioProjectPage({ params }: { params: { id: stri
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [tracks, names, artists, genres, notes, { isAdmin }] = await Promise.all([
+  const [tracks, names, artists, genres, notes, releases, { isAdmin }] = await Promise.all([
     listTracks(id),
     listNames(id),
     listArtists(),
     listGenres(),
     listNotes(id),
+    releasesForProject(id),
     getViewer(),
   ]);
 
   return (
     <div>
       <Link href="/studio" className="text-sm text-muted hover:text-rust">
-        ← Studio
+        ← Sessions
       </Link>
       <ProjectDetail
         initialProject={project}
@@ -46,6 +56,7 @@ export default async function StudioProjectPage({ params }: { params: { id: stri
         artists={artists}
         initialGenres={genres}
         initialNotes={notes}
+        releases={releases}
         viewerEmail={viewer.email}
         canDelete={isAdmin}
         uploadsEnabled={audioConfigured()}

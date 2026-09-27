@@ -31,7 +31,8 @@ export default function PlayerBar({
   onPrev: () => void;
   onNext: () => void;
   onSeek: (t: number) => void;
-  onRate: (n: number) => void;
+  /** Omit to hide the stars (the release page plays, it doesn't rate). */
+  onRate?: (n: number) => void;
   onAutoAdvance: (on: boolean) => void;
 }) {
   const btn = 'flex h-8 w-8 items-center justify-center rounded-full border border-line hover:border-ink';
@@ -81,9 +82,11 @@ export default function PlayerBar({
         </div>
 
         <div className="flex items-center gap-4 text-xs text-muted">
-          <span title="Rate the playing project (1–5, 0 clears)">
-            <Stars rating={project.rating} onRate={onRate} />
-          </span>
+          {onRate && (
+            <span title="Rate the playing session (1–5, 0 clears)">
+              <Stars rating={project.rating} onRate={onRate} />
+            </span>
+          )}
           <label className="flex items-center gap-1" title="Play the next project when this one ends">
             <input type="checkbox" checked={autoAdvance} onChange={(e) => onAutoAdvance(e.target.checked)} />
             continue

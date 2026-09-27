@@ -49,8 +49,20 @@ function prefix(base?: string): string {
   return localDir() ?? strip(base || DEFAULT_BASE);
 }
 
+/**
+ * NEXT_PUBLIC_PRIVATE_IMAGES=1: the instance's image bucket is private, and
+ * every image goes through /api/img/<key>, which checks the viewer against the
+ * record's visibility and redirects to a short-lived signed link. For
+ * instances holding serial numbers, receipts and similar (Sirsinate). Build-
+ * time inlined like every NEXT_PUBLIC_ var.
+ */
+function privateImages(): boolean {
+  return process.env.NEXT_PUBLIC_PRIVATE_IMAGES === '1';
+}
+
 function withHost(key: string): string {
   if (localDir()) return `/${key}`;
+  if (privateImages()) return `/api/img/${key}`;
   const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
   return base ? `${base}/${key}` : `/${key}`;
 }
@@ -104,6 +116,7 @@ export function coverImage(item: {
 
 // For an arbitrary R2 key (e.g. wishlist/42.webp).
 export function r2Url(key: string): string {
+  if (privateImages()) return `/api/img/${key}`;
   const base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
   return base ? `${base}/${key}` : `/${key}`;
 }

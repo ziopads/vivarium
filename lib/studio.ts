@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from './supabase';
 import { getViewer } from './auth';
 import { isStudioMember } from './studioAccess';
-import type { LatestTrack, StudioArtist, StudioName, StudioNote, StudioProject, StudioTrack } from './studioTypes';
+import type { LatestTrack, ReleaseKind, StudioArtist, StudioName, StudioNote, StudioProject, StudioRelease, StudioTrack } from './studioTypes';
 
 // Server-only studio data layer: the studio_* tables (supabase/schema.sql).
 //
@@ -82,18 +82,19 @@ function toProject(r: ProjectRow): StudioProject {
 
 /** Highest rated first, then newest, each with its newest reference track. */
 export async function listProjects(): Promise<StudioProject[]> {
-  const [{ data, error }, latest] = await Promise.all([
+  const [{ data, error }, latest, releases] = await Promise.all([
     db()
       .from('studio_projects')
       .select(PROJECT_COLUMNS)
       .order('rating', { ascending: false })
       .order('created_at', { ascending: false }),
     latestTracks(),
+    releaseMembership(),
   ]);
   if (error) throw error;
   return ((data ?? []) as unknown as ProjectRow[]).map((r) => {
     const p = toProject(r);
-    return { ...p, latest: latest.get(p.id) ?? null };
+    return { ...p, latest: latest.get(p.id) ?? null, releaseIds: releases.get(p.id) ?? [] };
   });
 }
 
@@ -194,6 +195,34 @@ export async function createProject(input: {
   const project = toProject(data as unknown as ProjectRow);
   await recordName(project.id, project.workingName, input.by);
   return { ok: true, project };
+}
+
+/**
+ * The same change to many sessions at once: genre, BPM, rating, artist. One
+ * UPDATE, so it applies to all of them or none — moving several sessions to an
+ * artist that already has one of their canonical IDs fails as a whole.
+ * Working names are deliberately not bulk-editable: each rename belongs in its
+ * session's name history.
+ */
+export async function bulkUpdateProjects(
+  ids: number[],
+  patch: { genre?: string; bpm?: number | null; rating?: number; artistId?: number },
+): Promise<{ ok: true; projects: StudioProject[] } | { ok: false; reason: 'taken' | 'no-artist' | 'no-genre' }> {
+  const row: Record<string, unknown> = {};
+  if (patch.genre !== undefined) row.genre = patch.genre || null;
+  if (patch.bpm !== undefined) row.bpm = patch.bpm;
+  if (patch.rating !== undefined) row.rating = patch.rating;
+  if (patch.artistId !== undefined) row.artist_id = patch.artistId;
+  if (!ids.length || !Object.keys(row).length) return { ok: true, projects: [] };
+  const { data, error } = await db().from('studio_projects').update(row).in('id', ids).select(PROJECT_COLUMNS);
+  if (error) {
+    if (error.code === UNIQUE_VIOLATION) return { ok: false, reason: 'taken' };
+    if (error.code === FOREIGN_KEY_VIOLATION) {
+      return { ok: false, reason: /genre/.test(error.message) ? 'no-genre' : 'no-artist' };
+    }
+    throw error;
+  }
+  return { ok: true, projects: ((data ?? []) as unknown as ProjectRow[]).map(toProject) };
 }
 
 export type UpdateResult =
@@ -494,4 +523,172 @@ export async function updateNote(
 export async function deleteNote(id: number): Promise<void> {
   const { error } = await db().from('studio_notes').delete().eq('id', id);
   if (error) throw error;
+}
+
+// ── Releases ─────────────────────────────────────────────────────────────────
+
+/** projectId → the ids of the releases it is on. */
+async function releaseMembership(): Promise<Map<number, number[]>> {
+  const { data, error } = await db().from('studio_release_tracks').select('release_id, project_id');
+  if (error) throw error;
+  const map = new Map<number, number[]>();
+  for (const r of data ?? []) {
+    const pid = Number(r.project_id);
+    map.set(pid, [...(map.get(pid) ?? []), Number(r.release_id)]);
+  }
+  return map;
+}
+
+const RELEASE_COLUMNS = 'id, title, kind, year, notes, created_at, artist:studio_artists(id, code, name)';
+
+type ReleaseRow = {
+  id: number;
+  title: string;
+  kind: ReleaseKind;
+  year: number | null;
+  notes: string;
+  created_at: string;
+  artist: StudioArtist | StudioArtist[] | null;
+};
+
+function toRelease(r: ReleaseRow, count: number): StudioRelease {
+  const a = Array.isArray(r.artist) ? r.artist[0] : r.artist;
+  return {
+    id: Number(r.id),
+    title: r.title,
+    kind: r.kind,
+    artist: a ? { id: Number(a.id), code: a.code, name: a.name } : null,
+    year: r.year,
+    notes: r.notes ?? '',
+    createdAt: r.created_at,
+    trackCount: count,
+  };
+}
+
+async function releaseCounts(): Promise<Map<number, number>> {
+  const { data, error } = await db().from('studio_release_tracks').select('release_id');
+  if (error) throw error;
+  const map = new Map<number, number>();
+  for (const r of data ?? []) map.set(Number(r.release_id), (map.get(Number(r.release_id)) ?? 0) + 1);
+  return map;
+}
+
+/** Newest year first, then title. Releases with no year last. */
+export async function listReleases(): Promise<StudioRelease[]> {
+  const [{ data, error }, counts] = await Promise.all([
+    db().from('studio_releases').select(RELEASE_COLUMNS).order('year', { ascending: false, nullsFirst: false }).order('title'),
+    releaseCounts(),
+  ]);
+  if (error) throw error;
+  return ((data ?? []) as unknown as ReleaseRow[]).map((r) => toRelease(r, counts.get(Number(r.id)) ?? 0));
+}
+
+export async function getRelease(id: number): Promise<StudioRelease | null> {
+  const [{ data, error }, counts] = await Promise.all([
+    db().from('studio_releases').select(RELEASE_COLUMNS).eq('id', id).maybeSingle(),
+    releaseCounts(),
+  ]);
+  if (error) throw error;
+  return data ? toRelease(data as unknown as ReleaseRow, counts.get(id) ?? 0) : null;
+}
+
+export async function createRelease(input: {
+  title: string;
+  kind: ReleaseKind;
+  artistId: number | null;
+  year: number | null;
+  by: string;
+}): Promise<StudioRelease> {
+  const { data, error } = await db()
+    .from('studio_releases')
+    .insert({ title: input.title, kind: input.kind, artist_id: input.artistId, year: input.year, created_by: input.by })
+    .select(RELEASE_COLUMNS)
+    .single();
+  if (error) throw error;
+  return toRelease(data as unknown as ReleaseRow, 0);
+}
+
+export async function updateRelease(
+  id: number,
+  patch: { title?: string; kind?: ReleaseKind; artistId?: number | null; year?: number | null; notes?: string },
+): Promise<StudioRelease | null> {
+  const row: Record<string, unknown> = {};
+  if (patch.title !== undefined) row.title = patch.title;
+  if (patch.kind !== undefined) row.kind = patch.kind;
+  if (patch.artistId !== undefined) row.artist_id = patch.artistId;
+  if (patch.year !== undefined) row.year = patch.year;
+  if (patch.notes !== undefined) row.notes = patch.notes;
+  if (Object.keys(row).length) {
+    const { error } = await db().from('studio_releases').update(row).eq('id', id);
+    if (error) throw error;
+  }
+  return getRelease(id);
+}
+
+/** Removes the release and its running order. The sessions and their audio are untouched. */
+export async function deleteRelease(id: number): Promise<void> {
+  const { error } = await db().from('studio_releases').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/** The release's sessions in running order, each with its newest track. */
+export async function releaseProjects(releaseId: number): Promise<StudioProject[]> {
+  const [{ data, error }, all] = await Promise.all([
+    db().from('studio_release_tracks').select('project_id, position').eq('release_id', releaseId).order('position'),
+    listProjects(),
+  ]);
+  if (error) throw error;
+  const byId = new Map(all.map((p) => [p.id, p]));
+  return (data ?? []).map((r) => byId.get(Number(r.project_id))).filter((p): p is StudioProject => !!p);
+}
+
+/** Append sessions to the end of the running order; ones already on the release are skipped. */
+export async function addToRelease(releaseId: number, projectIds: number[]): Promise<void> {
+  const { data, error } = await db().from('studio_release_tracks').select('project_id, position').eq('release_id', releaseId);
+  if (error) throw error;
+  const present = new Set((data ?? []).map((r) => Number(r.project_id)));
+  let pos = Math.max(0, ...(data ?? []).map((r) => Number(r.position)));
+  const rows = Array.from(new Set(projectIds))
+    .filter((id) => !present.has(id))
+    .map((id) => ({ release_id: releaseId, project_id: id, position: ++pos }));
+  if (!rows.length) return;
+  const { error: insertError } = await db().from('studio_release_tracks').insert(rows);
+  if (insertError) throw insertError;
+}
+
+/** Set the running order: positions 1..n in the order given. Ids not on the release are ignored. */
+export async function reorderRelease(releaseId: number, projectIds: number[]): Promise<void> {
+  const rows = projectIds.map((id, i) => ({ release_id: releaseId, project_id: id, position: i + 1 }));
+  if (!rows.length) return;
+  // Upsert on the (release_id, project_id) key rewrites positions in one request;
+  // a pair that is not already on the release would be added, so filter first.
+  const { data, error } = await db().from('studio_release_tracks').select('project_id').eq('release_id', releaseId);
+  if (error) throw error;
+  const present = new Set((data ?? []).map((r) => Number(r.project_id)));
+  const { error: upsertError } = await db()
+    .from('studio_release_tracks')
+    .upsert(rows.filter((r) => present.has(r.project_id)), { onConflict: 'release_id,project_id' });
+  if (upsertError) throw upsertError;
+}
+
+/** Take one session off a release, then close the gap in the running order. */
+export async function removeFromRelease(releaseId: number, projectId: number): Promise<void> {
+  const { error } = await db().from('studio_release_tracks').delete().eq('release_id', releaseId).eq('project_id', projectId);
+  if (error) throw error;
+  const { data, error: readError } = await db()
+    .from('studio_release_tracks')
+    .select('project_id')
+    .eq('release_id', releaseId)
+    .order('position');
+  if (readError) throw readError;
+  await reorderRelease(releaseId, (data ?? []).map((r) => Number(r.project_id)));
+}
+
+/** The releases one session is on, newest first. */
+export async function releasesForProject(projectId: number): Promise<StudioRelease[]> {
+  const { data, error } = await db().from('studio_release_tracks').select('release_id').eq('project_id', projectId);
+  if (error) throw error;
+  const ids = new Set((data ?? []).map((r) => Number(r.release_id)));
+  if (!ids.size) return [];
+  return (await listReleases()).filter((r) => ids.has(r.id));
 }
