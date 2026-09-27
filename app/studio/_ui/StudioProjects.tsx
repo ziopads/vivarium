@@ -212,7 +212,7 @@ function ProjectRow({
 
       <Link
         href={`/studio/${p.id}`}
-        className="w-28 shrink-0 font-mono text-sm underline decoration-line underline-offset-4 hover:decoration-ink"
+        className="w-28 shrink-0 font-mono text-sm underline decoration-muted/50 underline-offset-4 hover:decoration-ink"
         title="Open the project — canonical ID matches the Ableton folder; permanent"
       >
         {p.canonicalId}
@@ -245,6 +245,14 @@ function ProjectRow({
       <span className="hidden w-24 shrink-0 text-right text-xs text-muted md:inline">
         {new Date(p.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
       </span>
+
+      <Link
+        href={`/studio/${p.id}`}
+        className="shrink-0 rounded-md border border-line px-2 py-0.5 text-xs text-muted hover:border-ink hover:text-ink"
+        title="Open the project page: tracks, upload, download"
+      >
+        Open →
+      </Link>
     </li>
   );
 }
