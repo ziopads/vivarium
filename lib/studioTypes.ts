@@ -21,6 +21,45 @@ export type StudioProject = {
   createdAt: string;
 };
 
+/** One reference MP3. The audio itself is only reachable through the app's signed links. */
+export type StudioTrack = {
+  id: number;
+  projectId: number;
+  version: number;
+  originalFilename: string;
+  bytes: number | null;
+  durationS: number | null;
+  uploadedBy: string;
+  /** The uploader's artist code (VIG, KJI …), or null when they have no studio_members row. */
+  uploadedByCode: string | null;
+  uploadedAt: string;
+};
+
+/** One entry in a project's working-name history. */
+export type StudioName = { name: string; setBy: string; setByCode: string | null; setAt: string };
+
+/**
+ * The filename a download saves as: "VIG 2026 0926 — Querencia — v3.mp3".
+ * Characters that are illegal in macOS or Windows filenames become spaces.
+ */
+export function downloadName(project: Pick<StudioProject, 'artist' | 'canonicalId' | 'workingName'>, version: number): string {
+  const parts = [`${project.artist.code} ${project.canonicalId}`];
+  if (project.workingName) parts.push(project.workingName);
+  parts.push(`v${version}`);
+  return `${parts.join(' — ')}.mp3`.replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ');
+}
+
+export function formatDuration(seconds: number | null): string {
+  if (seconds === null || !Number.isFinite(seconds)) return '';
+  const s = Math.round(seconds);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+export function formatBytes(bytes: number | null): string {
+  if (bytes === null) return '';
+  return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 export const CANONICAL_ID_MAX = 80;
 export const WORKING_NAME_MAX = 200;
 export const RATING_MAX = 5;

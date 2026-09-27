@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from './supabase';
 import { getViewer } from './auth';
 import { isStudioMember } from './studioAccess';
-import type { StudioArtist, StudioProject } from './studioTypes';
+import type { StudioArtist, StudioName, StudioProject, StudioTrack } from './studioTypes';
 
 // Server-only studio data layer: the studio_* tables (supabase/schema.sql).
 //
@@ -196,4 +196,138 @@ export async function updateProject(
   const project = toProject(data as unknown as ProjectRow);
   if ('working_name' in row) await recordName(id, project.workingName, by);
   return { ok: true, project };
+}
+
+// ── Members' codes ───────────────────────────────────────────────────────────
+
+/** email → artist code, for showing "VIG" where a row stores an email. */
+export async function memberCodes(): Promise<Map<string, string>> {
+  const { data, error } = await db().from('studio_members').select('email, artist:studio_artists(code)');
+  if (error) throw error;
+  const map = new Map<string, string>();
+  for (const r of (data ?? []) as unknown as { email: string; artist: { code: string } | { code: string }[] | null }[]) {
+    const a = Array.isArray(r.artist) ? r.artist[0] : r.artist;
+    if (a) map.set(r.email, a.code);
+  }
+  return map;
+}
+
+// ── Name history ─────────────────────────────────────────────────────────────
+
+export async function listNames(projectId: number): Promise<StudioName[]> {
+  const [{ data, error }, codes] = await Promise.all([
+    db()
+      .from('studio_project_names')
+      .select('name, set_by, set_at')
+      .eq('project_id', projectId)
+      .order('set_at', { ascending: false })
+      .order('id', { ascending: false }),
+    memberCodes(),
+  ]);
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    name: r.name as string,
+    setBy: r.set_by as string,
+    setByCode: codes.get(r.set_by as string) ?? null,
+    setAt: r.set_at as string,
+  }));
+}
+
+// ── Reference tracks ─────────────────────────────────────────────────────────
+
+const TRACK_COLUMNS = 'id, project_id, version, r2_key, original_filename, bytes, duration_s, uploaded_by, uploaded_at';
+
+type TrackRow = {
+  id: number;
+  project_id: number;
+  version: number;
+  r2_key: string;
+  original_filename: string;
+  bytes: number | string | null;
+  duration_s: number | null;
+  uploaded_by: string;
+  uploaded_at: string;
+};
+
+function toTrack(r: TrackRow, codes: Map<string, string>): StudioTrack {
+  return {
+    id: Number(r.id),
+    projectId: Number(r.project_id),
+    version: r.version,
+    originalFilename: r.original_filename,
+    bytes: r.bytes === null ? null : Number(r.bytes),
+    durationS: r.duration_s,
+    uploadedBy: r.uploaded_by,
+    uploadedByCode: codes.get(r.uploaded_by) ?? null,
+    uploadedAt: r.uploaded_at,
+  };
+}
+
+/** Newest version first. */
+export async function listTracks(projectId: number): Promise<StudioTrack[]> {
+  const [{ data, error }, codes] = await Promise.all([
+    db().from('studio_tracks').select(TRACK_COLUMNS).eq('project_id', projectId).order('version', { ascending: false }),
+    memberCodes(),
+  ]);
+  if (error) throw error;
+  return ((data ?? []) as TrackRow[]).map((r) => toTrack(r, codes));
+}
+
+/** A track with its storage key, for the routes that sign links. Never sent to the browser. */
+export async function getTrackWithKey(id: number): Promise<{ track: StudioTrack; key: string } | null> {
+  const { data, error } = await db().from('studio_tracks').select(TRACK_COLUMNS).eq('id', id).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const row = data as TrackRow;
+  return { track: toTrack(row, await memberCodes()), key: row.r2_key };
+}
+
+/**
+ * Record an uploaded MP3 as the project's next version. Two uploads finishing
+ * at once can both read the same highest version; the unique (project_id,
+ * version) constraint rejects the second, which then retries with a fresh read.
+ */
+export async function addTrack(input: {
+  projectId: number;
+  key: string;
+  originalFilename: string;
+  bytes: number;
+  durationS: number | null;
+  by: string;
+}): Promise<StudioTrack> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data: top, error: readError } = await db()
+      .from('studio_tracks')
+      .select('version')
+      .eq('project_id', input.projectId)
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (readError) throw readError;
+    const version = (top ? Number(top.version) : 0) + 1;
+
+    const { data, error } = await db()
+      .from('studio_tracks')
+      .insert({
+        project_id: input.projectId,
+        version,
+        r2_key: input.key,
+        original_filename: input.originalFilename,
+        bytes: input.bytes,
+        duration_s: input.durationS,
+        uploaded_by: input.by,
+      })
+      .select(TRACK_COLUMNS)
+      .single();
+    if (!error) return toTrack(data as TrackRow, await memberCodes());
+    // 23505 on (project_id, version): someone else took this number. On
+    // r2_key it means this upload was already recorded, which is a bug.
+    if (error.code !== UNIQUE_VIOLATION || /r2_key/.test(error.message)) throw error;
+  }
+  throw new Error('Could not assign a version number after several attempts.');
+}
+
+export async function deleteTrackRow(id: number): Promise<void> {
+  const { error } = await db().from('studio_tracks').delete().eq('id', id);
+  if (error) throw error;
 }

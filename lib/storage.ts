@@ -12,7 +12,8 @@ export function r2Configured(): boolean {
 }
 
 let client: S3Client | null = null;
-function getClient(): S3Client {
+/** The shared R2 client. Also used by lib/studioAudio.ts for the private audio bucket. */
+export function getClient(): S3Client {
   if (!client) {
     client = new S3Client({
       region: 'auto',
