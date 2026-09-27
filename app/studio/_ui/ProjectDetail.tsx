@@ -1,12 +1,13 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { StudioArtist, StudioName, StudioProject, StudioTrack } from '@/lib/studioTypes';
+import type { StudioArtist, StudioName, StudioNote, StudioProject, StudioTrack } from '@/lib/studioTypes';
 import { formatBytes, formatDuration } from '@/lib/studioTypes';
 import { api, GenreSelect, InlineEdit, Stars } from './controls';
+import Notes from './Notes';
 
 // One project: its details, its reference MP3s (newest first, older versions
-// smaller below), and the upload that adds the next version.
+// smaller below), the upload that adds the next version, and its notes.
 //
 // Upload is two requests around a direct browser → R2 PUT (see
 // lib/studioAudio.ts for why the file never passes through the app):
@@ -67,6 +68,8 @@ export default function ProjectDetail({
   names,
   artists,
   initialGenres,
+  initialNotes,
+  viewerEmail,
   canDelete,
   uploadsEnabled,
 }: {
@@ -75,6 +78,8 @@ export default function ProjectDetail({
   names: StudioName[];
   artists: StudioArtist[];
   initialGenres: string[];
+  initialNotes: StudioNote[];
+  viewerEmail: string;
   canDelete: boolean;
   uploadsEnabled: boolean;
 }) {
@@ -82,6 +87,14 @@ export default function ProjectDetail({
   const [tracks, setTracks] = useState(initialTracks);
   const [nameHistory, setNameHistory] = useState(names);
   const [genres, setGenres] = useState(initialGenres);
+  const [notes, setNotes] = useState(initialNotes);
+  const [noteFocus, setNoteFocus] = useState<{ trackId: number; n: number } | null>(null);
+
+  const noteCounts = new Map<number, number>();
+  for (const n of notes) if (n.trackId !== null) noteCounts.set(n.trackId, (noteCounts.get(n.trackId) ?? 0) + 1);
+  function openNotes(t: StudioTrack) {
+    setNoteFocus((f) => ({ trackId: t.id, n: (f?.n ?? 0) + 1 }));
+  }
   const [error, setError] = useState('');
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -275,7 +288,13 @@ export default function ProjectDetail({
               src={audioUrl(latest)}
               className="mt-3 w-full"
             />
-            <TrackActions track={latest} canDelete={canDelete} onDelete={() => remove(latest)} />
+            <TrackActions
+              track={latest}
+              canDelete={canDelete}
+              noteCount={noteCounts.get(latest.id) ?? 0}
+              onNotes={() => openNotes(latest)}
+              onDelete={() => remove(latest)}
+            />
           </div>
         ) : (
           <p className="rounded-lg border border-line bg-card px-4 py-6 text-sm text-muted">No reference tracks yet.</p>
@@ -287,7 +306,13 @@ export default function ProjectDetail({
               <li key={t.id} className="rounded-md border border-line/70 px-3 py-2 opacity-80 hover:opacity-100">
                 <TrackMeta track={t} />
                 <audio ref={register} onPlay={onPlay} controls preload="none" src={audioUrl(t)} className="mt-2 h-8 w-full" />
-                <TrackActions track={t} canDelete={canDelete} onDelete={() => remove(t)} />
+                <TrackActions
+                  track={t}
+                  canDelete={canDelete}
+                  noteCount={noteCounts.get(t.id) ?? 0}
+                  onNotes={() => openNotes(t)}
+                  onDelete={() => remove(t)}
+                />
               </li>
             ))}
           </ul>
@@ -352,6 +377,16 @@ export default function ProjectDetail({
           </ul>
         )}
       </section>
+
+      <Notes
+        projectId={project.id}
+        tracks={tracks}
+        notes={notes}
+        setNotes={setNotes}
+        viewerEmail={viewerEmail}
+        isAdmin={canDelete}
+        focus={noteFocus}
+      />
     </div>
   );
 }
@@ -374,7 +409,19 @@ function TrackMeta({ track: t, emphasis = false }: { track: StudioTrack; emphasi
   );
 }
 
-function TrackActions({ track, canDelete, onDelete }: { track: StudioTrack; canDelete: boolean; onDelete: () => void }) {
+function TrackActions({
+  track,
+  canDelete,
+  noteCount,
+  onNotes,
+  onDelete,
+}: {
+  track: StudioTrack;
+  canDelete: boolean;
+  noteCount: number;
+  onNotes: () => void;
+  onDelete: () => void;
+}) {
   // Two clicks to delete: the first arms the button, the second deletes.
   const [armed, setArmed] = useState(false);
   return (
@@ -382,6 +429,9 @@ function TrackActions({ track, canDelete, onDelete }: { track: StudioTrack; canD
       <a href={audioUrl(track, true)} className="text-muted underline hover:text-ink">
         Download
       </a>
+      <button onClick={onNotes} className="text-muted underline hover:text-ink">
+        {noteCount ? `Notes (${noteCount})` : 'Add a note'}
+      </button>
       {canDelete &&
         (armed ? (
           <span className="flex gap-2">

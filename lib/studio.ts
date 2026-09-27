@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from './supabase';
 import { getViewer } from './auth';
 import { isStudioMember } from './studioAccess';
-import type { StudioArtist, StudioName, StudioProject, StudioTrack } from './studioTypes';
+import type { StudioArtist, StudioName, StudioNote, StudioProject, StudioTrack } from './studioTypes';
 
 // Server-only studio data layer: the studio_* tables (supabase/schema.sql).
 //
@@ -360,4 +360,103 @@ export async function addGenre(name: string): Promise<string> {
     throw error;
   }
   return name;
+}
+
+// ── Notes ────────────────────────────────────────────────────────────────────
+
+const NOTE_COLUMNS = 'id, project_id, track_id, author, body, created_at, edited_at, track:studio_tracks(version)';
+
+type NoteRow = {
+  id: number;
+  project_id: number;
+  track_id: number | null;
+  author: string;
+  body: string;
+  created_at: string;
+  edited_at: string | null;
+  track: { version: number } | { version: number }[] | null;
+};
+
+function toNote(r: NoteRow, codes: Map<string, string>): StudioNote {
+  const t = Array.isArray(r.track) ? r.track[0] : r.track;
+  return {
+    id: Number(r.id),
+    projectId: Number(r.project_id),
+    trackId: r.track_id === null ? null : Number(r.track_id),
+    trackVersion: t ? t.version : null,
+    author: r.author,
+    authorCode: codes.get(r.author) ?? null,
+    body: r.body,
+    createdAt: r.created_at,
+    editedAt: r.edited_at,
+  };
+}
+
+/** Newest first. Filtering by person, date and version happens on the page. */
+export async function listNotes(projectId: number): Promise<StudioNote[]> {
+  const [{ data, error }, codes] = await Promise.all([
+    db().from('studio_notes').select(NOTE_COLUMNS).eq('project_id', projectId).order('created_at', { ascending: false }),
+    memberCodes(),
+  ]);
+  if (error) throw error;
+  return ((data ?? []) as unknown as NoteRow[]).map((r) => toNote(r, codes));
+}
+
+export async function getNote(id: number): Promise<StudioNote | null> {
+  const { data, error } = await db().from('studio_notes').select(NOTE_COLUMNS).eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? toNote(data as unknown as NoteRow, await memberCodes()) : null;
+}
+
+/** Does this track belong to this project? Guards a note from pointing across projects. */
+async function trackInProject(trackId: number, projectId: number): Promise<boolean> {
+  const { data, error } = await db().from('studio_tracks').select('project_id').eq('id', trackId).maybeSingle();
+  if (error) throw error;
+  return !!data && Number(data.project_id) === projectId;
+}
+
+export type NoteResult = { ok: true; note: StudioNote } | { ok: false; reason: 'bad-track' | 'not-found' };
+
+export async function addNote(input: {
+  projectId: number;
+  trackId: number | null;
+  body: string;
+  by: string;
+}): Promise<NoteResult> {
+  if (input.trackId !== null && !(await trackInProject(input.trackId, input.projectId))) {
+    return { ok: false, reason: 'bad-track' };
+  }
+  const { data, error } = await db()
+    .from('studio_notes')
+    .insert({ project_id: input.projectId, track_id: input.trackId, author: input.by, body: input.body })
+    .select(NOTE_COLUMNS)
+    .single();
+  if (error) throw error;
+  return { ok: true, note: toNote(data as unknown as NoteRow, await memberCodes()) };
+}
+
+/** Edit the text or the version a note is about. The route decides who may. */
+export async function updateNote(
+  id: number,
+  patch: { body?: string; trackId?: number | null },
+): Promise<NoteResult> {
+  const current = await getNote(id);
+  if (!current) return { ok: false, reason: 'not-found' };
+  if (patch.trackId !== undefined && patch.trackId !== null && !(await trackInProject(patch.trackId, current.projectId))) {
+    return { ok: false, reason: 'bad-track' };
+  }
+  const row: Record<string, unknown> = {};
+  if (patch.body !== undefined && patch.body !== current.body) row.body = patch.body;
+  if (patch.trackId !== undefined && patch.trackId !== current.trackId) row.track_id = patch.trackId;
+  if (Object.keys(row).length === 0) return { ok: true, note: current };
+  // Only a change to the text counts as an edit worth showing.
+  if ('body' in row) row.edited_at = new Date().toISOString();
+  const { data, error } = await db().from('studio_notes').update(row).eq('id', id).select(NOTE_COLUMNS).single();
+  if (error) throw error;
+  return { ok: true, note: toNote(data as unknown as NoteRow, await memberCodes()) };
+}
+
+export async function deleteNote(id: number): Promise<void> {
+  const { error } = await db().from('studio_notes').delete().eq('id', id);
+  if (error) throw error;
 }

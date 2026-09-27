@@ -60,6 +60,31 @@ export function formatBytes(bytes: number | null): string {
   return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
+/** A note on a project, optionally about one reference track. */
+export type StudioNote = {
+  id: number;
+  projectId: number;
+  /** null: about the project as a whole, or about a version since deleted. */
+  trackId: number | null;
+  /** The version number of trackId, for display ("v3"). */
+  trackVersion: number | null;
+  author: string;
+  /** The author's artist code (VIG, KJI …), or null when they have no studio_members row. */
+  authorCode: string | null;
+  body: string;
+  createdAt: string;
+  editedAt: string | null;
+};
+
+export const NOTE_MAX = 10_000;
+
+export function parseNoteBody(raw: unknown): { value: string } | { error: string } {
+  if (typeof raw !== 'string' || !raw.trim()) return { error: 'Write something first.' };
+  const value = raw.replace(/\s+$/, '').replace(/^\s*\n/, '');
+  if (value.length > NOTE_MAX) return { error: `Keep a note under ${NOTE_MAX.toLocaleString()} characters.` };
+  return { value };
+}
+
 export const CANONICAL_ID_MAX = 80;
 export const WORKING_NAME_MAX = 200;
 export const RATING_MAX = 5;
