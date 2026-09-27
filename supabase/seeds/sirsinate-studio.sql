@@ -1,5 +1,6 @@
--- Sirsinate studio roster — run once on the Sirsinate database, after
--- supabase/migrations/2026-09-26-studio.sql.
+-- Sirsinate studio roster and starting genres — run on the Sirsinate database
+-- after the studio migrations (the genre insert needs studio_genres, from
+-- 2026-09-27b-studio-genres.sql or a fresh schema.sql).
 --
 -- Seed data, not schema: it belongs to one instance, so it lives here rather
 -- than in migrations/ (which every instance runs) or schema.sql (which every
@@ -30,6 +31,10 @@ from (values
 ) as v(email, code)
 join studio_artists a on a.code = v.code
 on conflict (email) do nothing;
+
+insert into studio_genres (name)
+select v.name from (values ('ambient'), ('downtempo'), ('experimental'), ('techno'), ('electronic')) as v(name)
+where not exists (select 1 from studio_genres g where lower(g.name) = lower(v.name));
 
 commit;
 

@@ -74,6 +74,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!result.ok) {
     if (result.reason === 'not-found') return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     if (result.reason === 'no-artist') return NextResponse.json({ error: 'That artist is not on the roster.' }, { status: 400 });
+    if (result.reason === 'no-genre') return NextResponse.json({ error: 'That genre is not on the list. Add it first.' }, { status: 400 });
     return NextResponse.json(
       { error: 'That artist already has a project with this canonical ID.' },
       { status: 409 },

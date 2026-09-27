@@ -53,7 +53,7 @@ type ProjectRow = {
   canonical_id: string;
   working_name: string;
   rating: number;
-  genre: string;
+  genre: string | null;
   // numeric arrives from PostgREST as a number or a string depending on size.
   bpm: number | string | null;
   created_by: string;
@@ -163,7 +163,7 @@ export async function createProject(input: {
 
 export type UpdateResult =
   | { ok: true; project: StudioProject }
-  | { ok: false; reason: 'not-found' | 'taken' | 'no-artist' };
+  | { ok: false; reason: 'not-found' | 'taken' | 'no-artist' | 'no-genre' };
 
 /**
  * Rename, rate, set genre or BPM, or move to another artist. The canonical ID is not a parameter:
@@ -180,7 +180,8 @@ export async function updateProject(
   const row: Record<string, unknown> = {};
   if (patch.workingName !== undefined && patch.workingName !== current.workingName) row.working_name = patch.workingName;
   if (patch.rating !== undefined && patch.rating !== current.rating) row.rating = patch.rating;
-  if (patch.genre !== undefined && patch.genre !== current.genre) row.genre = patch.genre;
+  // '' in the app is NULL in the table: the genre foreign key accepts NULL, not ''.
+  if (patch.genre !== undefined && patch.genre !== current.genre) row.genre = patch.genre || null;
   if (patch.bpm !== undefined && patch.bpm !== current.bpm) row.bpm = patch.bpm;
   if (patch.artistId !== undefined && patch.artistId !== current.artist.id) row.artist_id = patch.artistId;
   if (Object.keys(row).length === 0) return { ok: true, project: current };
@@ -189,7 +190,9 @@ export async function updateProject(
   if (error) {
     // Moving to an artist that already has this canonical ID.
     if (error.code === UNIQUE_VIOLATION) return { ok: false, reason: 'taken' };
-    if (error.code === FOREIGN_KEY_VIOLATION) return { ok: false, reason: 'no-artist' };
+    if (error.code === FOREIGN_KEY_VIOLATION) {
+      return { ok: false, reason: /genre/.test(error.message) ? 'no-genre' : 'no-artist' };
+    }
     throw error;
   }
 
@@ -330,4 +333,31 @@ export async function addTrack(input: {
 export async function deleteTrackRow(id: number): Promise<void> {
   const { error } = await db().from('studio_tracks').delete().eq('id', id);
   if (error) throw error;
+}
+
+// ── Genres ───────────────────────────────────────────────────────────────────
+
+export async function listGenres(): Promise<string[]> {
+  const { data, error } = await db().from('studio_genres').select('name').order('name');
+  if (error) throw error;
+  return (data ?? []).map((r) => r.name as string);
+}
+
+/**
+ * Add a genre, or return the existing spelling when one matches regardless of
+ * case, so "Techno" typed twice never becomes two entries.
+ */
+export async function addGenre(name: string): Promise<string> {
+  const existing = (await listGenres()).find((g) => g.toLowerCase() === name.toLowerCase());
+  if (existing) return existing;
+  const { error } = await db().from('studio_genres').insert({ name });
+  if (error) {
+    // Someone added it between the read and the insert.
+    if (error.code === UNIQUE_VIOLATION) {
+      const again = (await listGenres()).find((g) => g.toLowerCase() === name.toLowerCase());
+      if (again) return again;
+    }
+    throw error;
+  }
+  return name;
 }

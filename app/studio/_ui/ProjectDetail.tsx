@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import type { StudioArtist, StudioName, StudioProject, StudioTrack } from '@/lib/studioTypes';
 import { formatBytes, formatDuration } from '@/lib/studioTypes';
-import { api, InlineEdit, Stars } from './controls';
+import { api, GenreSelect, InlineEdit, Stars } from './controls';
 
 // One project: its details, its reference MP3s (newest first, older versions
 // smaller below), and the upload that adds the next version.
@@ -66,6 +66,7 @@ export default function ProjectDetail({
   initialTracks,
   names,
   artists,
+  initialGenres,
   canDelete,
   uploadsEnabled,
 }: {
@@ -73,12 +74,14 @@ export default function ProjectDetail({
   initialTracks: StudioTrack[];
   names: StudioName[];
   artists: StudioArtist[];
+  initialGenres: string[];
   canDelete: boolean;
   uploadsEnabled: boolean;
 }) {
   const [project, setProject] = useState(initialProject);
   const [tracks, setTracks] = useState(initialTracks);
   const [nameHistory, setNameHistory] = useState(names);
+  const [genres, setGenres] = useState(initialGenres);
   const [error, setError] = useState('');
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -103,6 +106,20 @@ export default function ProjectDetail({
     }
     setProject(r.data.project);
     return true;
+  }
+
+  async function addGenre(name: string): Promise<string | null> {
+    setError('');
+    const r = await api<{ name: string; genres: string[] }>('/api/studio/genres', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+    if (!r.ok) {
+      setError(r.body.error || 'Could not add the genre.');
+      return null;
+    }
+    setGenres(r.data.genres);
+    return r.data.name;
   }
 
   // One track plays at a time: starting one pauses the rest.
@@ -199,8 +216,13 @@ export default function ProjectDetail({
       <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-sm">
         <div className="flex items-baseline gap-2">
           <dt className="text-muted">Genre</dt>
-          <dd className="w-40">
-            <InlineEdit value={project.genre} placeholder="—" label="Genre" onSave={(v) => patch({ genre: v })} />
+          <dd>
+            <GenreSelect
+              value={project.genre}
+              genres={genres}
+              onAddGenre={addGenre}
+              onChange={(g) => patch({ genre: g })}
+            />
           </dd>
         </div>
         <div className="flex items-baseline gap-2">

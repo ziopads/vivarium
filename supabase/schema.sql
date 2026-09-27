@@ -99,6 +99,14 @@ create table if not exists studio_members (
   artist_id  bigint not null references studio_artists(id)
 );
 
+-- The genre list. Members can add to it from the app; names are unique
+-- regardless of case. The starting five are in supabase/seeds/.
+create table if not exists studio_genres (
+  id    bigint generated always as identity primary key,
+  name  text not null unique check (name <> '' and name = btrim(name))
+);
+create unique index if not exists studio_genres_name_ci on studio_genres (lower(name));
+
 -- `canonical_id` is the Ableton folder name and is PERMANENT (trigger below).
 create table if not exists studio_projects (
   id            bigint generated always as identity primary key,
@@ -106,7 +114,7 @@ create table if not exists studio_projects (
   canonical_id  text not null check (canonical_id <> '' and canonical_id = btrim(canonical_id)),
   working_name  text not null default '',
   rating        smallint not null default 0 check (rating between 0 and 5),  -- 0 = unrated
-  genre         text not null default '',                                    -- '' = not set
+  genre         text references studio_genres (name) on update cascade,      -- null = not set
   bpm           numeric(5,2) check (bpm is null or bpm between 20 and 400),  -- null = not set
   created_by    text not null,
   created_at    timestamptz not null default now(),
@@ -166,6 +174,7 @@ create table if not exists studio_notes (
 );
 create index if not exists studio_notes_project_idx on studio_notes (project_id, created_at desc);
 
+alter table studio_genres         enable row level security;
 alter table studio_artists        enable row level security;
 alter table studio_members        enable row level security;
 alter table studio_projects       enable row level security;

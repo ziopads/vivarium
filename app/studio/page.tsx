@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { instance } from '@/lib/instance';
-import { getMemberArtistId, getStudioViewer, listArtists, listProjects } from '@/lib/studio';
+import { getMemberArtistId, getStudioViewer, listArtists, listGenres, listProjects } from '@/lib/studio';
 import StudioProjects from './_ui/StudioProjects';
 
 export const metadata = { title: 'Studio' };
@@ -12,9 +12,10 @@ export default async function StudioPage() {
   const viewer = await getStudioViewer();
   if (!viewer) redirect('/login?next=/studio');
 
-  const [projects, artists, memberArtistId] = await Promise.all([
+  const [projects, artists, genres, memberArtistId] = await Promise.all([
     listProjects(),
     listArtists(),
+    listGenres(),
     getMemberArtistId(viewer.email),
   ]);
 
@@ -26,7 +27,12 @@ export default async function StudioPage() {
           {projects.length} {projects.length === 1 ? 'project' : 'projects'}
         </p>
       </div>
-      <StudioProjects initialProjects={projects} artists={artists} defaultArtistId={memberArtistId} />
+      <StudioProjects
+        initialProjects={projects}
+        artists={artists}
+        initialGenres={genres}
+        defaultArtistId={memberArtistId}
+      />
     </div>
   );
 }

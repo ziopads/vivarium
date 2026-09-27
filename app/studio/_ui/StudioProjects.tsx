@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import type { StudioArtist, StudioProject } from '@/lib/studioTypes';
 import { RATING_MAX, todayCanonicalId } from '@/lib/studioTypes';
-import { api, InlineEdit, Stars } from './controls';
+import { api, GenreSelect, InlineEdit, Stars } from './controls';
 
 // The studio's project list: create, rename, rate, set genre and BPM, filter.
 //
@@ -21,13 +21,16 @@ function sortProjects(list: StudioProject[]): StudioProject[] {
 export default function StudioProjects({
   initialProjects,
   artists,
+  initialGenres,
   defaultArtistId,
 }: {
   initialProjects: StudioProject[];
   artists: StudioArtist[];
+  initialGenres: string[];
   defaultArtistId: number | null;
 }) {
   const [projects, setProjects] = useState(initialProjects);
+  const [genres, setGenres] = useState(initialGenres);
   const [query, setQuery] = useState('');
   const [artistFilter, setArtistFilter] = useState<number | ''>('');
   // 'any', 'unrated', or a minimum number of stars.
@@ -37,11 +40,6 @@ export default function StudioProjects({
 
   const filtering = query.trim() !== '' || artistFilter !== '' || ratingFilter !== 'any' || genreFilter !== '';
 
-  // The genre menu offers the genres in use, so it never lists an empty choice.
-  const genres = useMemo(
-    () => Array.from(new Set(projects.map((p) => p.genre).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
-    [projects],
-  );
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -74,6 +72,20 @@ export default function StudioProjects({
       replace(p);
       setError(r.body.error || 'Could not save the rating.');
     }
+  }
+
+  async function addGenre(name: string): Promise<string | null> {
+    setError('');
+    const r = await api<{ name: string; genres: string[] }>('/api/studio/genres', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+    if (!r.ok) {
+      setError(r.body.error || 'Could not add the genre.');
+      return null;
+    }
+    setGenres(r.data.genres);
+    return r.data.name;
   }
 
   async function patch(p: StudioProject, fields: Record<string, unknown>): Promise<boolean> {
@@ -185,7 +197,14 @@ export default function StudioProjects({
       ) : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-card">
           {shown.map((p) => (
-            <ProjectRow key={p.id} project={p} onRate={(n) => rate(p, n)} onPatch={(f) => patch(p, f)} />
+            <ProjectRow
+              key={p.id}
+              project={p}
+              genres={genres}
+              onAddGenre={addGenre}
+              onRate={(n) => rate(p, n)}
+              onPatch={(f) => patch(p, f)}
+            />
           ))}
         </ul>
       )}
@@ -195,10 +214,14 @@ export default function StudioProjects({
 
 function ProjectRow({
   project: p,
+  genres,
+  onAddGenre,
   onRate,
   onPatch,
 }: {
   project: StudioProject;
+  genres: string[];
+  onAddGenre: (name: string) => Promise<string | null>;
   onRate: (rating: number) => void;
   onPatch: (fields: Record<string, unknown>) => Promise<boolean>;
 }) {
@@ -227,8 +250,14 @@ function ProjectRow({
         />
       </div>
 
-      <div className="w-32 shrink-0 text-muted">
-        <InlineEdit value={p.genre} placeholder="genre" label="Genre" onSave={(v) => onPatch({ genre: v })} />
+      <div className="w-36 shrink-0 text-muted">
+        <GenreSelect
+          value={p.genre}
+          genres={genres}
+          onAddGenre={onAddGenre}
+          onChange={(g) => onPatch({ genre: g })}
+          className="w-full border-transparent bg-transparent hover:border-line"
+        />
       </div>
 
       <div className="w-16 shrink-0 text-right tabular-nums text-muted">

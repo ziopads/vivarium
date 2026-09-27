@@ -125,3 +125,96 @@ export function Stars({ rating, onRate }: { rating: number; onRate: (n: number) 
     </span>
   );
 }
+
+const NEW_GENRE = '__new__';
+
+/**
+ * Genre picker: the studio's list, "—" for none, and "+ New genre…", which
+ * turns the menu into a text field. Enter (or leaving the field with text in
+ * it) adds the genre to the list and applies it; Escape backs out.
+ */
+export function GenreSelect({
+  value,
+  genres,
+  onChange,
+  onAddGenre,
+  className = '',
+}: {
+  value: string;
+  genres: string[];
+  onChange: (genre: string) => unknown;
+  /** Adds to the shared list; resolves to the stored spelling, or null on failure. */
+  onAddGenre: (name: string) => Promise<string | null>;
+  className?: string;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function create() {
+    const name = draft.trim();
+    if (!name) {
+      setAdding(false);
+      return;
+    }
+    setBusy(true);
+    const stored = await onAddGenre(name);
+    setBusy(false);
+    if (stored) {
+      setAdding(false);
+      await onChange(stored);
+    }
+  }
+
+  const base = `rounded-md border border-line bg-card px-2 py-1 text-sm outline-none focus:border-rust ${className}`;
+
+  if (adding) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        disabled={busy}
+        placeholder="New genre"
+        aria-label="New genre"
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={create}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Escape') {
+            setDraft('');
+            setAdding(false);
+          }
+        }}
+        className={base}
+      />
+    );
+  }
+
+  // A value missing from the list (it shouldn't happen, the database forbids
+  // it) still shows, rather than the menu silently reading "—".
+  const options = value && !genres.includes(value) ? [value, ...genres] : genres;
+
+  return (
+    <select
+      value={value}
+      aria-label="Genre"
+      onChange={(e) => {
+        if (e.target.value === NEW_GENRE) {
+          setDraft('');
+          setAdding(true);
+        } else {
+          onChange(e.target.value);
+        }
+      }}
+      className={base}
+    >
+      <option value="">—</option>
+      {options.map((g) => (
+        <option key={g} value={g}>
+          {g}
+        </option>
+      ))}
+      <option value={NEW_GENRE}>+ New genre…</option>
+    </select>
+  );
+}
